@@ -1,12 +1,14 @@
 # Docker Compose for claylo-rs template testing infrastructure
 #
 # Usage:
-#   just docker-up      # Start all services
+#   just docker-up      # Start OTEL stack
 #   just docker-down    # Stop all services
 #   just docker-logs    # Tail logs
+#   just test-otel      # Run OTEL integration tests
 #
 # Or directly:
-#   docker compose -f scripts/docker/docker-compose.yml up -d
+#   docker compose -f scripts/docker/docker-compose.yml up -d otel-lgtm
+#   docker compose -f scripts/docker/docker-compose.yml run --rm bats-runner
 
 services:
   # =============================================================================
@@ -39,6 +41,31 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # =============================================================================
+  # Bats Test Runner (for CI or isolated testing)
+  # =============================================================================
+  # Runs bats tests inside a container with all dependencies
+  #
+  # Note: For OTEL tests, the runner needs network access to otel-lgtm
+  # In CI, tests run on host with docker-compose services available
+  #
+  bats-runner:
+    image: bats/bats:latest
+    container_name: claylo-bats-runner
+    working_dir: /code
+    volumes:
+      - ../..:/code:ro
+      - ../../target/template-tests:/code/target/template-tests
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-lgtm:4317
+    depends_on:
+      otel-lgtm:
+        condition: service_healthy
+    # Default: run all tests
+    command: ["/code/test"]
+    profiles:
+      - test  # Only start with --profile test
 
 volumes:
   otel-data:
