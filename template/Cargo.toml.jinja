@@ -1,0 +1,109 @@
+[workspace]
+members = [{% if has_xtask %}"xtask", {% endif %}"crates/*"]
+default-members = ["crates/*"]
+resolver = "2"
+
+[workspace.package]
+edition = "{{ edition }}"
+license = "{% if license | length == 2 %}MIT OR Apache-2.0{% elif 'MIT' in license %}MIT{% else %}Apache-2.0{% endif %}"
+version = "0.1.0"
+# version we want to allow
+rust-version = "{{ msrv }}"
+readme = "README.md"
+repository = "https://github.com/{{ owner }}/{{ project_name }}"
+homepage = "https://github.com/{{ owner }}/{{ project_name }}"
+documentation = "https://docs.rs/{{ project_name }}"
+description = "{{ project_description }}"
+keywords = []
+categories = [{% for cat in categories %}"{{ cat.split(': ')[1] }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+
+[workspace.lints.rust]
+# Use "deny" instead of "forbid" to allow benchmark harnesses to override
+# when their instrumentation machinery requires it (e.g., gungraun's FFI exports)
+unsafe_code = "deny"
+# Encourage documentation - warn on public items missing docs
+missing_docs = "warn"
+
+[workspace.lints.clippy]
+all = "warn"
+nursery = "warn"
+
+# Optimize dependencies in dev mode for faster tests
+# (keeps main crate unoptimized for fast incremental builds)
+[profile.dev.package."*"]
+opt-level = 2
+
+# Reduce debug info size (line tables only, no variable info)
+# Light optimization for better runtime without killing incremental builds
+[profile.dev]
+debug = "line-tables-only"
+opt-level = 1
+# On macOS, split debug info for faster linking
+split-debuginfo = "unpacked"
+
+# Test profile with full debug symbols for profiling
+[profile.test]
+inherits = "dev"
+debug = true
+
+# Release profile with reduced debug info for smaller binaries
+[profile.release]
+debug = "line-tables-only"
+
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
+
+# Debug-friendly profile for investigating mysteries (hangs, crashes, etc.)
+# Usage: cargo build --profile mystery
+[profile.mystery]
+inherits = "release"
+opt-level = 1
+debug = true
+strip = false
+{% if has_benchmarks %}
+# Optimized profile for benchmarks
+[profile.bench]
+inherits = "release"
+lto = "thin"
+debug = "line-tables-only"
+{% endif %}
+{% if has_github_releases %}
+# Config for 'dist' (cargo-dist) - binary distribution to GitHub Releases and Homebrew
+[workspace.metadata.dist]
+# The preferred dist version to use in CI (Cargo.toml SemVer syntax)
+cargo-dist-version = "0.30.3"
+# CI backends to support
+ci = ["github"]
+# The installers to generate for each app
+installers = ["homebrew"]
+# Target platforms to build apps for (Rust target-triple syntax)
+targets = [
+  "x86_64-unknown-linux-gnu",
+  "aarch64-unknown-linux-gnu",
+  "x86_64-apple-darwin",
+  "x86_64-pc-windows-msvc",
+  "aarch64-apple-darwin",
+]
+tap = "{{ owner }}/homebrew-brew"
+publish-jobs = ["homebrew"]
+# Extra static files to include in each App (path relative to this Cargo.toml's dir)
+include = ["dist/share"]
+github-build-setup = "../dist-build-setup.yml"
+# Which actions to run on pull requests
+pr-run-mode = "plan"
+
+# cog creates the release on github
+create-release = false
+
+# Whether to embed dependency information using cargo-auditable
+cargo-auditable = true
+# Software Bill of Materials. Nice to have.
+cargo-cyclonedx = true
+
+[workspace.metadata.dist.github-action-commits]
+"actions/checkout" = "v6"
+"actions/upload-artifact" = "v6"
+"actions/download-artifact" = "v7"
+{% endif %}

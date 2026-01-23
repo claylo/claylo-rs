@@ -1,0 +1,83 @@
+//! {{ project_name }} CLI
+#![deny(unsafe_code)]
+
+use anyhow::Context;
+use clap::Parser;
+{% if has_jsonl_logging or has_opentelemetry -%}
+use tracing::debug;
+{% endif -%}
+use {{ crate_name }}::{Cli, Commands, commands};
+{% if has_config -%}
+{% if has_core_library -%}
+use {{ crate_name }}_core::config::ConfigLoader;
+{% else -%}
+use crate::config::ConfigLoader;
+{% endif -%}
+{% endif %}
+{% if has_jsonl_logging or has_opentelemetry %}
+mod observability;
+{% endif %}
+
+{% if has_opentelemetry -%}
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+{% else -%}
+fn main() -> anyhow::Result<()> {
+{% endif -%}
+    let cli = Cli::parse();
+
+    if let Some(ref dir) = cli.chdir {
+        std::env::set_current_dir(dir)
+            .with_context(|| format!("failed to change directory to {}", dir.display()))?;
+    }
+{% if has_config %}
+    let cwd = std::env::current_dir().context("failed to determine current directory")?;
+    let config = ConfigLoader::new()
+        .with_project_search(cwd)
+        .load()
+        .context("failed to load configuration")?;
+{% endif %}
+{% if has_jsonl_logging or has_opentelemetry %}
+    let obs_config = observability::ObservabilityConfig::from_env_with_overrides(
+{% if has_opentelemetry and has_config -%}
+        config.otel_endpoint.clone(),
+{% elif has_opentelemetry -%}
+        None,
+{% endif -%}
+{% if has_config -%}
+        config
+            .log_dir
+            .as_ref()
+            .map(|dir| dir.as_std_path().to_path_buf()),
+{% else -%}
+        None,
+{% endif -%}
+    );
+{% if has_config -%}
+    let env_filter = observability::env_filter(cli.quiet, cli.verbose, config.log_level.as_str());
+{% else -%}
+    let env_filter = observability::env_filter(cli.quiet, cli.verbose, "info");
+{% endif -%}
+    let _guard = observability::init_observability(&obs_config, env_filter)
+        .context("failed to initialize logging/tracing")?;
+
+    debug!(
+        verbose = cli.verbose,
+        quiet = cli.quiet,
+        json = cli.json,
+        color = %cli.color,
+        chdir = ?cli.chdir,
+        "CLI initialized"
+    );
+
+    // Execute command
+    match cli.command {
+        Commands::Info(args) => commands::info::cmd_info(args, cli.json),
+    }
+{% else %}
+    // Execute command
+    match cli.command {
+        Commands::Info(args) => commands::info::cmd_info(args, cli.json),
+    }
+{% endif %}
+}

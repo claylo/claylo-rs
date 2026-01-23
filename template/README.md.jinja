@@ -1,0 +1,358 @@
+# {{ project_name }}
+
+[![CI](https://github.com/{{ owner }}/{{ project_name }}/actions/workflows/ci.yml/badge.svg)](https://github.com/{{ owner }}/{{ project_name }}/actions/workflows/ci.yml)
+[![Crates.io](https://img.shields.io/crates/v/{{ project_name }}.svg)](https://crates.io/crates/{{ project_name }})
+[![docs.rs](https://docs.rs/{{ project_name }}/badge.svg)](https://docs.rs/{{ project_name }})
+[![MSRV](https://img.shields.io/badge/MSRV-{{ msrv }}-blue.svg)](https://github.com/{{ owner }}/{{ project_name }})
+
+{{ project_description }}
+{% if has_cli %}
+
+## Features
+{% if has_config %}
+
+- **Hierarchical Configuration** - Automatic config discovery from project directories up to user home
+{%- endif %}
+{% if has_jsonl_logging %}
+- **Structured Logging** - Daily-rotated JSONL log files{% if has_opentelemetry %} with optional OpenTelemetry export{% endif %}
+
+{%- endif %}
+- **JSON Output** - Machine-readable output for scripting and automation
+- **Shell Completions** - Tab completion for Bash, Zsh, Fish, and PowerShell
+- **Man Pages** - Unix-style documentation
+
+## Installation
+
+### Homebrew (macOS and Linux)
+
+```bash
+brew install {{ owner }}/brew/{{ project_name }}
+```
+
+### Pre-built Binaries
+
+Download the latest release for your platform from the [releases page](https://github.com/{{ owner }}/{{ project_name }}/releases).
+
+Binaries are available for:
+- macOS (Apple Silicon and Intel)
+- Linux (x86_64 and ARM64, glibc and musl)
+- Windows (x86_64 and ARM64)
+
+### From Source
+
+```bash
+cargo install {{ project_name }}
+```
+
+Or build from source:
+
+```bash
+git clone https://github.com/{{ owner }}/{{ project_name }}.git
+cd {{ project_name }}
+cargo install --path crates/{{ project_name }}
+```
+
+### Shell Completions
+
+Shell completions are included in release archives and Homebrew installs. For manual installation, see [Shell Completions](#shell-completions) below.
+
+## Usage
+
+```bash
+# Show version and build information
+{{ project_name }} info
+
+# JSON output for scripting
+{{ project_name }} info --json
+
+# Enable verbose output
+{{ project_name }} --verbose <command>
+```
+{% if has_config %}
+
+## Configuration
+
+Configuration files are discovered automatically in order of precedence (highest first):
+
+1. `.{{ project_name }}.<ext>` in current directory or any parent
+2. `{{ project_name }}.<ext>` in current directory or any parent
+3. `~/.config/{{ project_name }}/config.<ext>` (user config)
+
+**Supported formats:** TOML, YAML, JSON, JSON5 (extensions: `.toml`, `.yaml`, `.yml`, `.json`, `.json5`)
+
+Values from higher-precedence files override lower ones. Missing files are silently ignored.
+
+See the example configurations in the repository root for templates.
+
+### Example Configuration
+
+**TOML** (`~/.config/{{ project_name }}/config.toml`):
+```toml
+log_level = "info"
+```
+
+**YAML** (`~/.config/{{ project_name }}/config.yaml`):
+```yaml
+log_level: info
+```
+
+**JSON** (`~/.config/{{ project_name }}/config.json`):
+```json
+{
+  "log_level": "info"
+}
+```
+
+### Configuration Options
+
+| Option | Values | Default | Description |
+|--------|--------|---------|-------------|
+| `log_level` | `debug`, `info`, `warn`, `error` | `info` | Minimum log level to display |
+{%- if has_jsonl_logging %}
+| `log_dir` | path | platform default | Directory for JSONL log files |
+{%- endif %}
+{%- if has_opentelemetry %}
+| `otel_endpoint` | URL | unset | Enables OTel export when set |
+{%- endif %}
+{%- endif %}
+{% if has_jsonl_logging %}
+
+## Logging
+
+Logs are written as **JSONL** to a daily-rotated file.
+Rotation is date-suffixed (e.g. `{{ project_name }}.jsonl.2026-01-06`).
+
+> **Note**: Logs never write to stdout, which is reserved for application output
+> (important for tools like MCP servers that use stdout for communication).
+
+Default log path (first writable wins):
+
+1. `/var/log/{{ project_name }}.jsonl` (Unix only, requires write access)
+2. OS user data directory (e.g. `~/.local/share/{{ project_name }}/logs/{{ project_name }}.jsonl`)
+3. Falls back to stderr if no writable directory is found
+
+Overrides:
+
+- `APP_LOG_PATH` — full file path
+- `APP_LOG_DIR` — directory (file name defaults to `{{ project_name }}.jsonl`)
+- `APP_ENV` — environment tag (default: `dev`)
+{%- if has_config %}
+- Config file key: `log_dir`
+{%- endif %}
+{% if has_opentelemetry %}
+
+### OpenTelemetry Export
+
+OpenTelemetry tracing is **opt-in**. Set `OTEL_EXPORTER_OTLP_ENDPOINT`{% if has_config %} or config key `otel_endpoint`{% endif %} to enable trace export to an OTLP collector.
+{%- endif %}
+{%- endif %}
+
+## Shell Completions
+
+Shell completions are included in the release archives. To install manually:
+
+**Bash**
+```bash
+{{ project_name }} completions bash > ~/.local/share/bash-completion/completions/{{ project_name }}
+```
+
+**Zsh**
+```bash
+{{ project_name }} completions zsh > ~/.zfunc/_{{ project_name }}
+```
+
+**Fish**
+```bash
+{{ project_name }} completions fish > ~/.config/fish/completions/{{ project_name }}.fish
+```
+
+**PowerShell**
+```powershell
+{{ project_name }} completions powershell > $PROFILE.CurrentUserAllHosts
+```
+{%- endif %}
+
+## Development
+
+This project uses a workspace layout with multiple crates:
+
+```
+crates/
+{%- if has_cli %}
+├── {{ project_name }}/       # CLI binary
+{%- endif %}
+{%- if has_core_library %}
+└── {{ project_name }}-core/  # Core library{% if has_config %} (config, errors){% endif %}
+{%- endif %}
+```
+
+### Prerequisites
+
+- Rust {{ msrv }}+ (2024 edition)
+- [just](https://github.com/casey/just) (task runner)
+- [cargo-nextest](https://nexte.st/) (test runner)
+
+### Quick Start
+
+```bash
+# List available tasks
+just --list
+
+# Run full check suite (format, lint, test)
+just check
+
+# Run tests only
+just test
+
+# Run with coverage
+just cov
+```
+
+### Build Tasks
+
+| Command | Description |
+|---------|-------------|
+| `just check` | Format, lint, and test |
+| `just fmt` | Format code with rustfmt |
+| `just clippy` | Run clippy lints |
+| `just test` | Run tests with nextest |
+| `just doc-test` | Run documentation tests |
+| `just cov` | Generate coverage report |
+{% if has_xtask %}
+
+### xtask Commands
+
+The project includes an xtask crate for build automation:
+
+```bash
+# Generate man pages
+cargo xtask man
+
+# Generate shell completions
+cargo xtask completions
+
+# Generate for specific shell
+cargo xtask completions --shell zsh
+```
+{%- endif %}
+
+## Architecture
+{% if has_cli or has_core_library %}
+
+### Crate Organization
+{% if has_cli %}
+
+- **{{ project_name }}** - The CLI binary. Handles argument parsing, command dispatch, and user interaction.
+{%- endif %}
+{%- if has_core_library %}
+- **{{ project_name }}-core** - The core library. Contains {% if has_config %}configuration loading, error types, and shared functionality{% else %}error types and shared functionality{% endif %}.
+{%- endif %}
+{%- endif %}
+
+### Error Handling
+
+- Libraries use `thiserror` for structured error types
+- Binaries use `anyhow` for flexible error propagation
+- All errors include context for debugging
+{% if has_config %}
+
+### Configuration System
+
+The `ConfigLoader` provides flexible configuration discovery:
+
+```rust
+use {{ crate_name }}_core::config::{Config, ConfigLoader};
+
+let config = ConfigLoader::new()
+    .with_project_search(std::env::current_dir()?)
+    .with_user_config(true)
+    .load()?;
+```
+
+Features:
+- Walks up directory tree looking for config files
+- Stops at repository boundaries (`.git` by default)
+- Merges multiple config sources with clear precedence
+- Supports explicit file paths for testing
+{%- endif %}
+
+## CI/CD
+
+This project uses GitHub Actions for continuous integration:
+
+- **Build & Test** - Runs on every push and PR
+- **MSRV Check** - Verifies minimum supported Rust version
+- **Clippy** - Enforces lint rules
+- **Coverage** - Tracks test coverage
+
+### Release Process
+
+Releases are automated via [cargo-dist](https://opensource.axo.dev/cargo-dist/) and [cocogitto](https://docs.cocogitto.io/):
+
+1. Commits follow [Conventional Commits](https://www.conventionalcommits.org/)
+2. Version bumps are calculated from commit history
+3. Binaries are built for all supported platforms
+4. Homebrew formula is updated automatically
+
+To create a release:
+
+```bash
+# Bump version based on conventional commits
+cog bump --auto
+
+# Or specify version type
+cog bump --patch
+cog bump --minor
+cog bump --major
+```
+
+### Dependabot
+
+This project uses Dependabot for security monitoring, but **not** for automatic pull requests. Instead:
+
+1. Dependabot scans for vulnerabilities in dependencies
+2. A weekly GitHub Actions workflow converts alerts into **issues**
+3. Maintainers review and address updates manually
+
+This approach provides:
+- Full control over when and how dependencies are updated
+- Opportunity to batch related updates together
+- Time to test updates before merging
+- Cleaner git history without automated PR noise
+
+Security alerts appear as issues labeled `dependabot-alert`.
+
+## Contributing
+
+Contributions welcome! Please see [AGENTS.md](AGENTS.md) for development conventions.
+
+### Commit Messages
+
+This project uses [Conventional Commits](https://www.conventionalcommits.org/):
+
+- `feat:` - New features
+- `fix:` - Bug fixes
+- `docs:` - Documentation changes
+- `perf:` - Performance improvements
+- `chore:` - Maintenance tasks
+
+### Code Style
+
+- Rust 2024 edition
+- `#![deny(unsafe_code)]` - Safe Rust only
+- Follow `rustfmt` defaults
+- Keep clippy clean
+
+## License
+{% if license | length == 2 %}
+Licensed under either of:
+
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE))
+- MIT license ([LICENSE-MIT](LICENSE-MIT))
+
+at your option.
+{% elif 'MIT' in license %}
+Licensed under the MIT license ([LICENSE-MIT](LICENSE-MIT)).
+{% else %}
+Licensed under the Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE)).
+{% endif %}

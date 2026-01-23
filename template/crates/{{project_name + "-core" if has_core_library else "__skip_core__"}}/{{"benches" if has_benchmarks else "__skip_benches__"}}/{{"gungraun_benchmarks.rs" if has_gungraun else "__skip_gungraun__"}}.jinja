@@ -1,0 +1,54 @@
+//! Gungraun benchmarks for {{ project_name }}-core
+//!
+//! CPU instruction count benchmarks for deterministic CI regression detection.
+//! Uses Valgrind under the hood - results are consistent across runs.
+//!
+//! Run with: `cargo bench --bench gungraun_benchmarks`
+//!
+//! Platform support:
+//! - Linux x86_64/ARM: Fully supported
+//! - macOS Intel (x86_64): Fully supported
+//! - macOS ARM (M1/M2/M3): NOT supported (Valgrind limitation)
+//! - Windows: NOT supported
+//!
+//! AUTO-GENERATED from crates/{{ project_name }}-core/benches/benchmarks.kdl.
+//! Do not edit directly. Run `cargo xtask gen-benchmarks` to regenerate.
+//!
+//! See docs/benchmarks-howto.md for more information.
+
+// SAFETY: The gungraun library's #[library_benchmark] macro generates FFI
+// exports using #[export_name] to interface with Valgrind. This is internal
+// to gungraun's codegen and does not indicate unsafe code in our benchmarks.
+// The workspace forbids unsafe_code, but benchmark harnesses require this
+// exception for their instrumentation machinery.
+#![allow(unsafe_code)]
+// Benchmark macros generate pub items that don't need documentation.
+#![allow(missing_docs)]
+
+use gungraun::{library_benchmark, library_benchmark_group, main};
+use std::hint::black_box;
+
+use {{ crate_name }}_core::config::{Config, ConfigLoader};
+
+#[library_benchmark]
+fn load_defaults() -> Config {
+    black_box(
+        ConfigLoader::new()
+            .with_user_config(false)
+            .without_boundary_marker()
+            .load()
+            .unwrap(),
+    )
+}
+
+#[library_benchmark]
+fn construct_loader() -> ConfigLoader {
+    black_box(ConfigLoader::new())
+}
+
+library_benchmark_group!(
+    name = all_benchmarks;
+    benchmarks = load_defaults, construct_loader
+);
+
+main!(library_benchmark_groups = all_benchmarks);

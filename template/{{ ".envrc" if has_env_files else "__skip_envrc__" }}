@@ -1,0 +1,10 @@
+PATH_add "$PWD/bin"
+
+ENV_NAME="${APP_ENV:-${NODE_ENV:-${RAILS_ENV:-development}}}"
+
+dotenv_if_exists                      # loads .env if present
+dotenv_if_exists ".env.rust"
+dotenv_if_exists ".env.node"
+dotenv_if_exists ".env.${ENV_NAME}"
+dotenv_if_exists ".env.local"
+dotenv_if_exists ".env.${ENV_NAME}.local"

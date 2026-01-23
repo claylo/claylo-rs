@@ -1,0 +1,32 @@
+# .cargo/config.toml
+
+[alias]
+# Quality-of-life
+b = "build"
+c = "check"
+t = "test"
+r = "run"
+xtask = "run --package xtask --release --"
+
+# Consistent linting across workspace
+clippy-all = ["clippy", "--all-targets", "--all-features"]
+
+# nextest (if installed)
+nt = ["nextest", "run"]
+nt-ci = ["nextest", "run", "--profile", "ci"]
+
+# Doctests explicit (since nextest doesn’t cover them the same way)
+doc-test = ["test", "--doc"]
+
+# Coverage (if cargo-llvm-cov installed)
+cov = ["llvm-cov", "nextest", "--html"]
+
+[cargo-new]
+vcs = "git"
+
+[net]
+retry = 3                   # network retries
+git-fetch-with-cli = true   # use `git` executable for git ops
+
+[registries.crates-io]
+protocol = "sparse"

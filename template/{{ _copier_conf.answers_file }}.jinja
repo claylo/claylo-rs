@@ -1,0 +1,10 @@
+# Changes here will be overwritten by Copier;
+#
+# NEVER EDIT MANUALLY!
+#
+# Manual edits will trick Copier, making it believe that those modified
+# answers produced the current subproject, while it was produced by a
+# different answers set. This will produce unpredictable behavior of
+# Copier's "smart diff" algorithm used for updates, which may work
+# under certain circumstances, but not always.
+{{ _copier_answers | combine({'copyright_year': copyright_year}) | to_nice_yaml -}}

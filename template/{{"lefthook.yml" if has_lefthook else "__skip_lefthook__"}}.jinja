@@ -1,0 +1,40 @@
+# Lefthook configuration
+# See https://github.com/evilmartians/lefthook for more information
+# Install: brew install lefthook && lefthook install
+
+pre-commit:
+  parallel: true
+  commands:
+    cargo-fmt:
+      glob: "*.rs"
+      run: cargo fmt --all -- --check
+      fail_text: "Run 'cargo fmt --all' to fix formatting"
+
+    cargo-clippy:
+      glob: "*.rs"
+      run: cargo clippy --all-targets --all-features -- -D warnings
+      fail_text: "Fix clippy warnings before committing"
+
+    cargo-deny:
+      glob: "{Cargo.toml,Cargo.lock}"
+      run: cargo deny check
+      fail_text: "Fix cargo-deny issues before committing"
+
+# Uncomment for conventional commit validation
+# commit-msg:
+#   commands:
+#     conventional:
+#       run: |
+#         # Basic conventional commit regex check
+#         if ! grep -qE '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?: .+' "$1"; then
+#           echo "Commit message must follow Conventional Commits format"
+#           echo "Example: feat(parser): add support for arrays"
+#           exit 1
+#         fi
+
+pre-push:
+  parallel: true
+  commands:
+    cargo-test:
+      run: cargo nextest run
+      fail_text: "Tests must pass before pushing"

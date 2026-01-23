@@ -1,0 +1,88 @@
+[package]
+name = "{{ project_name }}"
+{% if versioning == "global" -%}
+version.workspace = true
+{% else -%}
+version = "0.1.0"
+{% endif -%}
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme.workspace = true
+exclude = [
+    # Workspace-level files (/ = workspace root)
+    "/.claude/",
+    "/.github/",
+    "/AGENTS.md",
+    "/.justfile",
+    "/.editorconfig",
+    "/.markdownlint.yaml",
+    "/.yamllint",
+    "/.envrc",
+    "/.env",
+    "/.env.rust",
+{% if has_benchmarks %}
+    "/bench-reports/",
+    "/scripts/",
+{% endif %}
+    "/docs/",
+    "/cog.toml",
+    "/deny.toml",
+    # Example config files
+    "/*.example",
+]
+
+[[bin]]
+name = "{{ project_name }}"
+path = "src/main.rs"
+
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/v{ version }/{ name }-{ target }.{ archive-format }"
+bin-dir = "{ bin }{ binary-ext }"
+pkg-fmt = "tgz"
+
+[package.metadata.binstall.overrides.x86_64-pc-windows-msvc]
+pkg-url = "{ repo }/releases/download/v{ version }/{ name }-v{ version }-{ target }.zip"
+pkg-fmt = "zip"
+bin-dir = "{ bin }{ binary-ext }"
+
+[dependencies]
+{% if has_core_library -%}
+{{ project_name }}-core = { version = "0.1", path = "../{{ project_name }}-core" }
+{% endif -%}
+clap = { version = "4.5", features = ["derive"] }
+anyhow = "1.0"
+tracing = "0.1"
+{% if has_jsonl_logging or has_opentelemetry -%}
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-appender = "0.2"
+{% endif -%}
+{% if has_opentelemetry -%}
+opentelemetry = { version = "0.31", features = ["trace"] }
+opentelemetry_sdk = { version = "0.31", features = ["trace", "rt-tokio"] }
+opentelemetry-otlp = { version = "0.31", features = ["grpc-tonic"] }
+tracing-opentelemetry = "0.32"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+{% endif -%}
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+{% if has_jsonl_logging or has_opentelemetry -%}
+dirs = "6.0"
+{% endif -%}
+{% if has_config and not has_core_library -%}
+camino = "1.1"
+config = "0.15"
+thiserror = "2.0"
+{% endif %}
+[dev-dependencies]
+assert_cmd = "2.0"
+predicates = "3.1"
+{% if has_config -%}
+tempfile = "3.20"
+{% endif -%}
+
+[lints]
+workspace = true

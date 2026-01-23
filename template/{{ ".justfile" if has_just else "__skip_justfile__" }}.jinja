@@ -1,0 +1,302 @@
+set shell := ["zsh", "-c"]
+set dotenv-load := true
+toolchain := `taplo get -f rust-toolchain.toml toolchain.channel | tr -d '"'`
+msrv := "{{ msrv }}"
+
+default:
+  @just --list
+
+# First-time project setup after cloning
+bootstrap:
+    #!/usr/bin/env zsh
+    set -euo pipefail
+    echo "🔧 Bootstrapping {{ project_name }}..."
+    echo ""
+    # Check Rust version
+    installed=$(rustc --version | awk '{print $2}')
+    echo "📦 Rust version: $installed (MSRV: {% raw %}{{msrv}}{% endraw %})"
+    if [[ "$(printf '%s\n' "{% raw %}{{msrv}}{% endraw %}" "$installed" | sort -V | head -n1)" != "{% raw %}{{msrv}}{% endraw %}" ]]; then
+        echo "⚠️  Warning: Installed Rust $installed is older than MSRV {% raw %}{{msrv}}{% endraw %}"
+        echo "   Run: rustup update stable"
+    fi
+    echo ""
+{% if has_cog %}
+    # Install git hooks (cocogitto)
+    echo "🪝 Installing git hooks (cocogitto)..."
+    cog install-hook --all 2>/dev/null || echo "   (cog not installed, run: cargo install cocogitto)"
+{% elif has_pre_commit %}
+    # Install git hooks (pre-commit)
+    echo "🪝 Installing git hooks (pre-commit)..."
+    pre-commit install 2>/dev/null || echo "   (pre-commit not installed, run: pip install pre-commit)"
+{% elif has_lefthook %}
+    # Install git hooks (lefthook)
+    echo "🪝 Installing git hooks (lefthook)..."
+    lefthook install 2>/dev/null || echo "   (lefthook not installed, run: brew install lefthook)"
+{% else %}
+    # No git hooks configured (hook_system=none)
+    echo "ℹ️  No git hooks configured"
+{% endif %}
+    echo ""
+    # Build
+    echo "🔨 Building project..."
+    cargo build --workspace
+    echo ""
+{% if has_xtask %}
+    # Generate completions and man pages
+    echo "📝 Generating shell completions..."
+    cargo xtask completions
+    echo ""
+    echo "📖 Generating man pages..."
+    cargo xtask man
+    echo ""
+{% endif %}
+    echo "✅ Bootstrap complete!"
+    echo ""
+    echo "Next steps:"
+    echo "  just check     - Run full test suite"
+    echo "  just test      - Run tests only"
+{% if has_config %}
+    echo "  cp config/{{ project_name }}.toml.example ~/.config/{{ project_name }}/config.toml"
+{% endif %}
+    echo "  {{ project_name }} --help"
+
+fmt:
+  cargo fmt --all
+
+clippy:
+  cargo +{% raw %}{{toolchain}}{% endraw %} clippy --all-targets --all-features --message-format=short -- -D warnings
+
+fix:
+  echo "Using toolchain {% raw %}{{toolchain}}{% endraw %}"
+  cargo +{% raw %}{{toolchain}}{% endraw %} clippy --fix --allow-dirty --allow-staged -- -W clippy::all
+
+# Check dependencies for security advisories and license compliance
+deny:
+  cargo deny check
+
+test:
+  cargo nextest run
+
+test-ci:
+  cargo nextest run --profile ci
+
+doc-test:
+  cargo test --doc
+
+cov:
+  @cargo llvm-cov clean --workspace
+  cargo llvm-cov nextest --no-report
+  @cargo llvm-cov report --html
+  @cargo llvm-cov report --summary-only --json --output-path target/llvm-cov/summary.json
+
+check: fmt clippy deny test doc-test
+
+# Watch for changes and run tests (requires cargo-watch)
+watch *args='':
+  cargo watch -x 'nextest run {% raw %}{{args}}{% endraw %}'
+
+# Watch and run clippy on changes
+watch-clippy:
+  cargo watch -x 'clippy --all-targets --all-features -- -D warnings'
+
+{% if has_cog %}
+install-hooks:
+  cog install-hook --all
+
+update-hooks:
+  cog install-hook --all --overwrite
+{% elif has_pre_commit %}
+install-hooks:
+  pre-commit install
+
+update-hooks:
+  pre-commit install --overwrite
+{% elif has_lefthook %}
+install-hooks:
+  lefthook install
+
+update-hooks:
+  lefthook install --force
+{% endif %}
+
+{% if has_md or has_md_strict %}
+# Lint markdown files
+mdlint *files='':
+    #!/usr/bin/env bash
+    if command -v rumdl &>/dev/null; then
+        rumdl ${files:-.}
+    elif command -v markdownlint &>/dev/null; then
+        markdownlint ${files:-"**/*.md"}
+    else
+        echo "Install rumdl (cargo install rumdl) or markdownlint (npm i -g markdownlint-cli)"
+        exit 1
+    fi
+
+# Fix markdown files
+mdfix *files='':
+    #!/usr/bin/env bash
+    if command -v rumdl &>/dev/null; then
+        rumdl --fix ${files:-.}
+    elif command -v markdownlint &>/dev/null; then
+        markdownlint --fix ${files:-"**/*.md"}
+    else
+        echo "Install rumdl (cargo install rumdl) or markdownlint (npm i -g markdownlint-cli)"
+        exit 1
+    fi
+{% endif %}
+
+{% if has_benchmarks %}
+# Run all benchmarks
+bench:
+  cargo xtask bench
+
+# Run divan (wall-clock) benchmarks only
+bench-divan:
+  cargo bench --bench divan_benchmarks
+{% if has_gungraun %}
+# Run gungraun (instruction count) benchmarks only
+bench-gungraun:
+  cargo bench --bench gungraun_benchmarks
+{% endif %}
+# Run CLI (hyperfine) benchmarks only
+bench-cli:
+  ./scripts/bench-cli.sh
+{% endif %}
+# Pre-release validation
+release-check:
+    #!/usr/bin/env zsh
+    set -euo pipefail
+    echo "🔍 Running pre-release checks..."
+    echo ""
+    # Check for uncommitted changes
+    if ! git diff --quiet HEAD 2>/dev/null; then
+        echo "❌ Uncommitted changes detected"
+        git status --short
+        exit 1
+    fi
+    echo "✅ Working directory clean"
+    # Run full test suite
+    echo ""
+    echo "🧪 Running tests..."
+    cargo nextest run
+    echo "✅ Tests passed"
+    # Clippy
+    echo ""
+    echo "📎 Running clippy..."
+    cargo clippy --all-targets --all-features -- -D warnings
+    echo "✅ Clippy clean"
+    # Security/license check
+    echo ""
+    echo "🔐 Running cargo-deny..."
+    cargo deny check
+    echo "✅ Dependencies OK"
+    # Build release
+    echo ""
+    echo "🔨 Building release..."
+    cargo build -p {{ project_name }} --release
+    echo "✅ Release build succeeded"
+    echo ""
+    echo "✅ All pre-release checks passed!"
+{% if has_cog %}
+    echo "   Ready for: cog bump --auto"
+{% else %}
+    echo "   Ready for release!"
+{% endif %}
+
+# Build release binary
+build-release:
+  cargo build -p {{ project_name }} --release
+
+zip:
+  git archive --format=zip --output=../{{ project_name }}-{% raw %}{{datetime('-%Y-%m-%d_%H%M')}}{% endraw %}.zip HEAD
+
+# Check for outdated dependencies (root only, no transitive noise)
+outdated:
+    cargo outdated --workspace --root-deps-only
+
+# Safe update: respects semver constraints, only touches Cargo.lock
+update:
+    cargo update --workspace --verbose
+
+# Upgrade Cargo.toml to latest compatible versions
+upgrade:
+    cargo upgrade --workspace
+    cargo update --workspace
+
+# The nuclear option: upgrade to latest incompatible versions (breaking changes)
+upgrade-breaking:
+    cargo upgrade --workspace --incompatible
+    cargo update --workspace
+
+# See what WOULD update without doing it
+check-updates:
+    cargo update --workspace --dry-run
+
+# Full refresh: update, test, clippy
+refresh: update
+    cargo test --workspace
+    cargo clippy --workspace -- -D warnings
+
+# Monthly maintenance: upgrade, test everything
+monthly: upgrade
+    cargo test --workspace
+    cargo clippy --workspace -- -D warnings
+    cargo build --workspace --release
+
+# Show why a specific package version is stuck
+[private]
+why pkg:
+    cargo tree -i {% raw %}{{pkg}}{% endraw %}
+
+# Update system-level cargo tools
+system-update:
+    cargo install-update -al
+{% if has_github_releases %}
+
+# =============================================================================
+# cargo-dist Release Workflow
+# =============================================================================
+
+# Generate cargo-dist release workflow from Cargo.toml config
+generate-release-workflow:
+    dist generate --skip-cargo
+    @echo "Generated .github/workflows/release.yml"
+    @echo "Review the workflow and commit it to the repository."
+{% endif %}
+{% if has_release_workflow %}
+
+# =============================================================================
+# Local Workflow Testing (requires act: https://nektosact.com/)
+# =============================================================================
+
+# Test CI workflow with act (dry run)
+test-ci-workflow:
+    act push -n -W .github/workflows/ci.yml
+
+# Test release workflow with act (dry run)
+test-release-workflow:
+    act release -n -W .github/workflows/release.yml --eventpath .github/test-events/release.json
+{% endif %}
+{% if has_crates_io_publish %}
+# Test publish workflow with act (dry run)
+test-publish-workflow:
+    act workflow_dispatch -n -W .github/workflows/publish.yml --input dry_run=true
+
+# Publish to a local/custom crates.io registry
+# Usage: just publish-local local
+#        just publish-local staging
+publish-local registry="local":
+    #!/usr/bin/env bash
+    set -euo pipefail
+{% if has_core_library %}
+    echo "Publishing {{ project_name }}-core to {% raw %}{{registry}}{% endraw %}..."
+    cargo publish --registry {% raw %}{{registry}}{% endraw %} -p {{ project_name }}-core
+    echo "Waiting 30s for registry to index..."
+    sleep 30
+{% endif %}
+{% if has_cli %}
+    echo "Publishing {{ project_name }} to {% raw %}{{registry}}{% endraw %}..."
+    cargo publish --registry {% raw %}{{registry}}{% endraw %} -p {{ project_name }}
+{% endif %}
+    echo "Done!"
+{% endif %}
