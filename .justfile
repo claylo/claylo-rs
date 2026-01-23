@@ -5,12 +5,28 @@
 default:
     @just --list
 
-# Test all template presets
+# Run all bats tests (conditional + presets)
 test:
+    ./test/bats/bin/bats test/
+
+# Run fast conditional file tests only
+test-fast:
+    ./test/bats/bin/bats test/conditional_files.bats
+
+# Run slow preset build tests only
+test-presets:
+    ./test/bats/bin/bats test/presets.bats
+
+# Run a specific bats test file
+test-file file:
+    ./test/bats/bin/bats {{ file }}
+
+# Run legacy test script (deprecated, use 'just test' instead)
+test-legacy:
     ./scripts/test-template.sh
 
-# Test a specific preset (minimal, standard, standard-otel, full)
-test-preset preset:
+# Run legacy test for a specific preset
+test-legacy-preset preset:
     ./scripts/test-template.sh {{ preset }}
 
 # Clean up test outputs
