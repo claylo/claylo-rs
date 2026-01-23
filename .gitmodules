@@ -10,3 +10,6 @@
 [submodule "test/test_helper/bats-support"]
 	path = test/test_helper/bats-support
 	url = https://github.com/bats-core/bats-support.git
+[submodule "test/crates-io"]
+	path = test/crates-io
+	url = https://github.com/rust-lang/crates.io.git
