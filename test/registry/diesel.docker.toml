@@ -1,0 +1,13 @@
+# Docker-only diesel config - doesn't regenerate schema.rs
+#
+# The crates.io schema.patch file has stale line numbers that cause
+# diesel migration run --locked-schema to fail. By omitting the `file`
+# setting, diesel skips schema regeneration entirely, using the
+# pre-existing schema.rs from the Docker image.
+
+[print_schema]
+with_docs = true
+column_sorting = "name"
+generate_missing_sql_type_definitions = true
+except_custom_type_definitions = ["Tsvector"]
+import_types = ["diesel::sql_types::*", "diesel_full_text_search::Tsvector"]

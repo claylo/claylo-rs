@@ -117,3 +117,100 @@ test-full:
     @echo ""
     @echo "Running OTEL integration tests..."
     just test-otel-docker
+
+# =============================================================================
+# Local crates.io Registry (for testing cargo publish workflows)
+# =============================================================================
+# Uses the official crates.io codebase as a submodule in test/crates-io
+# with custom configuration in test/registry/
+#
+# Quick start (uses pre-built GHCR images):
+#   just registry-up
+#
+# Build locally instead (slow, ~10 min first time):
+#   just registry-build
+#   just registry-up
+#
+# Publishing to local registry:
+#   cargo publish --index http://localhost:8888/git/index --token test-token
+
+# Start local crates.io registry (uses pre-built images if available)
+registry-up:
+    @echo "Starting local crates.io registry..."
+    @if [ -f test/registry/docker-compose.override.yml ]; then \
+        echo "  Using pre-built images from GHCR"; \
+        cd test/registry && docker compose pull --quiet 2>/dev/null || true; \
+    else \
+        echo "  Building locally (this may take a while)"; \
+    fi
+    cd test/registry && docker compose up -d
+    @echo ""
+    @echo "Waiting for services to be ready (may take 1-5 min on first run)..."
+    @until curl -s --connect-timeout 2 http://localhost:8888/api/v1/summary > /dev/null 2>&1; do sleep 3; echo "  waiting..."; done
+    @echo ""
+    @echo "Local crates.io registry is ready!"
+    @echo "  Backend API:  http://localhost:8888"
+    @echo "  Frontend UI:  http://localhost:4200"
+    @echo "  Git index:    http://localhost:8888/git/index"
+    @echo ""
+    @echo "To publish a crate:"
+    @echo "  cargo publish --index http://localhost:8888/git/index --token test-token"
+
+# Pull pre-built registry images from GHCR
+registry-pull:
+    @echo "Pulling pre-built images from GHCR..."
+    cd test/registry && docker compose pull
+
+# Build registry images locally (slow, ~10 min)
+registry-build:
+    @echo "Building registry images locally..."
+    @if [ -f test/registry/docker-compose.override.yml ]; then \
+        mv test/registry/docker-compose.override.yml test/registry/docker-compose.override.yml.disabled; \
+        echo "  Disabled override file for local build"; \
+    fi
+    cd test/registry && docker compose build
+
+# Enable pre-built images (restore override file)
+registry-use-prebuilt:
+    @if [ -f test/registry/docker-compose.override.yml.disabled ]; then \
+        mv test/registry/docker-compose.override.yml.disabled test/registry/docker-compose.override.yml; \
+        echo "Pre-built images enabled"; \
+    else \
+        echo "Already using pre-built images"; \
+    fi
+
+# Stop local crates.io registry
+registry-down:
+    cd test/registry && docker compose down
+
+# Tail crates.io logs
+registry-logs:
+    cd test/registry && docker compose logs -f
+
+# Check crates.io status
+registry-status:
+    @cd test/registry && docker compose ps
+    @echo ""
+    @if [ -f test/registry/docker-compose.override.yml ]; then \
+        echo "Mode: pre-built images (GHCR)"; \
+    else \
+        echo "Mode: local build"; \
+    fi
+
+# Restart crates.io backend (after code changes)
+registry-restart:
+    cd test/registry && docker compose restart backend worker
+
+# Reset crates.io database (destructive - removes all data)
+registry-reset:
+    @echo "This will delete all registry data. Press Ctrl+C to cancel..."
+    @sleep 3
+    cd test/registry && docker compose down -v
+    @echo "Registry data cleared. Run 'just registry-up' to start fresh."
+
+# Run crates.io publish tests
+test-publish:
+    @echo "Checking local registry status..."
+    @curl -s --connect-timeout 2 http://localhost:8888/api/v1/summary > /dev/null || (echo "Registry not running. Start with: just registry-up" && exit 1)
+    @echo "Running publish tests..."
+    ./test/bats/bin/bats test/publish.bats
