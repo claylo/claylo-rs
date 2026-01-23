@@ -71,9 +71,9 @@ apply-updates root:
 # Docker-based testing infrastructure
 # =============================================================================
 
-# Start Docker testing services (OTEL stack, etc.)
+# Start Docker testing services (OTEL stack)
 docker-up:
-    docker compose -f scripts/docker/docker-compose.yml up -d
+    docker compose -f scripts/docker/docker-compose.yml up -d otel-lgtm
 
 # Stop Docker testing services
 docker-down:
@@ -86,3 +86,34 @@ docker-logs:
 # Check Docker service status
 docker-status:
     docker compose -f scripts/docker/docker-compose.yml ps
+
+# =============================================================================
+# OTEL Integration Tests
+# =============================================================================
+
+# Run OTEL integration tests (requires docker-up first)
+test-otel:
+    @echo "Checking OTEL collector status..."
+    @curl -s --connect-timeout 2 http://localhost:3000/api/health > /dev/null || (echo "OTEL stack not running. Start with: just docker-up" && exit 1)
+    @echo "Running OTEL tests..."
+    ./test/bats/bin/bats test/otel.bats
+
+# Run OTEL tests with Docker stack (starts stack, runs tests, keeps stack running)
+test-otel-docker:
+    @echo "Starting OTEL stack..."
+    docker compose -f scripts/docker/docker-compose.yml up -d otel-lgtm
+    @echo "Waiting for OTEL stack to be healthy..."
+    @until curl -s --connect-timeout 2 http://localhost:3000/api/health > /dev/null; do sleep 2; done
+    @echo "Running OTEL tests..."
+    ./test/bats/bin/bats test/otel.bats
+
+# Full test suite including OTEL (slow - builds presets, requires Docker)
+test-full:
+    @echo "Running conditional file tests..."
+    ./test/bats/bin/bats test/conditional_files.bats
+    @echo ""
+    @echo "Running preset build tests..."
+    ./test/bats/bin/bats test/presets.bats
+    @echo ""
+    @echo "Running OTEL integration tests..."
+    just test-otel-docker
