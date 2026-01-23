@@ -1,0 +1,91 @@
+# Template testing workflow
+# Runs bats tests to verify template conditional file generation
+# and optionally full preset builds
+
+name: Test Template
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'template/**'
+      - 'copier.yaml'
+      - 'test/**'
+      - '.github/workflows/test-template.yml'
+  pull_request:
+    paths:
+      - 'template/**'
+      - 'copier.yaml'
+      - 'test/**'
+      - '.github/workflows/test-template.yml'
+  workflow_dispatch:
+    inputs:
+      full_presets:
+        description: 'Run full preset builds (slow)'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  conditional-tests:
+    name: Conditional File Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install copier
+        run: pipx install copier
+
+      - name: Run conditional file tests
+        run: ./test/bats/bin/bats test/conditional_files.bats
+
+  preset-tests:
+    name: Preset Build Tests
+    runs-on: ubuntu-latest
+    # Run full presets on main branch, manual trigger, or if requested
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    needs: conditional-tests
+    strategy:
+      fail-fast: false
+      matrix:
+        preset: [minimal, standard, standard-otel, full]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install copier
+        run: pipx install copier
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-action@stable
+        with:
+          components: clippy
+
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@nextest
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('scripts/presets/${{ matrix.preset }}.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache generated project target
+        uses: actions/cache@v4
+        with:
+          path: target/template-tests/preset-${{ matrix.preset }}/target
+          key: ${{ runner.os }}-preset-${{ matrix.preset }}-${{ hashFiles('template/**') }}
+          restore-keys: |
+            ${{ runner.os }}-preset-${{ matrix.preset }}-
+
+      - name: Generate and test ${{ matrix.preset }} preset
+        run: |
+          ./test/bats/bin/bats test/presets.bats --filter "${{ matrix.preset }} preset"

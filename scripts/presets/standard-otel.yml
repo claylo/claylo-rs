@@ -1,0 +1,51 @@
+project_name: test-standard-otel
+owner: testorg
+copyright_name: Test Org
+project_description: Standard test with OpenTelemetry
+edition: "2024"
+msrv: "1.88.0"
+pinned_dev_toolchain: "1.92.0"
+license:
+  - MIT
+  - Apache-2.0
+versioning: global
+categories:
+  - command-line-utilities
+preset: standard
+hook_system: cog
+release_tier: oss
+has_cli: true
+has_core_library: true
+has_config: true
+has_jsonl_logging: true
+has_opentelemetry: true
+has_benchmarks: false
+has_site: false
+has_xtask: true
+has_community_files: false
+# Dotfiles (standard = off)
+has_yamlfmt: false
+has_yamllint: false
+has_editorconfig: false
+has_env_files: false
+# Core files
+has_agents_md: true
+has_just: true
+has_gitattributes: true
+# GitHub
+has_github: true
+has_security_md: true
+has_issue_templates: true
+has_pr_templates: true
+# Markdown
+has_md: true
+has_md_strict: false
+# Claude
+has_claude: true
+has_claude_skills: true
+has_claude_commands: true
+has_claude_rules: true
+# Skills
+has_skill_markdown_authoring: true
+has_skill_capturing_decisions: true
+has_skill_using_git: true
