@@ -1,0 +1,346 @@
+# Releasing {{ project_name }}
+
+This document describes the release process for {{ project_name }}.
+
+## Overview
+
+{% if release_tier == "private" %}
+This project uses **private** release tier - no public releases are configured.
+Versioning is managed locally via git tags. For public distribution, consider
+upgrading to `oss` or `team` tier.
+{% elif release_tier == "team" %}
+This project uses **team** release tier with {% if team_auto_publish %}fully automated{% else %}semi-automated{% endif %} releases.
+{% else %}
+This project uses **oss** (open source) release tier with manual release triggers.
+{% endif %}
+
+Releases are automated using:
+
+- **[Cocogitto](https://docs.cocogitto.io/)** (`cog`) - Version bumping and changelog generation
+{% if has_github_releases %}
+- **[cargo-dist](https://opensource.axo.dev/cargo-dist/)** - Binary builds and distribution
+{% endif %}
+{% if has_crates_io_publish %}
+- **GitHub Actions** - CI/CD orchestration including crates.io publishing
+{% else %}
+- **GitHub Actions** - CI/CD orchestration
+{% endif %}
+
+## Release Tiers
+
+| Tier | Description | Automation Level |
+|------|-------------|------------------|
+| `private` | Internal/development projects | No public releases |
+| `oss` | Open source projects | Manual trigger, draft releases |
+| `team` | Team projects with CI/CD | {% if team_auto_publish %}Fully automated{% else %}Auto-bump, manual publish{% endif %} |
+
+{% if release_tier == "oss" %}
+### Current Configuration: OSS Tier
+
+1. Push conventional commits to `main`
+2. CI passes → bump workflow runs
+3. `cog bump --auto` creates version + draft release
+4. Review draft release on GitHub
+5. Publish release → triggers binary builds{% if has_crates_io_publish %} and crates.io publish{% endif %}
+{% elif release_tier == "team" %}
+### Current Configuration: Team Tier
+
+{% if team_auto_publish %}
+1. Push/merge to `main`
+2. CI passes → bump workflow runs
+3. `cog bump --auto` creates version + **published** release
+4. Triggers cargo-dist builds{% if has_crates_io_publish %} and crates.io publish{% endif %} automatically
+{% else %}
+1. Push/merge to `main`
+2. CI passes → bump workflow runs
+3. `cog bump --auto` creates version + draft release
+4. Review draft release, then publish
+5. Triggers cargo-dist builds{% if has_crates_io_publish %} and crates.io publish{% endif %}
+{% endif %}
+{% endif %}
+
+## Prerequisites
+
+Install the release tools:
+
+```bash
+cargo install cocogitto
+{% if has_github_releases %}
+cargo install cargo-dist
+{% endif %}
+```
+
+## Commit Convention
+
+All commits must follow [Conventional Commits](https://www.conventionalcommits.org/):
+
+| Prefix | Description | Version Bump |
+|--------|-------------|--------------|
+| `feat:` | New feature | Minor |
+| `fix:` | Bug fix | Patch |
+| `docs:` | Documentation only | None |
+| `perf:` | Performance improvement | Patch |
+| `refactor:` | Code refactoring | None |
+| `test:` | Adding tests | None |
+| `chore:` | Maintenance | None |
+| `feat!:` or `BREAKING CHANGE:` | Breaking change | Major |
+
+Examples:
+
+```bash
+git commit -m "feat: add support for YAML configuration"
+git commit -m "fix: handle empty config files gracefully"
+git commit -m "feat!: change default log level to warn"
+```
+
+## Release Workflow
+
+### 1. Ensure Clean State
+
+```bash
+# Verify all tests pass
+just check
+
+# Verify no uncommitted changes
+git status
+```
+
+### 2. Preview the Release
+
+```bash
+# See what version would be created
+cog bump --dry-run --auto
+
+# Preview the changelog
+cog changelog
+```
+
+### 3. Create the Release
+
+```bash
+# Auto-determine version from commits
+cog bump --auto
+
+# Or specify explicitly
+cog bump --patch   # 0.1.0 -> 0.1.1
+cog bump --minor   # 0.1.0 -> 0.2.0
+cog bump --major   # 0.1.0 -> 1.0.0
+```
+
+This command:
+
+1. Calculates the new version from commit history
+2. Updates `Cargo.toml` version fields
+3. Generates/updates `CHANGELOG.md`
+4. Creates a git commit with the changes
+5. Creates a git tag (e.g., `v0.2.0`)
+6. Pushes to remote (via post-bump hook)
+7. Creates GitHub release ({% if has_auto_release %}published{% else %}draft{% endif %})
+
+{% if not has_auto_release %}
+### 4. Publish the Release
+
+After reviewing the draft release on GitHub:
+
+1. Go to Releases on GitHub
+2. Find the draft release
+3. Review the changelog and assets
+4. Click "Publish release"
+
+This triggers:
+{% if has_github_releases %}
+- cargo-dist binary builds for all platforms
+- Homebrew tap update
+{% endif %}
+{% if has_crates_io_publish %}
+- crates.io publishing
+{% endif %}
+{% endif %}
+
+{% if has_github_releases %}
+## Binary Distribution
+
+When a release is published, **cargo-dist** automatically:
+
+1. Builds binaries for all platforms:
+   - macOS (Apple Silicon and Intel)
+   - Linux (x86_64 and ARM64, glibc)
+   - Windows (x86_64)
+
+2. Attaches artifacts to the GitHub Release:
+   - Platform-specific archives (`.tar.gz`, `.zip`)
+   - Checksums (`sha256sum.txt`)
+   - SBOM (Software Bill of Materials)
+
+3. Updates the Homebrew tap ({{ owner }}/homebrew-brew)
+
+### Homebrew Installation
+
+After release, users can install via:
+
+```bash
+brew install {{ owner }}/brew/{{ project_name }}
+```
+
+### Generating the Release Workflow
+
+The release workflow is generated by cargo-dist based on `Cargo.toml` config:
+
+```bash
+# Generate/update .github/workflows/release.yml
+just generate-release-workflow
+```
+
+Run this after modifying `[workspace.metadata.dist]` in Cargo.toml.
+{% endif %}
+
+{% if has_crates_io_publish %}
+## crates.io Publishing
+
+### Setup
+
+1. Create a crates.io API token at https://crates.io/settings/tokens
+   - Required scopes: `publish-new`, `publish-update`
+
+2. Add the token as a GitHub secret:
+   - Go to repository Settings → Secrets and variables → Actions
+   - Create secret: `CARGO_REGISTRY_TOKEN`
+
+{% if not has_auto_release %}
+3. (Optional) Create a GitHub environment for manual approval:
+   - Go to Settings → Environments
+   - Create environment: `crates-io`
+   - Add required reviewers if desired
+{% endif %}
+
+### Manual Publishing
+
+You can trigger crates.io publishing manually:
+
+```bash
+# Via GitHub Actions (recommended)
+gh workflow run publish.yml -f dry_run=true  # Dry run
+gh workflow run publish.yml -f dry_run=false # Actual publish
+
+# Or locally
+just publish-local local  # Publish to local registry
+```
+
+### Publishing Order
+
+Crates are published in dependency order:
+{% if has_core_library %}
+1. `{{ project_name }}-core` (library)
+2. Wait 30 seconds for crates.io indexing
+{% endif %}
+{% if has_cli %}
+3. `{{ project_name }}` (CLI binary)
+{% endif %}
+{% endif %}
+
+## Local Testing with act
+
+Test GitHub Actions workflows locally using [act](https://nektosact.com/):
+
+### Setup
+
+1. Install act: `brew install act` (or see [installation docs](https://nektosact.com/installation/index.html))
+
+2. Create secrets file:
+   ```bash
+   cp .secrets.example .secrets
+   # Edit .secrets with your tokens
+   ```
+
+### Running Tests
+
+```bash
+# Test CI workflow
+just test-ci-workflow
+
+{% if has_github_releases %}
+# Test release workflow
+just test-release-workflow
+{% endif %}
+
+{% if has_crates_io_publish %}
+# Test publish workflow
+just test-publish-workflow
+{% endif %}
+```
+
+Note: act runs in dry-run mode by default (see `.actrc`). Remove `--dryrun` flag for actual execution.
+
+## CHANGELOG Format
+
+The changelog is auto-generated in [Keep a Changelog](https://keepachangelog.com/) format:
+
+```markdown
+## [0.2.0] - 2026-01-20
+
+### Features
+
+- Add support for YAML configuration (#42)
+
+### Bug Fixes
+
+- Handle empty config files gracefully (#45)
+```
+
+## Troubleshooting
+
+### "No commits to bump"
+
+No conventional commits since the last release. Either:
+
+- Make a meaningful change with a conventional commit
+- Use `cog bump --patch` to force a patch release
+
+### "Tag already exists"
+
+The version tag already exists. Delete it locally and remotely:
+
+```bash
+git tag -d v0.1.0
+git push origin :refs/tags/v0.1.0
+```
+
+### Pre-release Versions
+
+For alpha/beta releases:
+
+```bash
+# Manual pre-release
+cog bump --version 0.2.0-alpha.1
+```
+
+{% if has_crates_io_publish %}
+### crates.io Publishing Failed
+
+1. **"crate ... already exists"** - Version already published; bump version
+2. **"unauthorized"** - Check `CARGO_REGISTRY_TOKEN` secret
+3. **"dependency not found"** - Core crate may not be indexed yet; retry after 60s
+{% endif %}
+
+{% if has_github_releases %}
+### cargo-dist Build Failed
+
+1. Check the release workflow logs on GitHub Actions
+2. Ensure all targets compile: `cargo build --release --target <triple>`
+3. Regenerate workflow: `just generate-release-workflow`
+{% endif %}
+
+## Rollback
+
+If a release has issues:
+
+1. **Don't delete the release** - it may be in use
+2. Create a fix commit
+3. Release a new patch version
+
+```bash
+git commit -m "fix: revert problematic change"
+cog bump --patch
+```
+
+The post-bump hooks will push and create the new release automatically.

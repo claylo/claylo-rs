@@ -1,0 +1,80 @@
+{% if has_md_strict %}
+# Strict markdown rules (enforce consistency)
+# First heading is a top-level heading
+MD002: true
+
+# Heading style (ATX is leading # symbols)
+MD003:
+  style: atx
+
+# Unordered list symbol (dash only)
+MD004:
+  style: dash
+
+# Unordered list indentation size
+MD007:
+  indent: 2
+
+# Limit consecutive blank lines to 1
+MD012:
+  maximum: 1
+
+# Maximum line length
+MD013:
+  line_length: 120
+  tables: false
+
+# Headings need blank lines before and after
+MD022: true
+
+# Duplicate headings allowed only for siblings
+MD024:
+  siblings_only: true
+
+# Surround lists with blank lines
+MD032: true
+
+# Allow inline HTML
+MD033: false
+
+MD060:
+  style: compact
+{% else %}
+# Lenient markdown rules (SEMBR-friendly, relaxed)
+# First heading is a top-level heading
+MD002: true
+
+# Heading style (ATX is leading # symbols)
+MD003:
+  style: atx
+
+# Unordered list symbol can be anything
+MD004: false
+
+# Unordered list indentation size
+MD007:
+  indent: 2
+
+# Allow additional blank lines (SEMBR uses these for semantic breaks)
+MD012: false
+
+# Maximum line length (generous for prose)
+MD013:
+  line_length: 800
+  tables: false
+
+# Headings need blank lines before and after
+MD022: true
+
+# Duplicate headings are allowed
+MD024: false
+
+# Surround lists with blank lines
+MD032: true
+
+# Allow inline HTML
+MD033: false
+
+MD060:
+  style: compact
+{% endif %}

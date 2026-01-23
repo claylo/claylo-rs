@@ -1,0 +1,97 @@
+{% raw %}name: Publish to crates.io
+
+on:
+  # Manual trigger with dry-run option
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (verify without publishing)'
+        required: false
+        default: true
+        type: boolean
+  # Automatic trigger when a release is published
+  release:
+    types: [published]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+{% endraw %}{% if has_auto_release %}
+    # Team tier: publish automatically on release
+{% else %}
+    # OSS tier: require manual approval for crates.io
+    environment: crates-io
+{% endif %}{% raw %}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561
+        with:
+          toolchain: stable
+
+      - name: Rust cache
+        uses: ./.github/actions/setup-rust-cache
+        with:
+          cache-key-suffix: publish
+          toolchain: stable
+
+      - name: Determine if dry run
+        id: check
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "dry_run=${{ inputs.dry_run }}" >> "$GITHUB_OUTPUT"
+          else
+            # Release trigger = actual publish
+            echo "dry_run=false" >> "$GITHUB_OUTPUT"
+          fi
+{% endraw %}{% if has_core_library %}
+      # Publish core library first (other crates depend on it)
+      - name: Verify {{ project_name }}-core
+        run: cargo publish --package {{ project_name }}-core --dry-run
+
+      - name: Publish {{ project_name }}-core
+        if: steps.check.outputs.dry_run == 'false'
+        env:
+          CARGO_REGISTRY_TOKEN: {% raw %}${{ secrets.CARGO_REGISTRY_TOKEN }}{% endraw %}
+        run: cargo publish --package {{ project_name }}-core
+
+      # Wait for crates.io to index the dependency
+      - name: Wait for crates.io indexing
+        if: steps.check.outputs.dry_run == 'false'
+        run: |
+          echo "Waiting 30s for crates.io to index {{ project_name }}-core..."
+          sleep 30
+{% endif %}{% if has_cli %}
+      # Publish the main CLI crate
+      - name: Verify {{ project_name }}
+        run: cargo publish --package {{ project_name }} --dry-run
+
+      - name: Publish {{ project_name }}
+        if: {% raw %}steps.check.outputs.dry_run == 'false'{% endraw %}
+        env:
+          CARGO_REGISTRY_TOKEN: {% raw %}${{ secrets.CARGO_REGISTRY_TOKEN }}{% endraw %}
+        run: cargo publish --package {{ project_name }}
+{% endif %}
+      - name: Summary
+        run: |
+          if [[ "{% raw %}${{ steps.check.outputs.dry_run }}{% endraw %}" == "true" ]]; then
+            echo "### Dry Run Complete" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "All crate verification passed. Ready to publish." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### Published to crates.io" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+{% if has_core_library %}
+            echo "- [{{ project_name }}-core](https://crates.io/crates/{{ project_name }}-core)" >> $GITHUB_STEP_SUMMARY
+{% endif %}
+{% if has_cli %}
+            echo "- [{{ project_name }}](https://crates.io/crates/{{ project_name }})" >> $GITHUB_STEP_SUMMARY
+{% endif %}
+          fi

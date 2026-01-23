@@ -1,0 +1,44 @@
+# Docker Compose for claylo-rs template testing infrastructure
+#
+# Usage:
+#   just docker-up      # Start all services
+#   just docker-down    # Stop all services
+#   just docker-logs    # Tail logs
+#
+# Or directly:
+#   docker compose -f scripts/docker/docker-compose.yml up -d
+
+services:
+  # =============================================================================
+  # OTEL/Observability Stack (Grafana LGTM)
+  # =============================================================================
+  # All-in-one: Loki (logs) + Grafana (UI) + Tempo (traces) + Mimir (metrics)
+  #
+  # Endpoints:
+  #   - Grafana UI:    http://localhost:3000
+  #   - OTLP gRPC:     localhost:4317
+  #   - OTLP HTTP:     localhost:4318
+  #
+  # Test with:
+  #   OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 ./target/release/my-cli info
+  #
+  otel-lgtm:
+    image: grafana/otel-lgtm:latest
+    container_name: claylo-otel-lgtm
+    ports:
+      - "3000:3000"   # Grafana UI
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    volumes:
+      - otel-data:/var/lib/grafana
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  otel-data:

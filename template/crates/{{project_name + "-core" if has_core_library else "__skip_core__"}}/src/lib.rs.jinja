@@ -1,0 +1,35 @@
+//! Core library for {{ project_name }}.
+//!
+//! This crate provides the foundational types and functionality used by the
+//! `{{ project_name }}` CLI and any downstream consumers.
+//!
+//! # Modules
+//!
+{% if has_config -%}
+//! - [`config`] - Configuration loading and management
+{% endif -%}
+//! - [`error`] - Error types and result aliases
+//!
+{% if has_config -%}
+//! # Quick Start
+//!
+//! ```no_run
+//! use {{ crate_name }}_core::{Config, ConfigLoader};
+//!
+//! let config = ConfigLoader::new()
+//!     .with_user_config(true)
+//!     .load()
+//!     .expect("Failed to load configuration");
+//!
+//! println!("Log level: {:?}", config.log_level);
+//! ```
+{% endif -%}
+#![deny(unsafe_code)]
+{% if has_config %}
+pub mod config;
+{% endif %}
+pub mod error;
+{% if has_config %}
+pub use config::{Config, ConfigLoader, LogLevel};
+{% endif %}
+pub use error::{ConfigError, ConfigResult};

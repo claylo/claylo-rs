@@ -1,0 +1,31 @@
+//! Error types for {{ project_name }}-core
+{% if has_config %}
+use camino::Utf8PathBuf;
+{% endif %}
+use thiserror::Error;
+
+/// Errors that can occur when working with configuration.
+#[derive(Error, Debug)]
+pub enum ConfigError {
+{% if has_config -%}
+    /// Failed to load configuration from a file.
+    #[error("failed to load config from {path}: {source}")]
+    Load {
+        /// Path to the config file that failed to load.
+        path: Utf8PathBuf,
+        /// The underlying configuration error.
+        #[source]
+        source: config::ConfigError,
+    },
+
+    /// Failed to deserialize configuration.
+    #[error("invalid configuration: {0}")]
+    Deserialize(#[from] config::ConfigError),
+{% endif %}
+    /// Configuration file not found after searching all locations.
+    #[error("no configuration file found")]
+    NotFound,
+}
+
+/// Result type alias using [`ConfigError`].
+pub type ConfigResult<T> = Result<T, ConfigError>;

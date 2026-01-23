@@ -1,0 +1,313 @@
+//! Generate benchmark harnesses from KDL definitions.
+
+use std::fs;
+use std::path::{Path, PathBuf};
+
+use kdl::{KdlDocument, KdlNode};
+
+use crate::workspace_root;
+
+fn divan_header(core_name: &str) -> String {
+    format!(
+        "//! Divan benchmarks for {core_name}\n\
+//!\n\
+//! Wall-clock time benchmarks for fast local iteration.\n\
+//! Run with: `cargo bench --bench divan_benchmarks`\n\
+//!\n\
+//! AUTO-GENERATED from crates/{core_name}/benches/benchmarks.kdl.\n\
+//! Do not edit directly. Run `cargo xtask gen-benchmarks` to regenerate.\n\
+//!\n\
+//! See docs/benchmarks-howto.md for more information.\n"
+    )
+}
+
+fn gungraun_header(core_name: &str) -> String {
+    format!(
+        "//! Gungraun benchmarks for {core_name}\n\
+//!\n\
+//! CPU instruction count benchmarks for deterministic CI regression detection.\n\
+//! Uses Valgrind under the hood - results are consistent across runs.\n\
+//!\n\
+//! Run with: `cargo bench --bench gungraun_benchmarks`\n\
+//!\n\
+//! Platform support:\n\
+//! - Linux x86_64/ARM: Fully supported\n\
+//! - macOS Intel (x86_64): Fully supported\n\
+//! - macOS ARM (M1/M2/M3): NOT supported (Valgrind limitation)\n\
+//! - Windows: NOT supported\n\
+//!\n\
+//! AUTO-GENERATED from crates/{core_name}/benches/benchmarks.kdl.\n\
+//! Do not edit directly. Run `cargo xtask gen-benchmarks` to regenerate.\n\
+//!\n\
+//! See docs/benchmarks-howto.md for more information.\n"
+    )
+}
+
+#[derive(Debug)]
+struct BenchmarkDef {
+    name: String,
+    module: String,
+    return_type: String,
+    body: String,
+}
+
+#[derive(Debug)]
+struct GenerationInput {
+    preambles: Vec<String>,
+    type_defs: Vec<String>,
+    benchmarks: Vec<BenchmarkDef>,
+}
+
+pub fn cmd_gen_benchmarks() -> Result<(), String> {
+    let root = workspace_root();
+    let (benches_dir, core_name) = find_benches_dir(&root)?;
+    let kdl_path = benches_dir.join("benchmarks.kdl");
+
+    generate_from_kdl(&kdl_path, &benches_dir, &core_name)?;
+
+    println!("Generated benchmark harnesses:");
+    println!("  → {}", benches_dir.join("divan_benchmarks.rs").display());
+    println!("  → {}", benches_dir.join("gungraun_benchmarks.rs").display());
+
+    Ok(())
+}
+
+fn find_benches_dir(root: &Path) -> Result<(PathBuf, String), String> {
+    let crates_dir = root.join("crates");
+    let entries = fs::read_dir(&crates_dir)
+        .map_err(|e| format!("Failed to read crates directory {}: {e}", crates_dir.display()))?;
+
+    for entry in entries {
+        let entry = entry.map_err(|e| format!("Failed to read crates entry: {e}"))?;
+        let path = entry.path();
+        if !path.is_dir() {
+            continue;
+        }
+
+        let benches_dir = path.join("benches");
+        let kdl_path = benches_dir.join("benchmarks.kdl");
+        if kdl_path.exists() {
+            let name = path
+                .file_name()
+                .and_then(|name| name.to_str())
+                .ok_or_else(|| "Invalid core crate directory name".to_string())?
+                .to_string();
+            return Ok((benches_dir, name));
+        }
+    }
+
+    Err("No benches/benchmarks.kdl found under crates/*".to_string())
+}
+
+fn generate_from_kdl(kdl_path: &Path, benches_dir: &Path, core_name: &str) -> Result<(), String> {
+    let kdl_content = fs::read_to_string(kdl_path)
+        .map_err(|e| format!("Failed to read {}: {e}", kdl_path.display()))?;
+
+    let doc: KdlDocument = kdl_content
+        .parse()
+        .map_err(|e| format!("Failed to parse {}: {e}", kdl_path.display()))?;
+
+    let input = build_generation_input(&doc)?;
+
+    let divan_code = render_divan(&input, core_name)?;
+    let gungraun_code = render_gungraun(&input, core_name)?;
+
+    let divan_path = benches_dir.join("divan_benchmarks.rs");
+    let gungraun_path = benches_dir.join("gungraun_benchmarks.rs");
+
+    fs::write(&divan_path, divan_code)
+        .map_err(|e| format!("Failed to write {}: {e}", divan_path.display()))?;
+    fs::write(&gungraun_path, gungraun_code)
+        .map_err(|e| format!("Failed to write {}: {e}", gungraun_path.display()))?;
+
+    Ok(())
+}
+
+fn build_generation_input(doc: &KdlDocument) -> Result<GenerationInput, String> {
+    let preambles = collect_code_blocks(doc, "preamble");
+    let type_defs = collect_code_blocks(doc, "type_def");
+
+    let mut benchmarks = Vec::new();
+    for node in doc.nodes() {
+        if node.name().value() != "benchmark" {
+            continue;
+        }
+
+        let name = property_string(node, "name")
+            .ok_or_else(|| "benchmark missing name".to_string())?;
+        let module = property_string(node, "module").unwrap_or_else(|| "benchmarks".to_string());
+        let return_type = property_string(node, "return").unwrap_or_else(|| "()".to_string());
+        let body = child_code(node, "body")
+            .ok_or_else(|| format!("benchmark {name} missing body"))?;
+
+        benchmarks.push(BenchmarkDef {
+            name,
+            module,
+            return_type,
+            body,
+        });
+    }
+
+    if benchmarks.is_empty() {
+        return Err("No benchmark nodes found in benchmarks.kdl".to_string());
+    }
+
+    Ok(GenerationInput {
+        preambles,
+        type_defs,
+        benchmarks,
+    })
+}
+
+fn collect_code_blocks(doc: &KdlDocument, node_name: &str) -> Vec<String> {
+    doc.nodes()
+        .iter()
+        .filter(|node| node.name().value() == node_name)
+        .filter_map(|node| child_code(node, "code"))
+        .collect()
+}
+
+fn property_string(node: &KdlNode, key: &str) -> Option<String> {
+    node.get(key)
+        .and_then(|entry| entry.value().as_string())
+        .map(|value| value.to_string())
+}
+
+fn child_code(node: &KdlNode, child_name: &str) -> Option<String> {
+    node.children()
+        .and_then(|children| children.get(child_name))
+        .and_then(|child| child.entries().first())
+        .and_then(|entry| entry.value().as_string())
+        .map(|value| value.to_string())
+}
+
+
+fn render_divan(input: &GenerationInput, core_name: &str) -> Result<String, String> {
+    let mut output = String::new();
+    output.push_str(&divan_header(core_name));
+    output.push('\n');
+    output.push_str("use std::hint::black_box;\n\n");
+    push_blocks(&mut output, &input.preambles);
+    push_blocks(&mut output, &input.type_defs);
+    output.push_str("fn main() {\n    divan::main();\n}\n\n");
+
+    let module_order = module_order(&input.benchmarks);
+    for module in module_order {
+        output.push_str("mod ");
+        output.push_str(&module);
+        output.push_str(" {\n    use super::*;\n\n");
+        for bench in input.benchmarks.iter().filter(|b| b.module == module) {
+            output.push_str("    #[divan::bench]\n    fn ");
+            output.push_str(&bench.name);
+            output.push_str("() -> ");
+            output.push_str(&bench.return_type);
+            output.push_str(" {\n");
+            output.push_str(&indent_block(&bench.body, 8));
+            output.push_str("\n    }\n\n");
+        }
+        output.push_str("}\n\n");
+    }
+
+    Ok(output)
+}
+
+fn render_gungraun(input: &GenerationInput, core_name: &str) -> Result<String, String> {
+    let mut output = String::new();
+    output.push_str(&gungraun_header(core_name));
+    output.push('\n');
+    output.push_str("#![allow(missing_docs, unsafe_code)]\n\n");
+    output.push_str("use gungraun::{library_benchmark, library_benchmark_group, main};\n");
+    output.push_str("use std::hint::black_box;\n\n");
+    push_blocks(&mut output, &input.preambles);
+    push_blocks(&mut output, &input.type_defs);
+
+    for bench in &input.benchmarks {
+        output.push_str("#[library_benchmark]\nfn ");
+        output.push_str(&bench.name);
+        output.push_str("() -> ");
+        output.push_str(&bench.return_type);
+        output.push_str(" {\n");
+        output.push_str(&indent_block(&bench.body, 4));
+        output.push_str("\n}\n\n");
+    }
+
+    let benchmark_names = input
+        .benchmarks
+        .iter()
+        .map(|bench| bench.name.as_str())
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    output.push_str(&format!(
+        "library_benchmark_group!(\n    name = all_benchmarks;\n    benchmarks = {benchmark_names}\n);\n\n"
+    ));
+    output.push_str("main!(library_benchmark_groups = all_benchmarks);\n");
+
+    Ok(output)
+}
+
+fn module_order(benchmarks: &[BenchmarkDef]) -> Vec<String> {
+    let mut modules = Vec::new();
+    for bench in benchmarks {
+        if !modules.iter().any(|module| module == &bench.module) {
+            modules.push(bench.module.clone());
+        }
+    }
+    modules
+}
+
+fn push_blocks(output: &mut String, blocks: &[String]) {
+    for block in blocks {
+        let trimmed = block.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        output.push_str(trimmed);
+        if !trimmed.ends_with('\n') {
+            output.push('\n');
+        }
+        output.push('\n');
+    }
+}
+
+fn indent_block(block: &str, spaces: usize) -> String {
+    let indent = " ".repeat(spaces);
+    block
+        .trim()
+        .lines()
+        .map(|line| {
+            if line.is_empty() {
+                String::new()
+            } else {
+                format!("{indent}{line}")
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn renders_divan_and_gungraun() {
+        let kdl = r#"
+            preamble { code "use crate::example::Thing;" }
+            benchmark name=\"sample\" module=\"config\" return=\"u64\" {
+                body "black_box(42)"
+            }
+        "#;
+
+        let doc: KdlDocument = kdl.parse().expect("parse kdl");
+        let input = build_generation_input(&doc).expect("build input");
+
+        let divan = render_divan(&input, "demo-core").expect("render divan");
+        let gungraun = render_gungraun(&input, "demo-core").expect("render gungraun");
+
+        assert!(divan.contains("fn sample() -> u64"));
+        assert!(divan.contains("black_box(42)"));
+        assert!(gungraun.contains("fn sample() -> u64"));
+        assert!(gungraun.contains("library_benchmark_group!"));
+    }
+}

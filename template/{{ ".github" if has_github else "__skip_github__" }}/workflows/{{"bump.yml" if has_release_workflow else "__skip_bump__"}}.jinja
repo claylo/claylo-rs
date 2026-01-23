@@ -1,0 +1,116 @@
+{% raw %}name: Bump and Draft
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["ci"]
+    types:
+      - completed
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    # only run bump if CI actually passed and it's a push (not a PR)
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.actor != 'github-actions[bot]')
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Check bump eligibility
+        id: bump-check
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Set the default
+          echo "bumpable=false" >> "$GITHUB_OUTPUT"
+
+          base="$(git tag --sort=-v:refname | head -n 1)"
+          if [ -n "$base" ]; then
+            range="${base}..HEAD"
+          else
+            range="HEAD"
+          fi
+
+          log="$(git log --no-merges --format=%B "$range")"
+
+          if printf '%s\n' "$log" | grep -Eq '^(feat|fix|perf)(\([^)]+\))?(!)?:'; then
+            echo "bumpable=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Rust toolchain
+        if: steps.bump-check.outputs.bumpable == 'true'
+        uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561
+        with:
+          toolchain: stable
+
+      - name: Rust cache
+        if: steps.bump-check.outputs.bumpable == 'true'
+        uses: ./.github/actions/setup-rust-cache
+        with:
+          cache-key-suffix: bump
+          toolchain: stable
+
+      - name: Install cargo tools
+        if: steps.bump-check.outputs.bumpable == 'true'
+        uses: ./.github/actions/setup-cargo-tools
+        with:
+          binstall-tools: cargo-edit cocogitto
+
+      - name: Add cargo bin to PATH
+        if: steps.bump-check.outputs.bumpable == 'true'
+        run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: GitHub Actions Bot Setup
+        if: steps.bump-check.outputs.bumpable == 'true'
+        uses: ./.github/actions/bot-setup
+
+      - name: Check cog version
+        if: steps.bump-check.outputs.bumpable == 'true'
+        run: cog --version
+
+      # cog post-bump config does the git commit and push
+      - name: Run cog bump
+        id: release
+        if: steps.bump-check.outputs.bumpable == 'true'
+        run: |
+          set -euo pipefail
+
+          echo "Running cog bump with full output capture..."
+          cog -vvv bump --auto 2>&1 | tee cog-output.txt
+
+          # Extract the new version from the git tag just created
+          version=$(git tag --sort=-v:refname | head -n 1)
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "Bumped to version: ${version}"
+
+      - name: Upload cog output
+        if: steps.bump-check.outputs.bumpable == 'true' && always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: cog-output
+          path: cog-output.txt
+          retention-days: 7
+
+      - name: Print version
+        if: steps.bump-check.outputs.bumpable == 'true'
+        run: echo "${{ steps.release.outputs.version }}"
+
+      - name: Skip bump (no releasable commits)
+        if: steps.bump-check.outputs.bumpable != 'true'
+        run: echo "No bumpable commits found; skipping."
+{% endraw %}

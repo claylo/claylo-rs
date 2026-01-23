@@ -1,0 +1,68 @@
+[package]
+name = "{{ project_name }}-core"
+{% if versioning == "global" -%}
+version.workspace = true
+{% else -%}
+version = "0.1.0"
+{% endif -%}
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Core library for {{ project_name }}"
+repository.workspace = true
+homepage.workspace = true
+readme.workspace = true
+exclude = [
+    # Workspace-level files (/ = workspace root)
+    "/.claude/",
+    "/.github/",
+    "/AGENTS.md",
+    "/.justfile",
+    "/.editorconfig",
+    "/.markdownlint.yaml",
+    "/.yamllint",
+    "/.envrc",
+    "/.env",
+    "/.env.rust",
+{% if has_benchmarks %}
+    "/bench-reports/",
+    "/scripts/",
+{% endif %}
+    "/docs/",
+    "/cog.toml",
+    "/deny.toml",
+    # Example config files
+    "/*.example",
+]
+
+[dependencies]
+{% if has_config -%}
+camino = { version = "1.1", features = ["serde1"] }
+config = { version = "0.15", default-features = false, features = ["toml", "yaml", "json", "json5"] }
+dirs = "6.0"
+serde = { version = "1.0", features = ["derive"] }
+{% endif -%}
+thiserror = "2.0"
+
+[dev-dependencies]
+{% if has_config -%}
+tempfile = "3.20"
+{% endif -%}
+{% if has_benchmarks -%}
+divan = "0.1"
+{% endif -%}
+{% if has_gungraun -%}
+gungraun = "0.17"
+{% endif %}
+[lints]
+workspace = true
+{% if has_benchmarks %}
+[[bench]]
+name = "divan_benchmarks"
+harness = false
+{% endif %}
+{% if has_gungraun %}
+[[bench]]
+name = "gungraun_benchmarks"
+harness = false
+{% endif %}

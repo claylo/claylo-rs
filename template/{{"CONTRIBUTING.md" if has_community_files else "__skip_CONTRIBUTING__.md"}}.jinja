@@ -1,0 +1,120 @@
+# Contributing to {{ project_name }}
+
+Thank you for your interest in contributing! This document provides guidelines
+and information for contributors.
+
+## Getting Started
+
+> [!NOTE]
+> Be sure to check the [prerequisites](#prerequisites) before starting.
+
+1. Fork the repository
+2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/{{ project_name }}.git`
+3. Create a branch: `git checkout -b my-feature`
+4. Install git commit hooks: `just install-hooks`
+4. Make your changes
+5. Run checks: `just check`
+6. Commit using [Conventional Commits](https://www.conventionalcommits.org/) (using [cog commit](https://docs.cocogitto.io/guide/commit.html) if you like)
+7. Push and open a Pull Request
+
+## Development Setup
+
+### Prerequisites
+
+- Rust {{ msrv }} or later
+- [cocogitto](https://docs.cocogitto.io/) (conventional commit checker, hook manager)
+- [just](https://just.systems/) (task runner)
+- [cargo-nextest](https://nexte.st/) (test runner)
+- [taplo-cli](https://taplo.tamasfe.dev/cli/introduction.html) (TOML toolkit)
+
+### Building
+
+```bash
+cargo build
+```
+
+### Running Tests
+
+```bash
+just test        # Run tests with nextest
+just doc-test    # Run documentation tests
+just check       # Run fmt, clippy, and all tests
+```
+
+### Code Style
+
+- Run `just fmt` before committing
+- Run `just clippy` to check for lints
+- Follow existing code patterns and conventions
+- Add tests for new functionality
+
+## Pull Request Process
+
+1. Ensure all checks pass (`just check`)
+2. Update documentation if needed
+4. Use descriptive commit messages following Conventional Commits:
+   - `feat:` for new features
+   - `fix:` for bug fixes
+   - `docs:` for documentation changes
+   - `refactor:` for code refactoring
+   - `test:` for test additions/changes
+   - `chore:` for maintenance tasks
+
+## Reporting Issues
+
+- Search existing issues before creating a new one
+- Use issue templates when available
+- Provide reproduction steps for bugs
+- Include relevant system information
+
+## Rust toolchain pinning + MSRV policy
+
+This repo uses **two different version concepts on purpose**:
+
+* **Pinned dev/CI toolchain:** `rust-toolchain.toml` defines the exact Rust toolchain we use for development and CI lint/format. This keeps `rustfmt`, `clippy`, and especially `cargo clippy --fix` output **stable and reproducible** across machines.
+* **MSRV (Minimum Supported Rust Version):** `Cargo.toml` sets `[package].rust-version` to the **minimum** Rust version supported for building the crate.
+
+These can differ (e.g. `rust-toolchain.toml = 1.92.0`, `Cargo.toml rust-version = 1.88.0`). The pin is about **consistent tooling**; MSRV is about **downstream compatibility**.
+
+### Local setup
+
+Install the pinned toolchain (one-time):
+
+```bash
+rustup toolchain install $(taplo get -f rust-toolchain.toml toolchain.channel | tr -d '"') --component clippy rustfmt
+```
+
+Or just install the version listed in `rust-toolchain.toml` manually.
+
+### Linting and fixes
+
+Run clippy using the pinned toolchain. If you use auto-fixes, do so intentionally:
+
+```bash
+cargo clippy --fix --allow-dirty --allow-staged -- -W clippy::all
+```
+
+### MSRV enforcement
+
+We enforce MSRV separately from the pinned toolchain. CI includes an MSRV verification step to ensure we do not accidentally rely on newer Rust features/APIs than declared:
+
+```bash
+cargo msrv verify
+```
+
+If you change MSRV, update `[package].rust-version` in `Cargo.toml` and ensure MSRV verification passes.
+
+## Code of Conduct
+
+Please be respectful and constructive in all interactions. We aim to maintain
+a welcoming environment for all contributors.
+
+## Questions?
+
+Open a [Discussion](https://github.com/{{ owner }}/{{ project_name }}/discussions)
+for questions that aren't bugs or feature requests.
+
+## License
+
+By contributing, you agree that your contributions will be licensed under the
+same terms as the project ({% if license | length == 2 %}MIT OR Apache-2.0{% elif 'MIT' in license %}MIT{% else %}Apache-2.0{% endif %}).

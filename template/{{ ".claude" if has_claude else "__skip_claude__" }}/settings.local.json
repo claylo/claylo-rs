@@ -1,0 +1,51 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cargo add:*)",
+      "Bash(cargo build:*)",
+      "Bash(cargo check:*)",
+      "Bash(cargo clean:*)",
+      "Bash(cargo clippy:*)",
+      "Bash(cargo deny:*)",
+      "Bash(cargo doc:*)",
+      "Bash(cargo nextest run:*)",
+      "Bash(cargo test:*)",
+      "Bash(cargo tree:*)",
+      "Bash(find:*)",
+      "Bash(gh pr checks:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh run view:*)",
+      "Bash(gh run watch:*)",
+      "Bash(grep:*)",
+      "Bash(just check:*)",
+      "Bash(ls:*)",
+      "Bash(sort:*)",
+      "Bash(tree:*)",
+      "mcp__github__get_file_contents",
+      "mcp__github__list_commits",
+      "mcp__github__pull_request_read",
+      "mcp__github__search_repositories",
+      "mcp__rust-tools__cargo-add",
+      "mcp__rust-tools__cargo-check",
+      "mcp__rust-tools__cargo-clippy",
+      "mcp__rust-tools__cargo-deny-check",
+      "mcp__rust-tools__cargo-deny-list",
+      "mcp__rust-tools__cargo-fmt",
+      "mcp__rust-tools__cargo-info",
+      "mcp__rust-tools__cargo-remove",
+      "mcp__rust-tools__cargo-search",
+      "mcp__rust-tools__cargo-test",
+      "mcp__rust-tools__workspace-info",
+      "WebFetch(domain:crates.io)",
+      "WebFetch(domain:docs.rs)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebSearch"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "github"
+  ]
+}

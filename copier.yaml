@@ -1,0 +1,392 @@
+# =============================================================================
+# Copier Template for claylo-rs
+# =============================================================================
+#
+# This template creates a production-ready Rust workspace with optional features.
+#
+# Usage:
+#   copier copy ./template /path/to/new-project
+#   copier update /path/to/existing-project
+#
+# Note: The --trust flag is only required if you want post-generation tasks
+# (git init, hook installation, initial commit) to run automatically.
+# Without --trust, you can run these steps manually or use `just bootstrap`.
+#
+# =============================================================================
+
+# This allows users to run: copier copy gh:claylo/claylo-rs my-project
+_subdirectory: template
+
+_min_copier_version: "9.0.0"
+_answers_file: .repo.yml
+_exclude:
+  - copier.yaml
+  - _tasks.yaml
+  - "*.DS_Store"
+  - ".git"
+  # Skip directories when features are disabled (conditional directory pattern)
+  - "__skip_*"
+  - "**/__skip_*"
+  - "*__skip_*"
+# Use .jinja suffix for template files
+_templates_suffix: .jinja
+# =============================================================================
+# Post-generation tasks (requires --trust flag)
+# =============================================================================
+# Tasks are included from _tasks.yaml using YAML's multi-document pattern.
+# The !include directive replaces an entire document, so it must appear
+# between --- separators, and the included file must contain the _tasks: key.
+# See: https://copier.readthedocs.io/en/stable/configuring/#tasks
+# See: https://copier.readthedocs.io/en/stable/configuring/#include-other-yaml-files
+---
+!include _tasks.yaml
+---
+# =============================================================================
+# User-Prompted Variables
+# =============================================================================
+project_name:
+  type: str
+  help: "Project name (lowercase with hyphens, e.g., 'my-awesome-cli')"
+  validator: "{% if not (project_name | regex_search('^[a-z][a-z0-9-]*$')) %}Invalid name{% endif %}"
+owner:
+  type: str
+  help: "GitHub org/username (e.g., 'myorg' or 'myusername')"
+copyright_name:
+  type: str
+  help: "Text for copyright in license files (e.g., 'John Doe' or 'My Company')"
+copyright_year:
+  type: str
+  default: "{{ copyright_year | default('%Y' | strftime) }}"
+  when: false # Computed once at init, locked via answers file
+project_description:
+  type: str
+  default: "A modern, production-ready Rust CLI application."
+  help: "Project description"
+edition:
+  type: str
+  choices:
+    - "2024"
+    - "2021"
+  default: "2024"
+  help: "Rust edition for the workspace"
+msrv:
+  type: str
+  default: "1.88.0"
+  help: "Minimum Supported Rust Version"
+pinned_dev_toolchain:
+  type: str
+  default: "1.92.0"
+  help: "Pinned development Rust toolchain version"
+license:
+  type: str
+  default: ["Apache-2.0", "MIT"]
+  multiselect: true
+  choices:
+    - "Apache-2.0"
+    - "MIT"
+versioning:
+  type: str
+  choices:
+    "Global (all crates share one version)": "global"
+    "Independent (each crate versioned separately)": "independent"
+  default: "global"
+  help: "Versioning strategy for the workspace"
+categories:
+  type: str
+  multiselect: true
+  help: "Categories for crates.io (max 5)"
+  default: []
+  validator: "{% if categories | length > 5 %}Select at most 5 categories{% endif %}"
+  choices:
+    Accessibility: accessibility
+    Aerospace: aerospace
+    Algorithms: algorithms
+    API bindings: api-bindings
+    Asynchronous: asynchronous
+    Authentication: authentication
+    Automotive: automotive
+    Caching: caching
+    Command line utilities: command-line-utilities
+    Command-line interface: command-line-interface
+    Compilers: compilers
+    Compression: compression
+    Computer vision: computer-vision
+    Concurrency: concurrency
+    Configuration: config
+    Cryptography: cryptography
+    Data structures: data-structures
+    Database implementations: database-implementations
+    Database interfaces: database
+    Date and time: date-and-time
+    Development tools: development-tools
+    Email: email
+    Embedded development: embedded
+    Emulators: emulators
+    Encoding: encoding
+    External FFI bindings: external-ffi-bindings
+    Filesystem: filesystem
+    Finance: finance
+    Game development: game-development
+    Game engines: game-engines
+    Games: games
+    Graphics: graphics
+    GUI: gui
+    Hardware support: hardware-support
+    Internationalization (i18n): internationalization
+    Localization (L10n): localization
+    Mathematics: mathematics
+    Memory management: memory-management
+    Multimedia: multimedia
+    Network programming: network-programming
+    No standard library: no-std
+    Operating systems: os
+    Parser implementations: parser-implementations
+    Parsing tools: parsing
+    Rendering: rendering
+    Rust patterns: rust-patterns
+    Science: science
+    Security: security
+    Simulation: simulation
+    Template engine: template-engine
+    Text editors: text-editors
+    Text processing: text-processing
+    Value formatting: value-formatting
+    Virtualization: virtualization
+    Visualization: visualization
+    Web programming: web-programming
+    WebAssembly: wasm
+
+# =============================================================================
+# Presets (Convenience Defaults)
+# =============================================================================
+preset:
+  type: str
+  choices:
+    "Minimal (CLI only)": "minimal"
+    "Standard (CLI + core library + config + JSONL logging)": "standard"
+    "Full (everything including benchmarks and site)": "full"
+  default: "standard"
+  help: "Project template preset - sets defaults for feature flags"
+# =============================================================================
+# Feature Flags (Override Preset Defaults)
+# =============================================================================
+has_cli:
+  type: bool
+  default: true
+  help: "Include CLI binary crate"
+has_core_library:
+  type: bool
+  default: "{{ preset != 'minimal' }}"
+  help: "Include {{project_name}}-core library crate"
+has_config:
+  type: bool
+  default: "{{ preset != 'minimal' }}"
+  help: "Include configuration file support"
+has_jsonl_logging:
+  type: bool
+  default: "{{ has_cli }}"
+  when: "{{ has_cli }}"
+  help: "Include structured JSONL file logging (daily-rotated)"
+has_opentelemetry:
+  type: bool
+  default: false
+  when: "{{ has_cli }}"
+  help: "Include OpenTelemetry trace export (adds tokio dependency)"
+has_benchmarks:
+  type: bool
+  default: "{{ preset == 'full' }}"
+  when: "{{ has_core_library }}"
+  help: "Include benchmark infrastructure (divan for wall-clock, hyperfine for CLI)"
+has_gungraun:
+  type: bool
+  default: false
+  when: "{{ has_benchmarks }}"
+  help: "Include gungraun instruction-count benchmarks (requires Valgrind - Linux/Intel Mac only)"
+has_site:
+  type: bool
+  default: "{{ preset == 'full' }}"
+  help: "Include site directory (placeholder)"
+has_community_files:
+  type: bool
+  default: false
+  help: "Include CODE_OF_CONDUCT.md and CONTRIBUTING.md (consider using a .github repo instead)"
+conduct_email:
+  type: str
+  when: "{{ has_community_files }}"
+  help: "Email address for reporting code of conduct violations"
+has_claude:
+  type: bool
+  default: true
+  help: "Include .claude/ directory with agent configuration"
+has_claude_skills:
+  type: bool
+  default: true
+  when: "{{ has_claude }}"
+  help: "Include .claude/skills/ (skip if you have global skills)"
+has_claude_commands:
+  type: bool
+  default: true
+  when: "{{ has_claude }}"
+  help: "Include .claude/commands/ (skip if you have global commands)"
+has_claude_rules:
+  type: bool
+  default: true
+  when: "{{ has_claude }}"
+  help: "Include .claude/rules/ (skip if you have global rules)"
+# =============================================================================
+# Git Hooks & Commit Tooling
+# =============================================================================
+hook_system:
+  type: str
+  choices:
+    "Cocogitto (conventional commits + version bumping)": "cog"
+    "pre-commit (pre-commit.com framework)": "pre-commit"
+    "Lefthook (fast, polyglot hook runner)": "lefthook"
+    "None (no git hooks)": "none"
+  default: "{% if preset == 'minimal' %}none{% else %}cog{% endif %}"
+  help: "Git hook management system"
+# =============================================================================
+# Release Tiers
+# =============================================================================
+release_tier:
+  type: str
+  choices:
+    "Private (internal, no public releases)": "private"
+    "Open Source (manual releases, full distribution)": "oss"
+    "Team (automated releases on merge)": "team"
+  default: "{% if preset == 'minimal' %}private{% else %}oss{% endif %}"
+  help: "Release automation level and distribution channels"
+team_auto_publish:
+  type: bool
+  default: true
+  when: "{{ release_tier == 'team' }}"
+  help: "Automatically publish releases on merge (false = draft for review)"
+# =============================================================================
+# Computed/Derived Variables
+# =============================================================================
+crate_name:
+  type: str
+  default: "{{ project_name | replace('-', '_') }}"
+  when: false # Don't prompt, just compute
+has_xtask:
+  type: bool
+  default: "{{ has_cli }}"
+  when: false # Don't prompt, just compute
+crate_type:
+  type: str
+  default: "{% if has_cli %}bin{% else %}lib{% endif %}"
+  when: false # Don't prompt, just compute
+has_cog:
+  type: bool
+  default: "{{ hook_system == 'cog' }}"
+  when: false # Don't prompt, just compute
+has_pre_commit:
+  type: bool
+  default: "{{ hook_system == 'pre-commit' }}"
+  when: false # Don't prompt, just compute
+has_lefthook:
+  type: bool
+  default: "{{ hook_system == 'lefthook' }}"
+  when: false # Don't prompt, just compute
+# Release workflow computed variables
+has_release_workflow:
+  type: bool
+  default: "{{ release_tier != 'private' and has_cog }}"
+  when: false
+has_github_releases:
+  type: bool
+  default: "{{ release_tier != 'private' and has_cli }}"
+  when: false
+has_crates_io_publish:
+  type: bool
+  default: "{{ release_tier != 'private' }}"
+  when: false
+has_auto_release:
+  type: bool
+  default: "{{ release_tier == 'team' and team_auto_publish }}"
+  when: false
+# =============================================================================
+# Dotfiles (Optional in most presets, default only in 'full')
+# =============================================================================
+has_yamlfmt:
+  type: bool
+  default: "{{ preset == 'full' }}"
+  help: "Include .yamlfmt config for YAML formatting"
+has_yamllint:
+  type: bool
+  default: "{{ preset == 'full' }}"
+  help: "Include .yamllint config for YAML linting"
+has_editorconfig:
+  type: bool
+  default: "{{ preset == 'full' }}"
+  help: "Include .editorconfig for consistent editor settings"
+has_env_files:
+  type: bool
+  default: "{{ preset == 'full' }}"
+  help: "Include .env, .env.rust, and .envrc files"
+# =============================================================================
+# Core Files (Default true in all presets)
+# =============================================================================
+has_agents_md:
+  type: bool
+  default: true
+  help: "Include AGENTS.md for AI agent instructions"
+has_just:
+  type: bool
+  default: true
+  help: "Include .justfile for task automation"
+has_gitattributes:
+  type: bool
+  default: true
+  help: "Include .gitattributes for line ending normalization"
+# =============================================================================
+# GitHub Integration
+# =============================================================================
+has_github:
+  type: bool
+  default: true
+  help: "Include .github/ directory (workflows, issue templates, etc.)"
+has_security_md:
+  type: bool
+  default: true
+  help: "Include SECURITY.md for vulnerability reporting"
+has_issue_templates:
+  type: bool
+  default: "{{ has_github }}"
+  when: "{{ has_github }}"
+  help: "Include GitHub issue templates"
+has_pr_templates:
+  type: bool
+  default: "{{ has_github }}"
+  when: "{{ has_github }}"
+  help: "Include GitHub PR templates"
+# =============================================================================
+# Markdown Linting
+# =============================================================================
+has_md:
+  type: bool
+  default: "{{ preset != 'minimal' }}"
+  help: "Include markdown linting (lenient rules, extra blank lines allowed)"
+has_md_strict:
+  type: bool
+  default: false
+  when: "{{ has_md }}"
+  help: "Use stricter markdown rules (limit blank lines, enforce dash lists)"
+# =============================================================================
+# Individual Skills (when has_claude_skills is true)
+# =============================================================================
+has_skill_markdown_authoring:
+  type: bool
+  default: "{{ has_claude_skills and (has_md or has_md_strict) }}"
+  when: "{{ has_claude_skills }}"
+  help: "Include markdown-authoring skill"
+has_skill_capturing_decisions:
+  type: bool
+  default: "{{ has_claude_skills }}"
+  when: "{{ has_claude_skills }}"
+  help: "Include capturing-decisions (ADR) skill"
+has_skill_using_git:
+  type: bool
+  default: "{{ has_claude_skills }}"
+  when: "{{ has_claude_skills }}"
+  help: "Include using-git skill"
