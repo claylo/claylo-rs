@@ -45,6 +45,7 @@ declare -A ALIAS_MAP=(
   [issues]=has_issue_templates
   [prs]=has_pr_templates
   [md]=has_md
+  [mcp]=has_mcp_server
   [md-strict]=has_md_strict
   [skill-markdown]=has_skill_markdown_authoring
   [skill-decisions]=has_skill_capturing_decisions
@@ -77,7 +78,7 @@ Options:
   --help               Show this help
 
 Feature flags (prefix with + to enable, - to disable):
-  cli, core, config, jsonl, otel, bench, gungraun, site,
+  cli, core, config, jsonl, otel, mcp, bench, gungraun, site,
   community, claude, claude-skills, claude-commands, claude-rules,
   yamlfmt, yamllint, editorconfig, env, agents-md, just,
   gitattributes, github, security-md, issues, prs, md, md-strict,

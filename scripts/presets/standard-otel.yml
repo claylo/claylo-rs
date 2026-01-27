@@ -18,6 +18,7 @@ has_core_library: true
 has_config: true
 has_jsonl_logging: true
 has_opentelemetry: true
+has_mcp_server: false
 has_benchmarks: false
 has_site: false
 has_xtask: true

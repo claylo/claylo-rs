@@ -1,0 +1,6 @@
+//! Command implementations
+
+pub mod info;
+{% if has_mcp_server %}
+pub mod serve;
+{% endif %}

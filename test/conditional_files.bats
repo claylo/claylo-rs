@@ -279,6 +279,48 @@ load 'test_helper'
 }
 
 # =============================================================================
+# MCP Server
+# =============================================================================
+
+@test "has_mcp_server=true includes server.rs and serve command" {
+    local output_dir
+    output_dir=$(generate_project_with_data "cond-mcp-on" "standard.yml" \
+        "has_mcp_server=true")
+
+    assert_file_in_project "$output_dir" "crates/test-standard/src/server.rs"
+    assert_file_in_project "$output_dir" "crates/test-standard/src/commands/serve.rs"
+    assert_file_contains "$output_dir" "crates/test-standard/Cargo.toml" 'rmcp'
+    assert_file_contains "$output_dir" "crates/test-standard/Cargo.toml" 'schemars'
+    assert_file_contains "$output_dir" "crates/test-standard/Cargo.toml" 'tokio'
+}
+
+@test "has_mcp_server=false excludes server.rs and serve command" {
+    local output_dir
+    output_dir=$(generate_project_with_data "cond-mcp-off" "standard.yml" \
+        "has_mcp_server=false")
+
+    assert_no_file_in_project "$output_dir" "crates/test-standard/src/server.rs"
+    assert_no_file_in_project "$output_dir" "crates/test-standard/src/commands/serve.rs"
+    assert_file_not_contains "$output_dir" "crates/test-standard/Cargo.toml" 'rmcp'
+}
+
+@test "has_mcp_server=true includes MCP development guide" {
+    local output_dir
+    output_dir=$(generate_project_with_data "cond-mcp-guide" "standard.yml" \
+        "has_mcp_server=true")
+
+    assert_file_in_project "$output_dir" "docs/mcp-development.md"
+}
+
+@test "has_mcp_server=false excludes MCP development guide" {
+    local output_dir
+    output_dir=$(generate_project_with_data "cond-mcp-guide-off" "standard.yml" \
+        "has_mcp_server=false")
+
+    assert_no_file_in_project "$output_dir" "docs/mcp-development.md"
+}
+
+# =============================================================================
 # Template Sanity Checks
 # =============================================================================
 
