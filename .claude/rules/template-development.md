@@ -88,11 +88,32 @@ These changes are **never** okay to make unilaterally:
 
 ## Testing Infrastructure
 
-Template testing lives in `scripts/`, not in the template itself.
+Template testing lives in `scripts/` and `test/`, not in the template itself.
 
-- Test data files: `scripts/*.yml`
-- Test runner: `scripts/test-template.sh`
+- Test data files: `scripts/presets/*.yml`
+- Test runner: **vendored bats** at `./test/bats/bin/bats` (do NOT use a system `bats`)
+- Test helpers: `test/test_helper.bash`
 - Test output: `target/template-tests/`
+
+### Running tests
+
+Use `just` commands — they invoke the vendored bats automatically:
+
+| Command | What it runs |
+|---------|-------------|
+| `just test` | All bats tests |
+| `just test-fast` | Conditional file tests only (no cargo build) |
+| `just test-presets` | Full preset build tests (slow) |
+| `just test-file test/foo.bats` | Single test file |
+
+**Never call `bats` directly.** Always use `./test/bats/bin/bats` or `just test*`.
+
+### Test types
+
+- **Conditional file tests** (`test/conditional_files.bats`): Fast — verify modular flags include/exclude files. No cargo build.
+- **Preset tests** (`test/presets.bats`): Slow — full end-to-end with clippy + nextest for each preset.
+
+When adding a new modular flag, add conditional file tests to verify the flag works without a full cargo build cycle.
 
 If you need to test OTEL, Grafana, or other integrations, the test harness goes in `scripts/` and uses environment variables or test data files. It does NOT become a copier.yaml variable.
 
