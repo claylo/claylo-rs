@@ -50,11 +50,6 @@ debug = true
 [profile.release]
 debug = "line-tables-only"
 
-# The profile that 'dist' will build with
-[profile.dist]
-inherits = "release"
-lto = "thin"
-
 # Debug-friendly profile for investigating mysteries (hangs, crashes, etc.)
 # Usage: cargo build --profile mystery
 [profile.mystery]
@@ -68,42 +63,4 @@ strip = false
 inherits = "release"
 lto = "thin"
 debug = "line-tables-only"
-{% endif %}
-{% if has_github_releases %}
-# Config for 'dist' (cargo-dist) - binary distribution to GitHub Releases and Homebrew
-[workspace.metadata.dist]
-# The preferred dist version to use in CI (Cargo.toml SemVer syntax)
-cargo-dist-version = "0.30.3"
-# CI backends to support
-ci = ["github"]
-# The installers to generate for each app
-installers = ["homebrew"]
-# Target platforms to build apps for (Rust target-triple syntax)
-targets = [
-  "x86_64-unknown-linux-gnu",
-  "aarch64-unknown-linux-gnu",
-  "x86_64-apple-darwin",
-  "x86_64-pc-windows-msvc",
-  "aarch64-apple-darwin",
-]
-tap = "{{ owner }}/homebrew-brew"
-publish-jobs = ["homebrew"]
-# Extra static files to include in each App (path relative to this Cargo.toml's dir)
-include = ["dist/share"]
-github-build-setup = "../dist-build-setup.yml"
-# Which actions to run on pull requests
-pr-run-mode = "plan"
-
-# cog creates the release on github
-create-release = false
-
-# Whether to embed dependency information using cargo-auditable
-cargo-auditable = true
-# Software Bill of Materials. Nice to have.
-cargo-cyclonedx = true
-
-[workspace.metadata.dist.github-action-commits]
-"actions/checkout" = "v6"
-"actions/upload-artifact" = "v6"
-"actions/download-artifact" = "v7"
 {% endif %}

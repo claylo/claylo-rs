@@ -214,22 +214,6 @@ load 'test_helper'
 # Hook Systems
 # =============================================================================
 
-@test "hook_system=cog includes cog.toml, excludes pre-commit and lefthook" {
-    local output_dir
-    output_dir=$(generate_project_with_data "cond-hook-cog" "minimal.yml" \
-        "hook_system=cog" \
-        "has_github=false" \
-        "has_claude=false" \
-        "has_just=false" \
-        "has_agents_md=false" \
-        "has_gitattributes=false" \
-        "has_md=false")
-
-    assert_file_in_project "$output_dir" "cog.toml"
-    assert_no_file_in_project "$output_dir" ".pre-commit-config.yaml"
-    assert_no_file_in_project "$output_dir" "lefthook.yml"
-}
-
 @test "hook_system=none excludes all hook configs" {
     local output_dir
     output_dir=$(generate_project_with_data "cond-hook-none" "minimal.yml" \
@@ -242,81 +226,8 @@ load 'test_helper'
         "has_md=false")
 
     assert_file_in_project "$output_dir" "Cargo.toml"
-    assert_no_file_in_project "$output_dir" "cog.toml"
     assert_no_file_in_project "$output_dir" ".pre-commit-config.yaml"
     assert_no_file_in_project "$output_dir" "lefthook.yml"
-}
-
-# =============================================================================
-# Release Tiers
-# =============================================================================
-
-@test "release_tier=private excludes release workflows" {
-    local output_dir
-    output_dir=$(generate_project_with_data "cond-release-private" "minimal.yml" \
-        "release_tier=private" \
-        "hook_system=cog" \
-        "has_cli=true" \
-        "has_core_library=false" \
-        "has_github=true" \
-        "has_security_md=false" \
-        "has_issue_templates=false" \
-        "has_pr_templates=false" \
-        "has_claude=false" \
-        "has_just=false" \
-        "has_agents_md=false" \
-        "has_gitattributes=false" \
-        "has_md=false")
-
-    assert_file_in_project "$output_dir" ".github/workflows/ci.yml"
-    assert_file_in_project "$output_dir" "cog.toml"
-    assert_no_file_in_project "$output_dir" ".github/workflows/bump.yml"
-    assert_no_file_in_project "$output_dir" ".github/workflows/publish.yml"
-    assert_no_file_in_project "$output_dir" ".actrc"
-    assert_no_file_in_project "$output_dir" ".secrets.example"
-}
-
-@test "release_tier=oss includes bump and publish workflows" {
-    local output_dir
-    output_dir=$(generate_project_with_data "cond-release-oss" "standard.yml" \
-        "release_tier=oss" \
-        "has_github=true" \
-        "has_security_md=false" \
-        "has_issue_templates=false" \
-        "has_pr_templates=false" \
-        "has_claude=false" \
-        "has_agents_md=false" \
-        "has_gitattributes=false" \
-        "has_md=false")
-
-    assert_file_in_project "$output_dir" ".github/workflows/ci.yml"
-    assert_file_in_project "$output_dir" ".github/workflows/bump.yml"
-    assert_file_in_project "$output_dir" ".github/workflows/publish.yml"
-    assert_file_in_project "$output_dir" "cog.toml"
-    assert_file_in_project "$output_dir" ".actrc"
-    assert_file_in_project "$output_dir" ".secrets.example"
-}
-
-@test "release_tier=team includes same workflows as oss" {
-    local output_dir
-    output_dir=$(generate_project_with_data "cond-release-team" "standard.yml" \
-        "release_tier=team" \
-        "team_auto_publish=true" \
-        "has_github=true" \
-        "has_security_md=false" \
-        "has_issue_templates=false" \
-        "has_pr_templates=false" \
-        "has_claude=false" \
-        "has_agents_md=false" \
-        "has_gitattributes=false" \
-        "has_md=false")
-
-    assert_file_in_project "$output_dir" ".github/workflows/ci.yml"
-    assert_file_in_project "$output_dir" ".github/workflows/bump.yml"
-    assert_file_in_project "$output_dir" ".github/workflows/publish.yml"
-    assert_file_in_project "$output_dir" "cog.toml"
-    assert_file_in_project "$output_dir" ".actrc"
-    assert_file_in_project "$output_dir" ".secrets.example"
 }
 
 # =============================================================================

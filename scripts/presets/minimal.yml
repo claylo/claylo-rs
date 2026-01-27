@@ -8,12 +8,10 @@ pinned_dev_toolchain: "1.92.0"
 license:
   - MIT
   - Apache-2.0
-versioning: global
 categories:
   - command-line-utilities
 preset: minimal
 hook_system: none
-release_tier: private
 has_cli: true
 has_core_library: false
 has_config: false

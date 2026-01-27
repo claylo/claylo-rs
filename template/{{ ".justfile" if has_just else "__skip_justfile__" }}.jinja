@@ -20,11 +20,7 @@ bootstrap:
         echo "   Run: rustup update stable"
     fi
     echo ""
-{% if has_cog %}
-    # Install git hooks (cocogitto)
-    echo "🪝 Installing git hooks (cocogitto)..."
-    cog install-hook --all 2>/dev/null || echo "   (cog not installed, run: cargo install cocogitto)"
-{% elif has_pre_commit %}
+{% if has_pre_commit %}
     # Install git hooks (pre-commit)
     echo "🪝 Installing git hooks (pre-commit)..."
     pre-commit install 2>/dev/null || echo "   (pre-commit not installed, run: pip install pre-commit)"
@@ -99,13 +95,7 @@ watch *args='':
 watch-clippy:
   cargo watch -x 'clippy --all-targets --all-features -- -D warnings'
 
-{% if has_cog %}
-install-hooks:
-  cog install-hook --all
-
-update-hooks:
-  cog install-hook --all --overwrite
-{% elif has_pre_commit %}
+{% if has_pre_commit %}
 install-hooks:
   pre-commit install
 
@@ -197,11 +187,6 @@ release-check:
     echo "✅ Release build succeeded"
     echo ""
     echo "✅ All pre-release checks passed!"
-{% if has_cog %}
-    echo "   Ready for: cog bump --auto"
-{% else %}
-    echo "   Ready for release!"
-{% endif %}
 
 # Build release binary
 build-release:
@@ -251,52 +236,3 @@ why pkg:
 # Update system-level cargo tools
 system-update:
     cargo install-update -al
-{% if has_github_releases %}
-
-# =============================================================================
-# cargo-dist Release Workflow
-# =============================================================================
-
-# Generate cargo-dist release workflow from Cargo.toml config
-generate-release-workflow:
-    dist generate --skip-cargo
-    @echo "Generated .github/workflows/release.yml"
-    @echo "Review the workflow and commit it to the repository."
-{% endif %}
-{% if has_release_workflow %}
-
-# =============================================================================
-# Local Workflow Testing (requires act: https://nektosact.com/)
-# =============================================================================
-
-# Test CI workflow with act (dry run)
-test-ci-workflow:
-    act push -n -W .github/workflows/ci.yml
-
-# Test release workflow with act (dry run)
-test-release-workflow:
-    act release -n -W .github/workflows/release.yml --eventpath .github/test-events/release.json
-{% endif %}
-{% if has_crates_io_publish %}
-# Test publish workflow with act (dry run)
-test-publish-workflow:
-    act workflow_dispatch -n -W .github/workflows/publish.yml --input dry_run=true
-
-# Publish to a local/custom crates.io registry
-# Usage: just publish-local local
-#        just publish-local staging
-publish-local registry="local":
-    #!/usr/bin/env bash
-    set -euo pipefail
-{% if has_core_library %}
-    echo "Publishing {{ project_name }}-core to {% raw %}{{registry}}{% endraw %}..."
-    cargo publish --registry {% raw %}{{registry}}{% endraw %} -p {{ project_name }}-core
-    echo "Waiting 30s for registry to index..."
-    sleep 30
-{% endif %}
-{% if has_cli %}
-    echo "Publishing {{ project_name }} to {% raw %}{{registry}}{% endraw %}..."
-    cargo publish --registry {% raw %}{{registry}}{% endraw %} -p {{ project_name }}
-{% endif %}
-    echo "Done!"
-{% endif %}

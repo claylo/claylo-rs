@@ -1,6 +1,7 @@
 ---
-status: accepted
+status: superseded
 date: 2026-01-04
+superseded_by: Release tooling moved to separate template (2026-01-27)
 ---
 
 # Cocogitto for Versioning and Commits

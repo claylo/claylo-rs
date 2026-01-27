@@ -57,7 +57,7 @@ copyright_name:
 copyright_year:
   type: str
   default: "{{ copyright_year | default('%Y' | strftime) }}"
-  when: false # Computed once at init, locked via answers file
+  when: false  # Computed once at init, locked via answers file
 project_description:
   type: str
   default: "A modern, production-ready Rust CLI application."
@@ -84,13 +84,6 @@ license:
   choices:
     - "Apache-2.0"
     - "MIT"
-versioning:
-  type: str
-  choices:
-    "Global (all crates share one version)": "global"
-    "Independent (each crate versioned separately)": "independent"
-  default: "global"
-  help: "Versioning strategy for the workspace"
 categories:
   type: str
   multiselect: true
@@ -239,72 +232,34 @@ has_claude_rules:
 hook_system:
   type: str
   choices:
-    "Cocogitto (conventional commits + version bumping)": "cog"
     "pre-commit (pre-commit.com framework)": "pre-commit"
     "Lefthook (fast, polyglot hook runner)": "lefthook"
     "None (no git hooks)": "none"
-  default: "{% if preset == 'minimal' %}none{% else %}cog{% endif %}"
+  default: "none"
   help: "Git hook management system"
-# =============================================================================
-# Release Tiers
-# =============================================================================
-release_tier:
-  type: str
-  choices:
-    "Private (internal, no public releases)": "private"
-    "Open Source (manual releases, full distribution)": "oss"
-    "Team (automated releases on merge)": "team"
-  default: "{% if preset == 'minimal' %}private{% else %}oss{% endif %}"
-  help: "Release automation level and distribution channels"
-team_auto_publish:
-  type: bool
-  default: true
-  when: "{{ release_tier == 'team' }}"
-  help: "Automatically publish releases on merge (false = draft for review)"
 # =============================================================================
 # Computed/Derived Variables
 # =============================================================================
 crate_name:
   type: str
   default: "{{ project_name | replace('-', '_') }}"
-  when: false # Don't prompt, just compute
+  when: false  # Don't prompt, just compute
 has_xtask:
   type: bool
   default: "{{ has_cli }}"
-  when: false # Don't prompt, just compute
+  when: false  # Don't prompt, just compute
 crate_type:
   type: str
   default: "{% if has_cli %}bin{% else %}lib{% endif %}"
-  when: false # Don't prompt, just compute
-has_cog:
-  type: bool
-  default: "{{ hook_system == 'cog' }}"
-  when: false # Don't prompt, just compute
+  when: false  # Don't prompt, just compute
 has_pre_commit:
   type: bool
   default: "{{ hook_system == 'pre-commit' }}"
-  when: false # Don't prompt, just compute
+  when: false  # Don't prompt, just compute
 has_lefthook:
   type: bool
   default: "{{ hook_system == 'lefthook' }}"
-  when: false # Don't prompt, just compute
-# Release workflow computed variables
-has_release_workflow:
-  type: bool
-  default: "{{ release_tier != 'private' and has_cog }}"
-  when: false
-has_github_releases:
-  type: bool
-  default: "{{ release_tier != 'private' and has_cli }}"
-  when: false
-has_crates_io_publish:
-  type: bool
-  default: "{{ release_tier != 'private' }}"
-  when: false
-has_auto_release:
-  type: bool
-  default: "{{ release_tier == 'team' and team_auto_publish }}"
-  when: false
+  when: false  # Don't prompt, just compute
 # =============================================================================
 # Dotfiles (Optional in most presets, default only in 'full')
 # =============================================================================

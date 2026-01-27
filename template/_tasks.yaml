@@ -11,9 +11,6 @@ _tasks:
     when: "{{ _copier_operation == 'copy' }}"
 
   # Hook installation (only one will run based on hook_system choice)
-  - command: cog install-hook --all
-    when: "{{ _copier_operation == 'copy' and has_cog }}"
-
   - command: pre-commit install
     when: "{{ _copier_operation == 'copy' and has_pre_commit }}"
 

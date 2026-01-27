@@ -285,27 +285,6 @@ This project uses GitHub Actions for continuous integration:
 - **Clippy** - Enforces lint rules
 - **Coverage** - Tracks test coverage
 
-### Release Process
-
-Releases are automated via [cargo-dist](https://opensource.axo.dev/cargo-dist/) and [cocogitto](https://docs.cocogitto.io/):
-
-1. Commits follow [Conventional Commits](https://www.conventionalcommits.org/)
-2. Version bumps are calculated from commit history
-3. Binaries are built for all supported platforms
-4. Homebrew formula is updated automatically
-
-To create a release:
-
-```bash
-# Bump version based on conventional commits
-cog bump --auto
-
-# Or specify version type
-cog bump --patch
-cog bump --minor
-cog bump --major
-```
-
 ### Dependabot
 
 This project uses Dependabot for security monitoring, but **not** for automatic pull requests. Instead:

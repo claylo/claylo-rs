@@ -45,7 +45,7 @@ commit.txt
 
 # agent instructions that won't be committed
 INTERNAL-PLAN.md
-
+.claude/plans/
 # scratch script and scratch directory
 # for little tests, scripts or notes
 scratch

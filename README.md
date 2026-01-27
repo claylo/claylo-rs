@@ -9,8 +9,6 @@ An opinionated Rust project template for building production-ready CLI tools and
 - **Structured JSONL logging** with daily rotation (never writes to stdout)
 - **Optional OpenTelemetry** trace export (opt-in, adds tokio dependency)
 - **xtask automation** for man pages, shell completions, and installation
-- **Tiered release automation** (private/oss/team) via cargo-dist and cocogitto
-- **crates.io publishing** workflow with dependency ordering
 - **Optional benchmarking** stack (Divan + Gungraun)
 
 ## Quick Start
@@ -59,7 +57,6 @@ copier copy --data preset=standard --data has_opentelemetry=true . my-otel-tool
 | `edition` | string | "2024" | Rust edition (2021, 2024) |
 | `msrv` | string | "1.88.0" | Minimum Supported Rust Version |
 | `license` | multi-select | MIT + Apache-2.0 | License(s) to include |
-| `versioning` | choice | global | `global` or `independent` versioning |
 | `preset` | choice | standard | `minimal`, `standard`, or `full` |
 
 ### Feature Flags (Override Preset Defaults)
@@ -79,64 +76,11 @@ copier copy --data preset=standard --data has_opentelemetry=true . my-otel-tool
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `hook_system` | preset-based | Git hook management: `cog`, `pre-commit`, `lefthook`, or `none` |
+| `hook_system` | none | Git hook management: `pre-commit`, `lefthook`, or `none` |
 
-- **cog** (default for standard/full): Cocogitto for conventional commits + version bumping
 - **pre-commit**: [pre-commit.com](https://pre-commit.com/) framework
 - **lefthook**: Fast, polyglot hook runner
-- **none** (default for minimal): No git hooks
-
-### Release Tiers
-
-| Option | Default | Description |
-|--------|---------|-------------|
-| `release_tier` | preset-based | Release automation level: `private`, `oss`, or `team` |
-| `team_auto_publish` | true | Auto-publish releases on merge (team tier only) |
-
-Release tiers control the level of release automation:
-
-| Tier | Description | Workflows | GitHub Release |
-|------|-------------|-----------|----------------|
-| **private** | Internal/development projects | CI only | None |
-| **oss** | Open source projects (default for standard/full) | CI + bump + publish | Draft (manual publish) |
-| **team** | Team projects with full CI/CD | CI + bump + publish | Auto or draft |
-
-**What each tier includes:**
-
-- **private** (default for minimal):
-  - CI workflow (lint, test, deny)
-  - Cocogitto for commit validation (if `hook_system=cog`)
-  - No release workflows, no cargo-dist config, no crates.io publishing
-  - Use for internal tools or projects not ready for public releases
-
-- **oss**:
-  - Everything from private, plus:
-  - Bump workflow (`cog bump --auto` on merge to main)
-  - Publish workflow (crates.io publishing)
-  - cargo-dist configuration (binary builds + Homebrew tap)
-  - Creates **draft** GitHub releases for review before publishing
-  - Publishing the draft triggers cargo-dist and crates.io workflows
-
-- **team**:
-  - Everything from oss, plus:
-  - When `team_auto_publish=true`: releases are published immediately (fully automated)
-  - When `team_auto_publish=false`: creates draft releases (semi-automated)
-
-**Example configurations:**
-
-```bash
-# Internal tool (no public releases)
-copier copy --data preset=minimal --data release_tier=private . my-internal-tool
-
-# Open source CLI with manual release approval
-copier copy --data preset=standard --data release_tier=oss . my-oss-cli
-
-# Team project with fully automated releases
-copier copy --data preset=standard --data release_tier=team . my-team-tool
-
-# Team project with draft releases for review
-copier copy --data preset=standard --data release_tier=team --data team_auto_publish=false . my-reviewed-tool
-```
+- **none** (default): No git hooks
 
 ### GitHub Integration
 
@@ -201,9 +145,7 @@ msrv: "1.88.0"
 license:
   - MIT
   - Apache-2.0
-versioning: global
 preset: standard
-release_tier: oss  # or: private, team
 ```
 
 Then generate:
@@ -245,14 +187,13 @@ Generated projects have this layout:
 ```
 my-project/
 ├── .github/
-│   └── workflows/        # CI, releases, dependabot
+│   └── workflows/        # CI, dependabot
 ├── crates/
 │   ├── my-project/       # CLI binary (if has_cli)
 │   └── my-project-core/  # Core library (if has_core_library)
 ├── xtask/                # Build automation (if has_xtask)
 ├── Cargo.toml            # Workspace manifest
 ├── deny.toml             # cargo-deny config
-├── cog.toml              # cocogitto config
 └── .justfile             # Task runner recipes
 ```
 

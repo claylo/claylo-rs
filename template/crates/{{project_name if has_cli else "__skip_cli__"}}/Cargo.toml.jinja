@@ -1,10 +1,6 @@
 [package]
 name = "{{ project_name }}"
-{% if versioning == "global" -%}
 version.workspace = true
-{% else -%}
-version = "0.1.0"
-{% endif -%}
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -29,7 +25,6 @@ exclude = [
     "/scripts/",
 {% endif %}
     "/docs/",
-    "/cog.toml",
     "/deny.toml",
     # Example config files
     "/*.example",
