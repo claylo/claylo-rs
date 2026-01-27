@@ -164,25 +164,6 @@ fn parses_json_config() {
         .success();
 }
 
-#[test]
-fn parses_json5_config() {
-    let tmp = TempDir::new().unwrap();
-    fs::write(
-        tmp.path().join(".{{ project_name }}.json5"),
-        r#"{
-    // JSON5 supports comments
-    log_level: "warn",
-    // And trailing commas
-}"#,
-    )
-    .unwrap();
-
-    cmd()
-        .args(["-C", tmp.path().to_str().unwrap(), "info"])
-        .assert()
-        .success();
-}
-
 // =============================================================================
 // Config Precedence
 // =============================================================================
@@ -289,7 +270,7 @@ fn invalid_json_config_shows_error() {
 
 #[test]
 fn unknown_config_field_is_ignored() {
-    // The config crate ignores unknown fields by default with serde
+    // Figment ignores unknown fields by default with serde
     let tmp = TempDir::new().unwrap();
     fs::write(
         tmp.path().join(".{{ project_name }}.toml"),

@@ -12,14 +12,13 @@
 //! - TOML (`.toml`)
 //! - YAML (`.yaml`, `.yml`)
 //! - JSON (`.json`)
-//! - JSON5 (`.json5`)
 //!
 //! # Config file locations (in order of precedence, highest first):
 //! - `.{{ project_name }}.<ext>` in current directory or any parent
 //! - `{{ project_name }}.<ext>` in current directory or any parent
 //! - `~/.config/{{ project_name }}/config.<ext>` (user config)
 //!
-//! Where `<ext>` is one of: `toml`, `yaml`, `yml`, `json`, `json5`
+//! Where `<ext>` is one of: `toml`, `yaml`, `yml`, `json`
 //!
 //! # Example
 //! ```no_run
@@ -32,8 +31,9 @@
 //! ```
 
 use camino::{Utf8Path, Utf8PathBuf};
-use config::{ConfigBuilder, File, FileFormat, builder::DefaultState};
-use serde::Deserialize;
+use figment::Figment;
+use figment::providers::{Format, Json, Serialized, Toml, Yaml};
+use serde::{Deserialize, Serialize};
 use std::path::Path;
 
 use crate::error::{ConfigError, ConfigResult};
@@ -41,8 +41,8 @@ use crate::error::{ConfigError, ConfigResult};
 /// The configuration for {{ project_name }}.
 ///
 /// Add your configuration fields here. This struct is deserialized from
-/// config files found during discovery (TOML, YAML, JSON, or JSON5).
-#[derive(Debug, Clone, Default, Deserialize, PartialEq, Eq)]
+/// config files found during discovery (TOML, YAML, or JSON).
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct Config {
     /// Log level for the application (e.g., "debug", "info", "warn", "error").
@@ -56,7 +56,7 @@ pub struct Config {
 }
 
 /// Log level configuration.
-#[derive(Debug, Clone, Default, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum LogLevel {
     /// Verbose output for debugging and development.
@@ -83,7 +83,7 @@ impl LogLevel {
 }
 
 /// Supported configuration file extensions (in order of preference).
-const CONFIG_EXTENSIONS: &[&str] = &["toml", "yaml", "yml", "json", "json5"];
+const CONFIG_EXTENSIONS: &[&str] = &["toml", "yaml", "yml", "json"];
 
 /// Application name for XDG directory lookup and config file names.
 const APP_NAME: &str = "{{ project_name }}";
@@ -160,31 +160,30 @@ impl ConfigLoader {
     /// 3. User config (`~/.config/{{ project_name }}/config.<ext>`)
     /// 4. Default values
     pub fn load(self) -> ConfigResult<Config> {
-        let mut builder = config::Config::builder();
+        let mut figment = Figment::new().merge(Serialized::defaults(Config::default()));
 
         // Start with user config (lowest precedence of file sources)
         if self.include_user_config
             && let Some(user_config) = self.find_user_config()
         {
-            builder = self.add_file(builder, &user_config)?;
+            figment = Self::merge_file(figment, &user_config);
         }
 
         // Add project config
         if let Some(ref root) = self.project_search_root
             && let Some(project_config) = self.find_project_config(root)
         {
-            builder = self.add_file(builder, &project_config)?;
+            figment = Self::merge_file(figment, &project_config);
         }
 
         // Add explicit files (highest precedence)
         for file in &self.explicit_files {
-            builder = self.add_file(builder, file)?;
+            figment = Self::merge_file(figment, file);
         }
 
-        builder
-            .build()?
-            .try_deserialize()
-            .map_err(ConfigError::from)
+        figment
+            .extract()
+            .map_err(|e| ConfigError::Deserialize(Box::new(e)))
     }
 
     /// Load configuration, returning an error if no config file is found.
@@ -255,24 +254,13 @@ impl ConfigLoader {
         None
     }
 
-    /// Add a file to the config builder, detecting format from extension.
-    fn add_file(
-        &self,
-        builder: ConfigBuilder<DefaultState>,
-        path: &Utf8Path,
-    ) -> ConfigResult<ConfigBuilder<DefaultState>> {
-        let format = Self::detect_format(path);
-        Ok(builder.add_source(File::new(path.as_str(), format)))
-    }
-
-    /// Detect the file format from the file extension.
-    fn detect_format(path: &Utf8Path) -> FileFormat {
+    /// Merge a config file into the figment, detecting format from extension.
+    fn merge_file(figment: Figment, path: &Utf8Path) -> Figment {
         match path.extension() {
-            Some("toml") => FileFormat::Toml,
-            Some("yaml" | "yml") => FileFormat::Yaml,
-            Some("json") => FileFormat::Json,
-            Some("json5") => FileFormat::Json5,
-            _ => FileFormat::Toml, // Default to TOML for unknown extensions
+            Some("toml") => figment.merge(Toml::file_exact(path.as_str())),
+            Some("yaml" | "yml") => figment.merge(Yaml::file_exact(path.as_str())),
+            Some("json") => figment.merge(Json::file_exact(path.as_str())),
+            _ => figment.merge(Toml::file_exact(path.as_str())),
         }
     }
 }

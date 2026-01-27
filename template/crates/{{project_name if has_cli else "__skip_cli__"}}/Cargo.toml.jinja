@@ -68,8 +68,9 @@ serde_json = "1.0"
 dirs = "6.0"
 {% endif -%}
 {% if has_config and not has_core_library -%}
-camino = "1.1"
-config = "0.15"
+camino = { version = "1.1", features = ["serde1"] }
+dirs = "6.0"
+figment = { version = "0.10", features = ["toml", "yaml", "json"] }
 thiserror = "2.0"
 {% endif %}
 [dev-dependencies]

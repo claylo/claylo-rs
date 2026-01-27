@@ -33,7 +33,7 @@ exclude = [
 [dependencies]
 {% if has_config -%}
 camino = { version = "1.1", features = ["serde1"] }
-config = { version = "0.15", default-features = false, features = ["toml", "yaml", "json", "json5"] }
+figment = { version = "0.10", features = ["toml", "yaml", "json"] }
 dirs = "6.0"
 serde = { version = "1.0", features = ["derive"] }
 {% endif -%}
