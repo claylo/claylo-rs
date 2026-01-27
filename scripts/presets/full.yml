@@ -12,6 +12,7 @@ license:
 categories:
   - command-line-utilities
 preset: full
+lint_level: strict
 hook_system: none
 has_cli: true
 has_core_library: true

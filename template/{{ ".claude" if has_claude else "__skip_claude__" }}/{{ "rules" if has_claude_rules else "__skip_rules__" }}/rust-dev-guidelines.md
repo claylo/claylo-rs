@@ -46,7 +46,7 @@ Useful for:
 edition = "2024"
 rust-version = "1.88.0"
 unsafe_code = "deny"
-clippy: all = "warn", nursery = "warn"
+clippy: see [workspace.lints.clippy] in Cargo.toml
 ```
 
 ---

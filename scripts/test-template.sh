@@ -798,6 +798,7 @@ license:
 categories:
   - command-line-utilities
 preset: minimal
+lint_level: standard
 hook_system: none
 has_cli: true
 has_core_library: false
@@ -849,6 +850,7 @@ license:
 categories:
   - command-line-utilities
 preset: standard
+lint_level: standard
 hook_system: none
 has_cli: true
 has_core_library: true
@@ -901,6 +903,7 @@ license:
 categories:
   - command-line-utilities
 preset: standard
+lint_level: standard
 hook_system: none
 has_cli: true
 has_core_library: true
@@ -954,6 +957,7 @@ license:
 categories:
   - command-line-utilities
 preset: full
+lint_level: strict
 hook_system: none
 has_cli: true
 has_core_library: true

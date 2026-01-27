@@ -30,6 +30,32 @@ _exclude:
   - "*__skip_*"
 # Use .jinja suffix for template files
 _templates_suffix: .jinja
+
+_message_after_copy: |
+
+  -------------------------------------------------------
+  Project "{{ project_name }}" created successfully!
+  -------------------------------------------------------
+
+  Get started:
+
+    cd {{ project_name }}
+  {%- if has_just %}
+    just bootstrap
+  {%- else %}
+    cargo build --workspace
+  {%- endif %}
+
+_message_after_update: |
+
+  Project "{{ project_name }}" updated.
+  Review changes and run:
+  {%- if has_just %}
+    just check
+  {%- else %}
+    cargo clippy --all-targets --all-features -- -D warnings && cargo nextest run
+  {%- endif %}
+
 # =============================================================================
 # Post-generation tasks (requires --trust flag)
 # =============================================================================
@@ -160,6 +186,17 @@ preset:
     "Full (everything including benchmarks and site)": "full"
   default: "standard"
   help: "Project template preset - sets defaults for feature flags"
+# =============================================================================
+# Code Quality
+# =============================================================================
+lint_level:
+  type: str
+  choices:
+    "Strict (all + nursery warnings)": "strict"
+    "Standard (all warnings, no nursery)": "standard"
+    "Relaxed (Rust defaults only)": "relaxed"
+  default: "{% if preset == 'full' %}strict{% else %}standard{% endif %}"
+  help: "Clippy lint strictness for [workspace.lints.clippy]"
 # =============================================================================
 # Feature Flags (Override Preset Defaults)
 # =============================================================================
