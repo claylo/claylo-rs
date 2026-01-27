@@ -30,26 +30,26 @@ declare -A ALIAS_MAP=(
   [site]=has_site
   [community]=has_community_files
   [claude]=has_claude
-  [claude-skills]=has_claude_skills
-  [claude-commands]=has_claude_commands
-  [claude-rules]=has_claude_rules
+  [claude_skills]=has_claude_skills
+  [claude_commands]=has_claude_commands
+  [claude_rules]=has_claude_rules
   [yamlfmt]=has_yamlfmt
   [yamllint]=has_yamllint
   [editorconfig]=has_editorconfig
   [env]=has_env_files
-  [agents-md]=has_agents_md
+  [agents_md]=has_agents_md
   [just]=has_just
   [gitattributes]=has_gitattributes
   [github]=has_github
-  [security-md]=has_security_md
+  [security_md]=has_security_md
   [issues]=has_issue_templates
   [prs]=has_pr_templates
   [md]=has_md
   [mcp]=has_mcp_server
-  [md-strict]=has_md_strict
-  [skill-markdown]=has_skill_markdown_authoring
-  [skill-decisions]=has_skill_capturing_decisions
-  [skill-git]=has_skill_using_git
+  [md_strict]=has_md_strict
+  [skill_markdown]=has_skill_markdown_authoring
+  [skill_decisions]=has_skill_capturing_decisions
+  [skill_git]=has_skill_using_git
 )
 
 # Sorted alias names for display
@@ -79,10 +79,10 @@ Options:
 
 Feature flags (prefix with + to enable, - to disable):
   cli, core, config, jsonl, otel, mcp, bench, gungraun, site,
-  community, claude, claude-skills, claude-commands, claude-rules,
-  yamlfmt, yamllint, editorconfig, env, agents-md, just,
-  gitattributes, github, security-md, issues, prs, md, md-strict,
-  skill-markdown, skill-decisions, skill-git
+  community, claude, claude_skills, claude_commands, claude_rules,
+  yamlfmt, yamllint, editorconfig, env, agents_md, just,
+  gitattributes, github, security_md, issues, prs, md, md_strict,
+  skill_markdown, skill_decisions, skill_git
 
 Examples:
   claylo-rs new ./my-app --owner myorg --copyright "My Name"
@@ -95,72 +95,52 @@ EOF
 }
 
 # ---------------------------------------------------------------------------
-# Parse a +feat-feat string into --data flags
+# Parse a +feat+feat or -feat-feat string into --data flags
 #
-# Uses greedy matching so hyphenated aliases (claude-skills, md-strict, etc.)
-# resolve correctly. "+claude-skills" matches the full alias, while
-# "+claude-site" matches "claude" then "-site" as separate toggles.
+# Aliases use underscores (pandoc-style), so +/- are unambiguous delimiters.
+# Supports: "+otel+mcp", "-site-community", "+core+config-site"
 # ---------------------------------------------------------------------------
 parse_features() {
   local input="$1"
   local -n out_arr=$2  # nameref to caller's array
 
-  # Nothing to parse
   [[ -z "$input" ]] && return 0
 
-  local len=${#input}
-  local i=0
+  # First character must be + or -
+  if [[ "${input:0:1}" != "+" && "${input:0:1}" != "-" ]]; then
+    echo "Error: feature string must start with + or -: ${input}" >&2
+    exit 1
+  fi
 
-  while ((i < len)); do
-    local ch="${input:$i:1}"
+  # Insert a newline before each + or - so we can split on them
+  local delimited
+  delimited=$(printf '%s' "$input" | sed 's/[+-]/\n&/g')
 
-    # Each token must start with + or -
-    if [[ "$ch" != "+" && "$ch" != "-" ]]; then
-      echo "Error: feature string must start with + or -: ${input}" >&2
-      exit 1
-    fi
+  while IFS= read -r token; do
+    [[ -z "$token" ]] && continue
+    local prefix="${token:0:1}"
+    local name="${token:1}"
 
-    local prefix="$ch"
-    ((++i))
-
-    if ((i >= len)); then
+    if [[ -z "$name" ]]; then
       echo "Error: empty feature name after '${prefix}'" >&2
       exit 1
     fi
 
-    # Greedy match: try longest substring that is a valid alias.
-    # Aliases never contain '+', so stop candidates at '+' boundaries.
-    local best=""
-    local remaining=$((len - i))
-    for ((try_len = remaining; try_len > 0; try_len--)); do
-      local candidate="${input:$i:$try_len}"
-      # Skip candidates that span past a '+' ('+' is never in an alias)
-      [[ "$candidate" == *"+"* ]] && continue
-      if [[ -n "${ALIAS_MAP[$candidate]+x}" ]]; then
-        best="$candidate"
-        break
-      fi
-    done
-
-    if [[ -z "$best" ]]; then
-      # Extract the unmatched segment for the error message (up to next +)
-      local rest="${input:$i}"
-      rest="${rest%%+*}"
-      echo "Error: unknown feature '${rest}'" >&2
+    if [[ -z "${ALIAS_MAP[$name]+x}" ]]; then
+      echo "Error: unknown feature '${name}'" >&2
       echo "" >&2
       echo "Valid features:" >&2
       echo "$SORTED_ALIASES" | paste - - - - | column -t >&2
       exit 1
     fi
 
-    local var="${ALIAS_MAP[$best]}"
+    local var="${ALIAS_MAP[$name]}"
     if [[ "$prefix" == "+" ]]; then
       out_arr+=("--data" "${var}=true")
     else
       out_arr+=("--data" "${var}=false")
     fi
-    i=$((i + ${#best}))
-  done
+  done <<< "$delimited"
 }
 
 # ---------------------------------------------------------------------------

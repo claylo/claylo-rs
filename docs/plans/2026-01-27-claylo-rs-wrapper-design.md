@@ -76,25 +76,25 @@ A single string of `+name` and `-name` tokens, parsed left-to-right.
 | `site` | `has_site` |
 | `community` | `has_community_files` |
 | `claude` | `has_claude` |
-| `claude-skills` | `has_claude_skills` |
-| `claude-commands` | `has_claude_commands` |
-| `claude-rules` | `has_claude_rules` |
+| `claude_skills` | `has_claude_skills` |
+| `claude_commands` | `has_claude_commands` |
+| `claude_rules` | `has_claude_rules` |
 | `yamlfmt` | `has_yamlfmt` |
 | `yamllint` | `has_yamllint` |
 | `editorconfig` | `has_editorconfig` |
 | `env` | `has_env_files` |
-| `agents-md` | `has_agents_md` |
+| `agents_md` | `has_agents_md` |
 | `just` | `has_just` |
 | `gitattributes` | `has_gitattributes` |
 | `github` | `has_github` |
-| `security-md` | `has_security_md` |
+| `security_md` | `has_security_md` |
 | `issues` | `has_issue_templates` |
 | `prs` | `has_pr_templates` |
 | `md` | `has_md` |
-| `md-strict` | `has_md_strict` |
-| `skill-markdown` | `has_skill_markdown_authoring` |
-| `skill-decisions` | `has_skill_capturing_decisions` |
-| `skill-git` | `has_skill_using_git` |
+| `md_strict` | `has_md_strict` |
+| `skill_markdown` | `has_skill_markdown_authoring` |
+| `skill_decisions` | `has_skill_capturing_decisions` |
+| `skill_git` | `has_skill_using_git` |
 
 Unknown aliases produce an error listing the bad name and all valid aliases.
 
@@ -162,10 +162,10 @@ Options:
 
 Feature flags (prefix with + to enable, - to disable):
   cli, core, config, jsonl, otel, bench, gungraun, site,
-  community, claude, claude-skills, claude-commands, claude-rules,
-  yamlfmt, yamllint, editorconfig, env, agents-md, just,
-  gitattributes, github, security-md, issues, prs, md, md-strict,
-  skill-markdown, skill-decisions, skill-git
+  community, claude, claude_skills, claude_commands, claude_rules,
+  yamlfmt, yamllint, editorconfig, env, agents_md, just,
+  gitattributes, github, security_md, issues, prs, md, md_strict,
+  skill_markdown, skill_decisions, skill_git
 
 Examples:
   claylo-rs new ./my-app
