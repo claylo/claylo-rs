@@ -222,6 +222,11 @@ has_opentelemetry:
   default: false
   when: "{{ has_cli }}"
   help: "Include OpenTelemetry trace export (adds tokio dependency)"
+has_mcp_server:
+  type: bool
+  default: false
+  when: "{{ has_cli }}"
+  help: "Include MCP server (Model Context Protocol) as a 'serve' subcommand"
 has_benchmarks:
   type: bool
   default: "{{ preset == 'full' }}"
@@ -284,6 +289,10 @@ crate_name:
 has_xtask:
   type: bool
   default: "{{ has_cli }}"
+  when: false  # Don't prompt, just compute
+needs_tokio:
+  type: bool
+  default: "{{ has_opentelemetry or has_mcp_server }}"
   when: false  # Don't prompt, just compute
 crate_type:
   type: str
