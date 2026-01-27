@@ -4,7 +4,7 @@ copyright_name: Test Org
 project_description: Standard test with OpenTelemetry
 edition: "2024"
 msrv: "1.88.0"
-pinned_dev_toolchain: "1.92.0"
+pinned_dev_toolchain: "1.93.0"
 license:
   - MIT
   - Apache-2.0

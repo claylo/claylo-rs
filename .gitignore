@@ -37,6 +37,7 @@ bench-reports/*
 !bench-reports/.gitkeep
 
 # agent handoffs/pickups
+# NEVER git add -f .handoffs/.. files
 .handoffs/
 
 # commit message draft

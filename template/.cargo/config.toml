@@ -30,3 +30,6 @@ git-fetch-with-cli = true   # use `git` executable for git ops
 
 [registries.crates-io]
 protocol = "sparse"
+
+[term]
+quiet = true
