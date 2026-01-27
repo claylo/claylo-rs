@@ -9,6 +9,10 @@ default:
 test:
     ./test/bats/bin/bats test/
 
+# Run wrapper script tests only
+test-wrapper:
+    ./test/bats/bin/bats test/wrapper.bats
+
 # Run fast conditional file tests only
 test-fast:
     ./test/bats/bin/bats test/conditional_files.bats
@@ -70,6 +74,13 @@ apply-updates root:
 # =============================================================================
 # Docker-based testing infrastructure
 # =============================================================================
+
+# Run bash coverage for wrapper tests (requires Docker)
+test-coverage:
+    @rm -rf bin/coverage
+    docker compose -f scripts/docker/docker-compose.yml --profile coverage run --rm bashcov
+    @echo ""
+    @echo "Coverage report: bin/coverage/index.html"
 
 # Start Docker testing services (OTEL stack)
 docker-up:

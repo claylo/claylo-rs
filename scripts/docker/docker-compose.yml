@@ -67,5 +67,31 @@ services:
     profiles:
       - test  # Only start with --profile test
 
+  # =============================================================================
+  # Bash Coverage Runner (bashcov)
+  # =============================================================================
+  # Runs bats tests with bash line coverage via bashcov + SimpleCov
+  #
+  # Usage:
+  #   just test-coverage                     # wrapper tests (default)
+  #   docker compose ... run --rm bashcov \  # custom test file
+  #     bashcov --root /code/bin -- ./test/bats/bin/bats test/wrapper.bats
+  #
+  # Output: coverage/index.html (HTML report)
+  #
+  bashcov:
+    build:
+      context: .
+      dockerfile: Dockerfile.bashcov
+    container_name: claylo-bashcov
+    working_dir: /code
+    entrypoint: ["bash", "-c"]
+    volumes:
+      - ../..:/code
+    command:
+      - "bashcov --root /code/bin --skip-uncovered -- ./test/bats/bin/bats test/wrapper.bats"
+    profiles:
+      - coverage  # Only start with --profile coverage
+
 volumes:
   otel-data:
