@@ -242,7 +242,7 @@ MOCK
 @test "wrapper: all feature aliases resolve correctly" {
     # Spot-check a selection of aliases across categories
     PATH="${MOCK_DIR}:${PATH}" run "$WRAPPER" new ./foo \
-        +core+config+jsonl+claude-skills+env+issues+md-strict+skill-git
+        +core+config+jsonl+claude_skills+env+issues+md_strict+skill_git
     assert_success
     assert_line --partial "--data has_core_library=true"
     assert_line --partial "--data has_config=true"
