@@ -18,6 +18,9 @@
 pub mod config;
 {% endif %}
 pub mod commands;
+{% if has_mcp_server %}
+pub mod server;
+{% endif %}
 
 use clap::{CommandFactory, Parser, Subcommand};
 use std::path::PathBuf;
@@ -58,6 +61,10 @@ pub struct Cli {
 pub enum Commands {
     /// Show package information
     Info(commands::info::InfoArgs),
+{% if has_mcp_server %}
+    /// Start MCP (Model Context Protocol) server on stdio
+    Serve(commands::serve::ServeArgs),
+{% endif %}
 }
 
 /// Returns the clap command for documentation generation
