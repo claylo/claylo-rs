@@ -18,7 +18,7 @@ use crate::config::ConfigLoader;
 mod observability;
 {% endif %}
 
-{% if has_opentelemetry -%}
+{% if needs_tokio -%}
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
 {% else -%}
@@ -73,11 +73,17 @@ fn main() -> anyhow::Result<()> {
     // Execute command
     match cli.command {
         Commands::Info(args) => commands::info::cmd_info(args, cli.json),
+{% if has_mcp_server %}
+        Commands::Serve(args) => commands::serve::cmd_serve(args).await,
+{% endif %}
     }
 {% else %}
     // Execute command
     match cli.command {
         Commands::Info(args) => commands::info::cmd_info(args, cli.json),
+{% if has_mcp_server %}
+        Commands::Serve(args) => commands::serve::cmd_serve(args).await,
+{% endif %}
     }
 {% endif %}
 }
