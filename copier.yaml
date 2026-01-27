@@ -101,7 +101,7 @@ msrv:
   help: "Minimum Supported Rust Version"
 pinned_dev_toolchain:
   type: str
-  default: "1.92.0"
+  default: "1.93.0"
   help: "Pinned development Rust toolchain version"
 license:
   type: str

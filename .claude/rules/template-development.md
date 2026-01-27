@@ -94,6 +94,7 @@ Template testing lives in `scripts/` and `test/`, not in the template itself.
 - Test runner: **vendored bats** at `./test/bats/bin/bats` (do NOT use a system `bats`)
 - Test helpers: `test/test_helper.bash`
 - Test output: `target/template-tests/`
+- Formatters: `test/formatters/` — custom bats output formatters
 
 ### Running tests
 
@@ -107,6 +108,12 @@ Use `just` commands — they invoke the vendored bats automatically:
 | `just test-file test/foo.bats` | Single test file |
 
 **Never call `bats` directly.** Always use `./test/bats/bin/bats` or `just test*`.
+
+For reduced output (saves context window tokens), use the agents formatter:
+
+```bash
+./test/bats/bin/bats -F "$PWD/test/formatters/agents.bash" test/*.bats
+```
 
 ### Test types
 
