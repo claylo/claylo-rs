@@ -1,0 +1,340 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ---------------------------------------------------------------------------
+# claylo-rs — friendly wrapper around copier for the claylo-rs template
+# ---------------------------------------------------------------------------
+
+# Require bash 4+ for associative arrays
+if ((BASH_VERSINFO[0] < 4)); then
+  echo "Error: bash 4+ required (you have ${BASH_VERSION})." >&2
+  echo "On macOS: brew install bash" >&2
+  exit 1
+fi
+
+# Resolve template directory relative to this script
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TEMPLATE_DIR="${SCRIPT_DIR}/../template"
+
+# ---------------------------------------------------------------------------
+# Alias map: short name → copier variable
+# ---------------------------------------------------------------------------
+declare -A ALIAS_MAP=(
+  [cli]=has_cli
+  [core]=has_core_library
+  [config]=has_config
+  [jsonl]=has_jsonl_logging
+  [otel]=has_opentelemetry
+  [bench]=has_benchmarks
+  [gungraun]=has_gungraun
+  [site]=has_site
+  [community]=has_community_files
+  [claude]=has_claude
+  [claude-skills]=has_claude_skills
+  [claude-commands]=has_claude_commands
+  [claude-rules]=has_claude_rules
+  [yamlfmt]=has_yamlfmt
+  [yamllint]=has_yamllint
+  [editorconfig]=has_editorconfig
+  [env]=has_env_files
+  [agents-md]=has_agents_md
+  [just]=has_just
+  [gitattributes]=has_gitattributes
+  [github]=has_github
+  [security-md]=has_security_md
+  [issues]=has_issue_templates
+  [prs]=has_pr_templates
+  [md]=has_md
+  [md-strict]=has_md_strict
+  [skill-markdown]=has_skill_markdown_authoring
+  [skill-decisions]=has_skill_capturing_decisions
+  [skill-git]=has_skill_using_git
+)
+
+# Sorted alias names for display
+SORTED_ALIASES=$(printf '%s\n' "${!ALIAS_MAP[@]}" | sort)
+
+# ---------------------------------------------------------------------------
+# Usage
+# ---------------------------------------------------------------------------
+usage() {
+  cat <<'EOF'
+Usage: claylo-rs <command> [options] [+feature-flags]
+
+Commands:
+  new <dest>       Create a new project (copier copy)
+  update [dest]    Update an existing project (copier update)
+
+Options:
+  --preset <name>      minimal, standard, full (default: standard)
+  --lint <level>       strict, standard, relaxed (default: from preset)
+  --hook <system>      pre-commit, lefthook, none (default: none)
+  --owner <name>       GitHub org/username
+  --copyright <name>   Copyright holder name
+  --desc <text>        Project description
+  --data key=value     Pass arbitrary data to copier (repeatable)
+  --dry-run            Preview without writing files
+  --help               Show this help
+
+Feature flags (prefix with + to enable, - to disable):
+  cli, core, config, jsonl, otel, bench, gungraun, site,
+  community, claude, claude-skills, claude-commands, claude-rules,
+  yamlfmt, yamllint, editorconfig, env, agents-md, just,
+  gitattributes, github, security-md, issues, prs, md, md-strict,
+  skill-markdown, skill-decisions, skill-git
+
+Examples:
+  claylo-rs new ./my-app --owner myorg --copyright "My Name"
+  claylo-rs new ./my-app --preset full +otel-site
+  claylo-rs new ./my-app --preset minimal +core+config+bench
+  claylo-rs update ./my-app +otel
+  claylo-rs update . -site-community
+  claylo-rs new ./my-app --data edition=2021 --data msrv=1.80.0
+EOF
+}
+
+# ---------------------------------------------------------------------------
+# Parse a +feat-feat string into --data flags
+#
+# Uses greedy matching so hyphenated aliases (claude-skills, md-strict, etc.)
+# resolve correctly. "+claude-skills" matches the full alias, while
+# "+claude-site" matches "claude" then "-site" as separate toggles.
+# ---------------------------------------------------------------------------
+parse_features() {
+  local input="$1"
+  local -n out_arr=$2  # nameref to caller's array
+
+  # Nothing to parse
+  [[ -z "$input" ]] && return 0
+
+  local len=${#input}
+  local i=0
+
+  while ((i < len)); do
+    local ch="${input:$i:1}"
+
+    # Each token must start with + or -
+    if [[ "$ch" != "+" && "$ch" != "-" ]]; then
+      echo "Error: feature string must start with + or -: ${input}" >&2
+      exit 1
+    fi
+
+    local prefix="$ch"
+    ((++i))
+
+    if ((i >= len)); then
+      echo "Error: empty feature name after '${prefix}'" >&2
+      exit 1
+    fi
+
+    # Greedy match: try longest substring that is a valid alias.
+    # Aliases never contain '+', so stop candidates at '+' boundaries.
+    local best=""
+    local remaining=$((len - i))
+    for ((try_len = remaining; try_len > 0; try_len--)); do
+      local candidate="${input:$i:$try_len}"
+      # Skip candidates that span past a '+' ('+' is never in an alias)
+      [[ "$candidate" == *"+"* ]] && continue
+      if [[ -n "${ALIAS_MAP[$candidate]+x}" ]]; then
+        best="$candidate"
+        break
+      fi
+    done
+
+    if [[ -z "$best" ]]; then
+      # Extract the unmatched segment for the error message (up to next +)
+      local rest="${input:$i}"
+      rest="${rest%%+*}"
+      echo "Error: unknown feature '${rest}'" >&2
+      echo "" >&2
+      echo "Valid features:" >&2
+      echo "$SORTED_ALIASES" | paste - - - - | column -t >&2
+      exit 1
+    fi
+
+    local var="${ALIAS_MAP[$best]}"
+    if [[ "$prefix" == "+" ]]; then
+      out_arr+=("--data" "${var}=true")
+    else
+      out_arr+=("--data" "${var}=false")
+    fi
+    i=$((i + ${#best}))
+  done
+}
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+main() {
+  if [[ $# -eq 0 ]]; then
+    usage
+    exit 1
+  fi
+
+  local command="$1"
+  shift
+
+  case "$command" in
+    --help | -h | help)
+      usage
+      exit 0
+      ;;
+    new | update) ;;
+    *)
+      echo "Error: unknown command '${command}'" >&2
+      echo "" >&2
+      usage
+      exit 1
+      ;;
+  esac
+
+  # Check for copier (only needed for new/update, not help)
+  if ! command -v copier &>/dev/null; then
+    echo "Error: copier not found." >&2
+    echo "Install: pipx install copier" >&2
+    exit 1
+  fi
+
+  # Parse remaining args
+  local dest=""
+  local preset="standard"
+  local preset_set=false
+  local lint=""
+  local hook=""
+  local owner=""
+  local copyright=""
+  local desc=""
+  local dry_run=false
+  local feature_strings=()
+  local data_args=()
+  local extra_data=()
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --preset)
+        [[ $# -lt 2 ]] && { echo "Error: --preset requires a value" >&2; exit 1; }
+        preset="$2"
+        preset_set=true
+        case "$preset" in
+          minimal | standard | full) ;;
+          *) echo "Error: invalid preset '${preset}' (minimal, standard, full)" >&2; exit 1 ;;
+        esac
+        shift 2
+        ;;
+      --lint)
+        [[ $# -lt 2 ]] && { echo "Error: --lint requires a value" >&2; exit 1; }
+        lint="$2"
+        case "$lint" in
+          strict | standard | relaxed) ;;
+          *) echo "Error: invalid lint level '${lint}' (strict, standard, relaxed)" >&2; exit 1 ;;
+        esac
+        shift 2
+        ;;
+      --hook)
+        [[ $# -lt 2 ]] && { echo "Error: --hook requires a value" >&2; exit 1; }
+        hook="$2"
+        case "$hook" in
+          pre-commit | lefthook | none) ;;
+          *) echo "Error: invalid hook system '${hook}' (pre-commit, lefthook, none)" >&2; exit 1 ;;
+        esac
+        shift 2
+        ;;
+      --owner)
+        [[ $# -lt 2 ]] && { echo "Error: --owner requires a value" >&2; exit 1; }
+        owner="$2"
+        shift 2
+        ;;
+      --copyright)
+        [[ $# -lt 2 ]] && { echo "Error: --copyright requires a value" >&2; exit 1; }
+        copyright="$2"
+        shift 2
+        ;;
+      --desc)
+        [[ $# -lt 2 ]] && { echo "Error: --desc requires a value" >&2; exit 1; }
+        desc="$2"
+        shift 2
+        ;;
+      --data)
+        [[ $# -lt 2 ]] && { echo "Error: --data requires a key=value" >&2; exit 1; }
+        extra_data+=("--data" "$2")
+        shift 2
+        ;;
+      --dry-run)
+        dry_run=true
+        shift
+        ;;
+      --help | -h)
+        usage
+        exit 0
+        ;;
+      [+-]*)
+        feature_strings+=("$1")
+        shift
+        ;;
+      *)
+        if [[ -z "$dest" ]]; then
+          dest="$1"
+        else
+          echo "Error: unexpected argument '${1}'" >&2
+          exit 1
+        fi
+        shift
+        ;;
+    esac
+  done
+
+  # Parse all feature strings
+  for fs in "${feature_strings[@]}"; do
+    parse_features "$fs" data_args
+  done
+
+  # ---------------------------------------------------------------------------
+  # Build the copier command
+  # ---------------------------------------------------------------------------
+  local -a cmd=()
+
+  if [[ "$command" == "new" ]]; then
+    [[ -z "$dest" ]] && { echo "Error: destination path required" >&2; echo "Usage: claylo-rs new <dest>" >&2; exit 1; }
+
+    local project_name
+    project_name="$(basename "$dest")"
+
+    cmd=(copier copy --trust --defaults)
+    [[ "$dry_run" == true ]] && cmd+=(--pretend)
+
+    cmd+=(--data "project_name=${project_name}")
+    cmd+=(--data "preset=${preset}")
+    [[ -n "$owner" ]] && cmd+=(--data "owner=${owner}")
+    [[ -n "$copyright" ]] && cmd+=(--data "copyright_name=${copyright}")
+    [[ -n "$desc" ]] && cmd+=(--data "project_description=${desc}")
+    [[ -n "$lint" ]] && cmd+=(--data "lint_level=${lint}")
+    [[ -n "$hook" ]] && cmd+=(--data "hook_system=${hook}")
+    cmd+=("${data_args[@]}")
+    [[ ${#extra_data[@]} -gt 0 ]] && cmd+=("${extra_data[@]}")
+    cmd+=("$TEMPLATE_DIR" "$dest")
+
+  elif [[ "$command" == "update" ]]; then
+    [[ -z "$dest" ]] && dest="."
+
+    cmd=(copier update --trust)
+    [[ "$dry_run" == true ]] && cmd+=(--pretend)
+
+    # For update, only pass overrides — no preset/project_name defaults
+    [[ "$preset_set" == true ]] && cmd+=(--data "preset=${preset}")
+    [[ -n "$owner" ]] && cmd+=(--data "owner=${owner}")
+    [[ -n "$copyright" ]] && cmd+=(--data "copyright_name=${copyright}")
+    [[ -n "$desc" ]] && cmd+=(--data "project_description=${desc}")
+    [[ -n "$lint" ]] && cmd+=(--data "lint_level=${lint}")
+    [[ -n "$hook" ]] && cmd+=(--data "hook_system=${hook}")
+    cmd+=("${data_args[@]}")
+    [[ ${#extra_data[@]} -gt 0 ]] && cmd+=("${extra_data[@]}")
+    cmd+=("$dest")
+  fi
+
+  # Show what we're running
+  echo "Running: ${cmd[*]}"
+  echo ""
+  exec "${cmd[@]}"
+}
+
+main "$@"
