@@ -24,9 +24,13 @@ unsafe_code = "deny"
 # Encourage documentation - warn on public items missing docs
 missing_docs = "warn"
 
+{%- if lint_level != 'relaxed' %}
 [workspace.lints.clippy]
 all = "warn"
+{%- if lint_level == 'strict' %}
 nursery = "warn"
+{%- endif %}
+{%- endif %}
 
 # Optimize dependencies in dev mode for faster tests
 # (keeps main crate unoptimized for fast incremental builds)

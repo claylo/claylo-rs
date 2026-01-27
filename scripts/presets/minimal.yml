@@ -11,6 +11,7 @@ license:
 categories:
   - command-line-utilities
 preset: minimal
+lint_level: standard
 hook_system: none
 has_cli: true
 has_core_library: false

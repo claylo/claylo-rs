@@ -231,6 +231,54 @@ load 'test_helper'
 }
 
 # =============================================================================
+# Clippy Lint Tiers
+# =============================================================================
+
+@test "lint_level=strict includes all + nursery warnings" {
+    local output_dir
+    output_dir=$(generate_project_with_data "cond-lint-strict" "minimal.yml" \
+        "lint_level=strict" \
+        "has_github=false" \
+        "has_claude=false" \
+        "has_just=false" \
+        "has_agents_md=false" \
+        "has_gitattributes=false" \
+        "has_md=false")
+
+    assert_file_contains "$output_dir" "Cargo.toml" 'all = "warn"'
+    assert_file_contains "$output_dir" "Cargo.toml" 'nursery = "warn"'
+}
+
+@test "lint_level=standard includes all warnings but no nursery" {
+    local output_dir
+    output_dir=$(generate_project_with_data "cond-lint-standard" "minimal.yml" \
+        "lint_level=standard" \
+        "has_github=false" \
+        "has_claude=false" \
+        "has_just=false" \
+        "has_agents_md=false" \
+        "has_gitattributes=false" \
+        "has_md=false")
+
+    assert_file_contains "$output_dir" "Cargo.toml" 'all = "warn"'
+    assert_file_not_contains "$output_dir" "Cargo.toml" 'nursery = "warn"'
+}
+
+@test "lint_level=relaxed omits clippy lint section" {
+    local output_dir
+    output_dir=$(generate_project_with_data "cond-lint-relaxed" "minimal.yml" \
+        "lint_level=relaxed" \
+        "has_github=false" \
+        "has_claude=false" \
+        "has_just=false" \
+        "has_agents_md=false" \
+        "has_gitattributes=false" \
+        "has_md=false")
+
+    assert_file_not_contains "$output_dir" "Cargo.toml" '\[workspace\.lints\.clippy\]'
+}
+
+# =============================================================================
 # Template Sanity Checks
 # =============================================================================
 
