@@ -63,11 +63,14 @@ impl ProjectServer {
 {% if has_core_library %}
     /// Get project information.
     #[tool(description = "Get project name, version, and description")]
+    #[tracing::instrument(skip(self), fields(otel.kind = "server"))]
     fn get_info(
         &self,
         #[allow(unused_variables)]
         Parameters(params): Parameters<GetInfoParams>,
     ) -> Result<CallToolResult, McpError> {
+        tracing::debug!(tool = "get_info", format = %params.format, "executing MCP tool");
+
         let info = serde_json::json!({
             "name": env!("CARGO_PKG_NAME"),
             "version": env!("CARGO_PKG_VERSION"),
@@ -86,17 +89,23 @@ impl ProjectServer {
             )
         };
 
+        tracing::info!(tool = "get_info", "MCP tool completed");
         Ok(CallToolResult::success(vec![Content::text(text)]))
     }
 {% else %}
     /// Get project information.
     #[tool(description = "Get project name and version")]
+    #[tracing::instrument(skip(self), fields(otel.kind = "server"))]
     fn get_info(&self) -> Result<CallToolResult, McpError> {
+        tracing::debug!(tool = "get_info", "executing MCP tool");
+
         let text = format!(
             "{} v{}",
             env!("CARGO_PKG_NAME"),
             env!("CARGO_PKG_VERSION"),
         );
+
+        tracing::info!(tool = "get_info", "MCP tool completed");
         Ok(CallToolResult::success(vec![Content::text(text)]))
     }
 {% endif %}

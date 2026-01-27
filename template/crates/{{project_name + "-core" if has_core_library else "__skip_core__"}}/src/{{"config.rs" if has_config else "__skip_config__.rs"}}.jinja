@@ -159,7 +159,9 @@ impl ConfigLoader {
     /// 2. Project config (closest to search root)
     /// 3. User config (`~/.config/{{ project_name }}/config.<ext>`)
     /// 4. Default values
+    #[tracing::instrument(skip(self), fields(search_root = ?self.project_search_root))]
     pub fn load(self) -> ConfigResult<Config> {
+        tracing::debug!("loading configuration");
         let mut figment = Figment::new().merge(Serialized::defaults(Config::default()));
 
         // Start with user config (lowest precedence of file sources)
@@ -181,9 +183,11 @@ impl ConfigLoader {
             figment = Self::merge_file(figment, file);
         }
 
-        figment
+        let config: Config = figment
             .extract()
-            .map_err(|e| ConfigError::Deserialize(Box::new(e)))
+            .map_err(|e| ConfigError::Deserialize(Box::new(e)))?;
+        tracing::info!(log_level = config.log_level.as_str(), "configuration loaded");
+        Ok(config)
     }
 
     /// Load configuration, returning an error if no config file is found.

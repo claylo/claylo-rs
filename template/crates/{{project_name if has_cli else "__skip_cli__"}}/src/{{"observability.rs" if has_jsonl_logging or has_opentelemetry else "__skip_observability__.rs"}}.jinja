@@ -27,6 +27,7 @@ use tracing_subscriber::util::SubscriberInitExt;
 {% if has_opentelemetry -%}
 const ENV_APP_ENV: &str = "APP_ENV";
 const ENV_OTEL_ENDPOINT: &str = "OTEL_EXPORTER_OTLP_ENDPOINT";
+const ENV_OTEL_PROTOCOL: &str = "OTEL_EXPORTER_OTLP_PROTOCOL";
 {% endif -%}
 const ENV_LOG_PATH: &str = "APP_LOG_PATH";
 const ENV_LOG_DIR: &str = "APP_LOG_DIR";
@@ -140,11 +141,23 @@ pub fn init_observability(cfg: &ObservabilityConfig, env_filter: EnvFilter) -> R
             ])
             .build();
 
-        let exporter = SpanExporter::builder()
-            .with_tonic()
-            .with_endpoint(endpoint.clone())
-            .build()
-            .context("Failed to build OTLP span exporter")?;
+        let protocol = std::env::var(ENV_OTEL_PROTOCOL)
+            .unwrap_or_default()
+            .to_lowercase();
+
+        let exporter = match protocol.as_str() {
+            "http/json" | "http/protobuf" => SpanExporter::builder()
+                .with_http()
+                .with_endpoint(endpoint.clone())
+                .build()
+                .context("Failed to build HTTP OTLP span exporter")?,
+            // Default to gRPC (matches OpenTelemetry Rust SDK default)
+            _ => SpanExporter::builder()
+                .with_tonic()
+                .with_endpoint(endpoint.clone())
+                .build()
+                .context("Failed to build gRPC OTLP span exporter")?,
+        };
 
         let tracer_provider = sdktrace::SdkTracerProvider::builder()
             .with_batch_exporter(exporter)
@@ -165,6 +178,14 @@ pub fn init_observability(cfg: &ObservabilityConfig, env_filter: EnvFilter) -> R
         .with(log_layer)
         .init();
 
+    tracing::debug!(
+        otel_enabled = cfg.otlp_endpoint.is_some(),
+        "observability initialized"
+    );
+    if let Some(ref endpoint) = cfg.otlp_endpoint {
+        tracing::info!(%endpoint, "OTLP trace export enabled");
+    }
+
     Ok(ObservabilityGuard {
         _tracer_provider: tracer_provider,
         _log_guard: log_guard,
@@ -174,6 +195,8 @@ pub fn init_observability(cfg: &ObservabilityConfig, env_filter: EnvFilter) -> R
         .with(env_filter)
         .with(log_layer)
         .init();
+
+    tracing::debug!("observability initialized");
 
     Ok(ObservabilityGuard {
         _log_guard: log_guard,

@@ -71,12 +71,16 @@ fn main() -> anyhow::Result<()> {
     );
 
     // Execute command
-    match cli.command {
+    let result = match cli.command {
         Commands::Info(args) => commands::info::cmd_info(args, cli.json),
 {% if has_mcp_server %}
         Commands::Serve(args) => commands::serve::cmd_serve(args).await,
 {% endif %}
+    };
+    if let Err(ref err) = result {
+        tracing::error!(error = %err, "fatal error");
     }
+    result
 {% else %}
     // Execute command
     match cli.command {

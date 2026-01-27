@@ -76,6 +76,34 @@ Use the MCP Inspector to test tools interactively:
 npx @modelcontextprotocol/inspector cargo run -- serve
 ```
 
+## Observability
+
+Tool methods are traced via `#[tracing::instrument]`. Traces flow to any
+OTLP-compatible receiver when configured.
+
+### Quick start with otel-viewer
+
+[otel-viewer](https://github.com/logaretm/otel-viewer) is a lightweight local
+trace viewer that accepts OTLP over HTTP/JSON.
+
+1. Run otel-viewer on port 3000
+2. Set the endpoint and protocol:
+   ```bash
+   export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:3000/api/v1/otlp
+   export OTEL_EXPORTER_OTLP_PROTOCOL=http/json
+   ```
+3. Start your MCP server and invoke tools — traces appear in the viewer
+
+### Using Grafana Tempo or other gRPC collectors
+
+The default transport is gRPC. Point at a standard OTLP gRPC endpoint:
+
+```bash
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
+```
+
+Set `OTEL_EXPORTER_OTLP_PROTOCOL=http/json` to use HTTP/JSON instead of gRPC.
+
 ## Client Configuration
 
 Add to Claude Code `settings.json` or `.mcp.json`:
