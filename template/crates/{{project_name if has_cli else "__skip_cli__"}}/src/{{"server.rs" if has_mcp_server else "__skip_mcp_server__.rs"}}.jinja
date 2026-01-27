@@ -46,6 +46,12 @@ pub struct ProjectServer {
     tool_router: rmcp::handler::server::router::tool::ToolRouter<Self>,
 }
 
+impl Default for ProjectServer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[tool_router]
 impl ProjectServer {
     /// Create a new MCP server instance.
