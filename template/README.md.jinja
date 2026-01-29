@@ -144,6 +144,25 @@ Overrides:
 ### OpenTelemetry Export
 
 OpenTelemetry tracing is **opt-in**. Set `OTEL_EXPORTER_OTLP_ENDPOINT`{% if has_config %} or config key `otel_endpoint`{% endif %} to enable trace export to an OTLP collector.
+
+Both **gRPC** (default) and **HTTP/JSON** transports are supported. Set
+`OTEL_EXPORTER_OTLP_PROTOCOL` to choose:
+
+| Protocol value | Transport | Typical port |
+|----------------|-----------|--------------|
+| `grpc` (default) | gRPC / Tonic | 4317 |
+| `http/json` | HTTP / JSON | 4318 |
+
+**Grafana Tempo / Jaeger (gRPC):**
+```bash
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
+```
+
+**otel-viewer or HTTP-only collectors:**
+```bash
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:3000/api/v1/otlp
+export OTEL_EXPORTER_OTLP_PROTOCOL=http/json
+```
 {%- endif %}
 {%- endif %}
 

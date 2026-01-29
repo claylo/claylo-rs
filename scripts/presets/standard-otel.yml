@@ -1,6 +1,8 @@
 project_name: test-standard-otel
+crate_name: test_standard_otel
 owner: testorg
 copyright_name: Test Org
+copyright_year: "2026"
 project_description: Standard test with OpenTelemetry
 edition: "2024"
 msrv: "1.88.0"
@@ -18,6 +20,7 @@ has_core_library: true
 has_config: true
 has_jsonl_logging: true
 has_opentelemetry: true
+needs_tokio: true
 has_mcp_server: false
 has_benchmarks: false
 has_site: false

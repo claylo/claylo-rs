@@ -1,6 +1,8 @@
 project_name: test-minimal
+crate_name: test_minimal
 owner: testorg
 copyright_name: Test Org
+copyright_year: "2026"
 project_description: Minimal test project
 edition: "2024"
 msrv: "1.88.0"
