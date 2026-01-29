@@ -1,6 +1,8 @@
 project_name: test-full
+crate_name: test_full
 owner: testorg
 copyright_name: Test Org
+copyright_year: "2026"
 conduct_email: conduct@test.org
 project_description: Full test project
 edition: "2024"
@@ -19,6 +21,7 @@ has_core_library: true
 has_config: true
 has_jsonl_logging: true
 has_opentelemetry: true
+needs_tokio: true
 has_mcp_server: false
 has_benchmarks: true
 has_gungraun: false

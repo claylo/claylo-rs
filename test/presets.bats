@@ -213,7 +213,7 @@ EOF
 
     [[ -d "$output_dir" ]] || skip "full preset not built"
 
-    assert_file_in_project "$output_dir" "crates/test-full/benches"
+    assert_file_in_project "$output_dir" "crates/test-full-core/benches"
 }
 
 @test "full preset: has site directory" {
