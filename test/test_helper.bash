@@ -14,6 +14,54 @@ load 'test_helper/bats-assert/load'
 load 'test_helper/bats-file/load'
 
 # =============================================================================
+# Preset Discovery (reads from YAML source of truth)
+# =============================================================================
+
+# Get list of all preset names (including variants with underscore prefix)
+# Usage: get_all_preset_names
+get_all_preset_names() {
+    local presets_dir="${PROJECT_ROOT}/scripts/presets"
+    for f in "$presets_dir"/*.yml; do
+        basename "$f" .yml
+    done
+}
+
+# Get list of primary preset names (excludes underscore-prefixed variants)
+# Usage: get_primary_preset_names
+get_primary_preset_names() {
+    local presets_dir="${PROJECT_ROOT}/scripts/presets"
+    for f in "$presets_dir"/*.yml; do
+        local name
+        name=$(basename "$f" .yml)
+        [[ "$name" != _* ]] && echo "$name"
+    done
+}
+
+# Get a value from a preset YAML file
+# Usage: get_preset_value "minimal" "has_cli"
+get_preset_value() {
+    local preset="$1"
+    local key="$2"
+    local presets_dir="${PROJECT_ROOT}/scripts/presets"
+    local preset_file="${presets_dir}/${preset}.yml"
+
+    # Handle underscore-prefixed variants
+    if [[ ! -f "$preset_file" ]]; then
+        preset_file="${presets_dir}/_${preset}.yml"
+    fi
+
+    yq -r ".${key} // empty" "$preset_file"
+}
+
+# Check if preset has a feature enabled
+# Usage: preset_has_feature "full" "has_benchmarks" && echo "yes"
+preset_has_feature() {
+    local preset="$1"
+    local key="$2"
+    [[ "$(get_preset_value "$preset" "$key")" == "true" ]]
+}
+
+# =============================================================================
 # Helper Functions
 # =============================================================================
 
@@ -27,11 +75,22 @@ generate_project() {
     rm -rf "$output_dir"
     mkdir -p "$output_dir"
 
+    # Test defaults for required fields without copier.yaml defaults
+    local data_args=(
+        --data "project_name=${test_name}"
+        --data "owner=test-owner"
+        --data "copyright_name=Test Copyright"
+    )
+
     if [[ -n "$data_file" ]]; then
-        copier copy --trust --defaults --data-file "${PROJECT_ROOT}/scripts/presets/${data_file}" \
+        copier copy --trust --defaults \
+            --data-file "${PROJECT_ROOT}/scripts/presets/${data_file}" \
+            "${data_args[@]}" \
             "$PROJECT_ROOT" "$output_dir" >&2
     else
-        copier copy --trust --defaults "$PROJECT_ROOT" "$output_dir" >&2
+        copier copy --trust --defaults \
+            "${data_args[@]}" \
+            "$PROJECT_ROOT" "$output_dir" >&2
     fi
 
     # Return only the path
@@ -49,8 +108,12 @@ generate_project_with_data() {
     rm -rf "$output_dir"
     mkdir -p "$output_dir"
 
-    # Build --data arguments
-    local data_args=()
+    # Build --data arguments (include test defaults for required fields)
+    local data_args=(
+        --data "project_name=${test_name}"
+        --data "owner=test-owner"
+        --data "copyright_name=Test Copyright"
+    )
     for arg in "$@"; do
         data_args+=(--data "$arg")
     done

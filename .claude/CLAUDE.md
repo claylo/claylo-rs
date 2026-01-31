@@ -123,12 +123,25 @@ Key Copier variables (see `copier.yaml` for full list):
 
 ## Conditional Directories
 
-The template uses Copier's conditional directory pattern:
-```
-{{ "dirname" if condition else "__skip_dirname__" }}
-```
+The template uses Copier's conditional directory pattern.
 
-Files/directories starting with `__skip_` are excluded from output.
+**For static directory names:**
+```
+{% if has_github %}.github{% endif %}
+```
+When condition is false → directory name is empty → skipped.
+
+**For dynamic directory names:**
+```
+{{ project_name if has_cli else "" }}
+```
+When condition is false → directory name is empty → skipped.
+
+**For conditional files with Jinja content:**
+```
+{% if has_mcp_server %}server.rs{% endif %}.jinja
+```
+The `.jinja` suffix must be outside the condition.
 
 ## Jinja Escaping
 

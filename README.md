@@ -1,289 +1,185 @@
 # claylo-rs
 
-An opinionated Rust project template for building production-ready CLI tools and libraries.
+Production-ready Rust CLI scaffolding.
+Opinionated defaults.
+Updates that don't abandon you.
 
-## What You Get
+![Choose your adventure flowchart](docs/images/choose-your-adventure.svg)
 
-- **Workspace layout** with separate CLI and core library crates
-- **Hierarchical config discovery** (project + user config files)
-- **Structured JSONL logging** with daily rotation (never writes to stdout)
-- **Optional OpenTelemetry** trace export (opt-in, adds tokio dependency)
-- **xtask automation** for man pages, shell completions, and installation
-- **Optional benchmarking** stack (Divan + Gungraun)
+## Install
+
+```bash
+brew install claylo/brew/claylo-rs
+```
+
+Requires [copier](https://copier.readthedocs.io/) (`pipx install copier` or `uv tool install copier`).
+If you're allergic to Python, we understand — it stays out of your generated project.
+
 
 ## Quick Start
 
 ```bash
-# Install copier if you haven't already
-uv tool install copier
+# Sensible defaults: CLI + config + logging + workspace layout
+claylo-rs new ./my-tool --owner myorg --copyright "Your Name"
 
-# Create a new project
-copier copy gh:claylo/claylo-rs my-new-project
+# Full send: benchmarks, OpenTelemetry, the works
+claylo-rs new ./my-tool --preset full +otel
 
-# Or from a local clone
-copier copy . my-new-project
+# Minimal: just the binary (we've all been there)
+claylo-rs new ./my-tool --preset minimal
 ```
+
+You now have a Rust workspace with:
+
+- A CLI binary that handles `--verbose` and `--quiet`
+- JSONL logging that doesn't pollute stdout (safe for pipes and MCP servers)
+- Config file discovery that checks all the right places
+- A `.justfile` so you never type `cargo nextest run --all-features` again
+
+Six months later, the template adds MCP server scaffolding.
+You run:
+
+```bash
+claylo-rs update . +mcp
+```
+
+Three-way merge. Your code stays. New features land. No copy-paste archaeology.
+
 
 ## Presets
 
-The template offers three presets that configure sensible defaults:
+Pick a starting point. Override anything with `+flag` or `-flag`.
 
-| Preset | What's Included |
-|--------|-----------------|
-| **Minimal** | CLI binary only |
-| **Standard** | CLI + core library + config + JSONL logging + xtask |
-| **Full** | Everything including benchmarks and site placeholder |
-
-For OpenTelemetry support, use the `standard` preset and enable `has_opentelemetry`:
+| Preset | The Vibe |
+|--------|----------|
+| **minimal** | Just the binary. No config, no logging, no training wheels. For when you know exactly what you're doing, or want to find out the hard way. |
+| **standard** | The "you'll thank yourself later" tier. CLI + core library + config discovery + JSONL logging + xtask automation. Most projects land here. |
+| **full** | Everything. Benchmarks, editor configs, markdown linting, environment files. For projects that will outlive your current job. |
 
 ```bash
-# Use a specific preset (you'll be prompted if not specified)
-copier copy --data preset=minimal . my-cli
-copier copy --data preset=standard . my-tool
-copier copy --data preset=full . my-app
-
 # Standard with OpenTelemetry tracing
-copier copy --data preset=standard --data has_opentelemetry=true . my-otel-tool
+claylo-rs new ./my-tool --preset standard +otel
+
+# Full but skip the benchmarks
+claylo-rs new ./my-tool --preset full -bench
+
+# Minimal but add config support
+claylo-rs new ./my-tool --preset minimal +config
 ```
 
-## Template Options
+See [docs/reference.md](docs/reference.md) for the full flag list.
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `project_name` | string | required | Project name (lowercase with hyphens) |
-| `owner` | string | required | GitHub org/username |
-| `copyright_name` | string | required | Name for license copyright |
-| `project_description` | string | "A modern..." | Project description |
-| `edition` | string | "2024" | Rust edition (2021, 2024) |
-| `msrv` | string | "1.88.0" | Minimum Supported Rust Version |
-| `license` | multi-select | MIT + Apache-2.0 | License(s) to include |
-| `preset` | choice | standard | `minimal`, `standard`, or `full` |
 
-### Feature Flags (Override Preset Defaults)
+## What You Get
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `has_cli` | true | Include CLI binary crate |
-| `has_core_library` | preset-based | Include `-core` library crate |
-| `has_config` | preset-based | Include configuration file support |
-| `has_jsonl_logging` | true (if CLI) | Structured JSONL file logging |
-| `has_opentelemetry` | false | OpenTelemetry trace export (adds tokio) |
-| `has_benchmarks` | full only | Benchmark infrastructure |
-| `has_site` | full only | Site directory placeholder |
-| `has_community_files` | false | Include CODE_OF_CONDUCT.md and CONTRIBUTING.md |
-
-### Git Hooks
-
-| Option | Default | Description |
-|--------|---------|-------------|
-| `hook_system` | none | Git hook management: `pre-commit`, `lefthook`, or `none` |
-
-- **pre-commit**: [pre-commit.com](https://pre-commit.com/) framework
-- **lefthook**: Fast, polyglot hook runner
-- **none** (default): No git hooks
-
-### GitHub Integration
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `has_github` | true | Include `.github/` directory (workflows, templates, etc.) |
-| `has_security_md` | true | Include SECURITY.md for vulnerability reporting |
-| `has_issue_templates` | true | Include GitHub issue templates |
-| `has_pr_templates` | true | Include GitHub PR templates |
-
-### Dotfiles (full preset only by default)
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `has_yamlfmt` | full only | Include `.yamlfmt` config |
-| `has_yamllint` | full only | Include `.yamllint` config |
-| `has_editorconfig` | full only | Include `.editorconfig` for consistent editor settings |
-| `has_env_files` | full only | Include `.env`, `.env.rust`, and `.envrc` files |
-
-### Core Files
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `has_agents_md` | true | Include AGENTS.md for AI agent instructions |
-| `has_just` | true | Include `.justfile` for task automation |
-| `has_gitattributes` | true | Include `.gitattributes` for line ending normalization |
-
-### Markdown Linting
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `has_md` | standard/full | Include lenient markdown linting (SEMBR-friendly) |
-| `has_md_strict` | false | Use stricter markdown rules (1 blank line max, dash lists) |
-
-When enabled, adds `just mdlint` and `just mdfix` recipes.
-
-### Claude Code Integration
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `has_claude` | true | Include `.claude/` directory with agent configuration |
-| `has_claude_skills` | true | Include `.claude/skills/` (skip if you have global skills) |
-| `has_claude_commands` | true | Include `.claude/commands/` (skip if you have global commands) |
-| `has_claude_rules` | true | Include `.claude/rules/` (skip if you have global rules) |
-| `has_skill_markdown_authoring` | auto | Include markdown-authoring skill (when `has_md`) |
-| `has_skill_capturing_decisions` | true | Include capturing-decisions (ADR) skill |
-| `has_skill_using_git` | true | Include using-git skill |
-
-> **Note:** Community health files (CODE_OF_CONDUCT.md, CONTRIBUTING.md, etc.) are excluded by default. Consider using a [`.github` repository](https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/creating-a-default-community-health-file) to share these files across all your repositories instead of duplicating them in each project.
-
-## Using a Data File
-
-For reproducible project generation, create a YAML data file:
-
-```yaml
-# my-project.yml
-project_name: my-awesome-cli
-owner: myorg
-copyright_name: My Organization
-project_description: A CLI tool that does amazing things
-msrv: "1.88.0"
-license:
-  - MIT
-  - Apache-2.0
-preset: standard
-```
-
-Then generate:
-
-```bash
-copier copy --trust --data-file my-project.yml . ./my-awesome-cli
-```
-
-## Updating Existing Projects
-
-Copier tracks template answers in `.repo.yml`. To apply template updates:
-
-```bash
-cd my-existing-project
-copier update
-```
-
-This performs a three-way merge, preserving your changes while applying template updates.
-
-### Bulk Updates
-
-To scan multiple projects for available updates:
-
-```bash
-# From the template repo
-./scripts/update-projects.sh ~/my-projects
-
-# Apply updates (creates branches)
-./scripts/update-projects.sh -u ~/my-projects
-
-# Filter to only this template's projects
-./scripts/update-projects.sh -f claylo-rs ~/my-projects
-```
-
-## Project Structure
-
-Generated projects have this layout:
+![What you get - annotated project structure](docs/images/what-you-get.svg)
 
 ```
-my-project/
-├── .github/
-│   └── workflows/        # CI, dependabot
+my-tool/
 ├── crates/
-│   ├── my-project/       # CLI binary (if has_cli)
-│   └── my-project-core/  # Core library (if has_core_library)
-├── xtask/                # Build automation (if has_xtask)
-├── Cargo.toml            # Workspace manifest
-├── deny.toml             # cargo-deny config
-└── .justfile             # Task runner recipes
+│   ├── my-tool/           # CLI binary
+│   │   ├── src/
+│   │   │   ├── main.rs    # Entry point, args, logging init
+│   │   │   └── commands/  # Subcommand handlers
+│   │   └── tests/
+│   └── my-tool-core/      # Library crate (your actual logic)
+├── xtask/                 # Build automation (man pages, completions)
+├── .claude/               # Claude Code skills, rules, commands
+├── .justfile              # Task runner recipes
+├── Cargo.toml             # Workspace manifest
+└── deny.toml              # cargo-deny config
 ```
 
-## Logging and Tracing
+**Separate binary and library** — Your CLI is a thin wrapper.
+The logic lives in `-core` where it's testable without spawning processes.
 
-When `has_jsonl_logging` is enabled, the generated project uses Rust's `tracing` crate for structured logging:
+**xtask instead of build scripts** — `cargo xtask install` generates man pages and shell completions.
+No Makefile, no external tools.
 
-- **All tracing macros work**: `debug!`, `info!`, `warn!`, `error!`, `#[instrument]`
-- Logs are written as JSONL to daily-rotated files
-- **Never writes to stdout** (safe for MCP servers and tools that use stdout for IPC)
-- Falls back to stderr if no writable log directory is found
+**Logging that respects stdout** — JSONL goes to files.
+Stdout stays clean for pipes, MCP servers, and tools that need structured output.
 
-Control log levels with:
-- `-v` flag → `debug` level
-- `-vv` flag → `trace` level
-- `--quiet` flag → `error` only
-- `RUST_LOG` env var → fine-grained control (e.g., `RUST_LOG=my_crate=debug`)
+**Config discovery built in** — Checks `./my-tool.toml`, `~/.config/my-tool/config.toml`, and environment variables.
+Hierarchical, overridable, boring in the best way.
 
-Log location (first writable wins):
-1. `/var/log/<project>.jsonl` (Unix, requires write access)
-2. `~/.local/share/<project>/logs/<project>.jsonl`
-3. Current directory
+The structure follows [ADR-0001](docs/decisions/0001-workspace-structure-with-separate-core-library.md) if you want the reasoning.
 
-Override with:
-- `APP_LOG_PATH` - full file path
-- `APP_LOG_DIR` - directory only
 
-## OpenTelemetry (Optional)
+## Works with Claude Code
 
-OpenTelemetry adds **distributed trace export**—it does not enable tracing itself. Tracing macros and `#[instrument]` work with just `has_jsonl_logging`.
+The generated project includes `.claude/` with skills, rules, and commands tuned for Rust development.
 
-When `has_opentelemetry` is enabled:
+"Add a new subcommand" → There's a skill for that.
+"Set up config file support" → Already documented.
+"Why is clippy yelling at me" → The rules explain the lint choices.
 
-- Adds `opentelemetry`, `opentelemetry_sdk`, `opentelemetry-otlp` crates
-- Adds `tokio` runtime dependency
-- Trace export is **opt-in** at runtime via `OTEL_EXPORTER_OTLP_ENDPOINT`
-
-This is useful for tools that may eventually need distributed tracing to external collectors (Jaeger, Tempo, etc.), but most projects should leave it disabled to avoid the tokio dependency.
-
-### Zero-Cost Tracing
-
-For developers coming from languages like Python, Java, or Node.js: Rust's `tracing` crate is **zero-cost when no subscriber is registered**.
-
-When you use `tracing` macros but don't initialize the observability system, the compiler optimizes these calls away entirely—they become no-ops with zero runtime overhead. This means you can:
-
-- Instrument your code liberally without worrying about performance
-- Ship the same binary for all environments
-- Enable detailed tracing only when needed (debugging, profiling, production incidents)
-
-This is fundamentally different from logging frameworks in garbage-collected languages, where logging calls always have some overhead even when disabled.
-
-## Development
-
-### Prerequisites
-
-- Rust (see `rust-toolchain.toml` for pinned version)
-- [just](https://github.com/casey/just) - task runner
-- [cargo-nextest](https://nexte.st/) - fast test runner
-- [copier](https://copier.readthedocs.io/) - `uv tool install copier`
-
-### Testing the Template
+You're not starting from scratch. Neither is your AI.
 
 ```bash
-# Run all tests (conditional file tests + preset builds)
-./scripts/test-template.sh
-
-# Test a specific preset only
-./scripts/test-template.sh standard
-
-# Test manually with a data file
-copier copy --trust --data-file my-test.yml . target/template-tests/my-test
-cd target/template-tests/my-test && cargo check --all-targets
+# Skip if you have your own global Claude setup
+claylo-rs new ./my-tool -claude_skills -claude_rules
 ```
 
-The test script runs two types of tests:
-1. **Conditional file tests** - Fast verification that modular flags include/exclude files correctly (no cargo build)
-2. **Preset tests** - Full build + clippy + nextest + feature verification for each preset
 
-### Template Development
+## This Isn't One-and-Done
 
-Template files use Jinja2 syntax with `.jinja` suffix. Key patterns:
+Yeoman generates and ghosts you.
+`cargo-generate` copies and walks away.
 
-- Conditional files: `{{"file.rs" if condition else "__skip_file__.rs"}}.jinja`
-- Conditional directories: `{{"dirname" if condition else "__skip_dirname__"}}/`
-- Raw blocks for GitHub Actions: `{% raw %}${{ github.token }}{% endraw %}`
+Copier tracks what it generated.
+When the template improves, your project can too:
+
+```bash
+# Six months later
+claylo-rs update .
+```
+
+Three-way merge.
+Your changes stay.
+Template updates land.
+No archaeology required.
+
+See [docs/updating.md](docs/updating.md) for the full workflow.
+
+
+## "Where's the release automation?"
+
+The CI/CD matrix.
+The cargo-dist config.
+The changelog generation.
+The "publish to crates.io on tag" workflow.
+
+Not here.
+
+This template is about **making the thing**.
+Clean scaffolding, sensible defaults, get to work.
+
+Releasing the thing?
+That's a separate template you layer on top:
+
+```bash
+# First, make the thing
+claylo-rs new ./my-tool --preset standard
+
+# Later, when you're ready to ship
+copier copy gh:claylo/claylo-rs-release ./my-tool
+```
+
+Copier merges them.
+One project, multiple templates, each doing one job well.
+Your scaffolding template doesn't need opinions about your release cadence.
+
+---
+
+**Reference:** [docs/reference.md](docs/reference.md) — All flags, all options.
+
+**Presets deep dive:** [docs/presets.md](docs/presets.md) — What each preset enables.
+
+**Updating projects:** [docs/updating.md](docs/updating.md) — The update workflow, bulk updates.
+
+**Template development:** [docs/development.md](docs/development.md) — For contributors.
+
 
 ## License
 
-This template is dual-licensed under MIT and Apache-2.0.
-
-## Acknowledgements
-
-This template was developed with assistance from [Claude Code](https://claude.ai/claude-code), Anthropic's AI coding assistant.
+Dual-licensed under MIT and Apache-2.0.

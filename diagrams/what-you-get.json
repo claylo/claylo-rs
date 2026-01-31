@@ -1,0 +1,181 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "https://excalidraw.com",
+  "elements": [
+    {
+      "id": "bg_box",
+      "type": "rectangle",
+      "x": 50,
+      "y": 50,
+      "width": 280,
+      "height": 260,
+      "backgroundColor": "#ffc9c9",
+      "strokeColor": "#1e1e1e",
+      "fillStyle": "solid",
+      "roughness": 2,
+      "opacity": 40
+    },
+    {
+      "id": "title_dir",
+      "type": "text",
+      "x": 60,
+      "y": 60,
+      "text": "my-tool/",
+      "fontSize": 20
+    },
+    {
+      "id": "txt_cli",
+      "type": "text",
+      "x": 70,
+      "y": 95,
+      "text": "├── crates/my-tool/",
+      "fontSize": 14,
+      "fontFamily": 3
+    },
+    {
+      "id": "txt_core",
+      "type": "text",
+      "x": 70,
+      "y": 120,
+      "text": "├── crates/my-tool-core/",
+      "fontSize": 14,
+      "fontFamily": 3
+    },
+    {
+      "id": "txt_xtask",
+      "type": "text",
+      "x": 70,
+      "y": 145,
+      "text": "├── xtask/",
+      "fontSize": 14,
+      "fontFamily": 3
+    },
+    {
+      "id": "txt_claude",
+      "type": "text",
+      "x": 70,
+      "y": 170,
+      "text": "├── .claude/",
+      "fontSize": 14,
+      "fontFamily": 3
+    },
+    {
+      "id": "txt_just",
+      "type": "text",
+      "x": 70,
+      "y": 195,
+      "text": "├── .justfile",
+      "fontSize": 14,
+      "fontFamily": 3
+    },
+    {
+      "id": "txt_deny",
+      "type": "text",
+      "x": 70,
+      "y": 220,
+      "text": "└── deny.toml",
+      "fontSize": 14,
+      "fontFamily": 3
+    },
+    {
+      "id": "arr_core",
+      "type": "arrow",
+      "x": 280,
+      "y": 130,
+      "width": 100,
+      "height": 0,
+      "strokeColor": "#e03131",
+      "roughness": 2
+    },
+    {
+      "id": "callout_core",
+      "type": "text",
+      "x": 390,
+      "y": 115,
+      "text": "your logic, testable without\nspawning 47 processes",
+      "fontSize": 14,
+      "strokeColor": "#e03131"
+    },
+    {
+      "id": "arr_xtask",
+      "type": "arrow",
+      "x": 160,
+      "y": 155,
+      "width": 220,
+      "height": 30,
+      "strokeColor": "#2f9e44",
+      "roughness": 2
+    },
+    {
+      "id": "callout_xtask",
+      "type": "text",
+      "x": 390,
+      "y": 170,
+      "text": "wait, shell completions just... work?",
+      "fontSize": 14,
+      "strokeColor": "#2f9e44"
+    },
+    {
+      "id": "arr_claude",
+      "type": "arrow",
+      "x": 170,
+      "y": 180,
+      "width": 210,
+      "height": 40,
+      "strokeColor": "#1971c2",
+      "roughness": 2
+    },
+    {
+      "id": "callout_claude",
+      "type": "text",
+      "x": 390,
+      "y": 210,
+      "text": "AI instructions that aren't vibes-based",
+      "fontSize": 14,
+      "strokeColor": "#1971c2"
+    },
+    {
+      "id": "arr_just",
+      "type": "arrow",
+      "x": 175,
+      "y": 205,
+      "width": 205,
+      "height": 50,
+      "strokeColor": "#f08c00",
+      "roughness": 2
+    },
+    {
+      "id": "callout_just",
+      "type": "text",
+      "x": 390,
+      "y": 245,
+      "text": "you will never remember the nextest flags.\nthat's fine.",
+      "fontSize": 14,
+      "strokeColor": "#f08c00"
+    },
+    {
+      "id": "arr_deny",
+      "type": "arrow",
+      "x": 185,
+      "y": 230,
+      "width": 195,
+      "height": 60,
+      "strokeColor": "#9c36b5",
+      "roughness": 2
+    },
+    {
+      "id": "callout_deny",
+      "type": "text",
+      "x": 390,
+      "y": 280,
+      "text": "that crate with the yanked version? caught.",
+      "fontSize": 14,
+      "strokeColor": "#9c36b5"
+    }
+  ],
+  "appState": {
+    "viewBackgroundColor": "#ffffff"
+  },
+  "files": {}
+}

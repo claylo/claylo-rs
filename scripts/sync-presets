@@ -1,0 +1,246 @@
+#!/usr/bin/env bash
+# scripts/sync-presets
+# Generates code from preset YAML files to keep consumers in sync.
+#
+# Usage:
+#   ./scripts/sync-presets          # Update files
+#   ./scripts/sync-presets --check  # Check for drift (CI mode)
+#
+# Requires: yq (https://github.com/mikefarah/yq)
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+PRESETS_DIR="$PROJECT_ROOT/scripts/presets"
+
+CHECK_MODE=false
+[[ "${1:-}" == "--check" ]] && CHECK_MODE=true
+
+# ---------------------------------------------------------------------------
+# Verify dependencies
+# ---------------------------------------------------------------------------
+if ! command -v yq &>/dev/null; then
+    echo "Error: yq is required but not installed." >&2
+    echo "Install: brew install yq" >&2
+    exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# Discover presets
+# ---------------------------------------------------------------------------
+primary_presets=()
+all_presets=()
+
+for f in "$PRESETS_DIR"/*.yml; do
+    name=$(basename "$f" .yml)
+    all_presets+=("$name")
+    [[ "$name" != _* ]] && primary_presets+=("$name")
+done
+
+echo "Discovered presets:"
+echo "  Primary: ${primary_presets[*]}"
+echo "  All: ${all_presets[*]}"
+echo ""
+
+# ---------------------------------------------------------------------------
+# Get all unique feature keys from preset files
+# Uses yq to extract keys efficiently
+# ---------------------------------------------------------------------------
+get_feature_keys() {
+    local -a keys=()
+    for preset in "${primary_presets[@]}"; do
+        while IFS= read -r key; do
+            # Skip non-feature keys
+            case "$key" in
+                preset|lint_level|hook_system|needs_tokio) continue ;;
+            esac
+            keys+=("$key")
+        done < <(yq -r 'keys | .[]' "$PRESETS_DIR/${preset}.yml")
+    done
+    # Dedupe and sort
+    printf '%s\n' "${keys[@]}" | sort -u
+}
+
+feature_keys=()
+while IFS= read -r key; do
+    feature_keys+=("$key")
+done < <(get_feature_keys)
+
+echo "Found ${#feature_keys[@]} feature keys"
+
+# ---------------------------------------------------------------------------
+# Generate get_preset_flags() function for bin/claylo-rs
+# ---------------------------------------------------------------------------
+generate_get_preset_flags() {
+    echo "get_preset_flags() {"
+    echo "  local preset=\"\$1\""
+    echo "  local -n out=\$2"
+    echo ""
+    echo "  case \"\$preset\" in"
+
+    for preset in "${primary_presets[@]}"; do
+        local preset_file="$PRESETS_DIR/${preset}.yml"
+        echo "    ${preset})"
+
+        # Use yq to get all key-value pairs at once
+        yq -r 'to_entries | .[] | select(.key != "preset" and .key != "lint_level" and .key != "hook_system" and .key != "needs_tokio") | "      out+=(--data \"" + .key + "=" + (.value | tostring) + "\")"' "$preset_file"
+
+        # Add lint_level if not standard
+        local lint_level
+        lint_level=$(yq -r '.lint_level // "standard"' "$preset_file")
+        if [[ "$lint_level" != "standard" ]]; then
+            echo "      out+=(--data \"lint_level=${lint_level}\")"
+        fi
+
+        echo "      ;;"
+    done
+
+    echo "  esac"
+    echo "}"
+}
+
+# ---------------------------------------------------------------------------
+# Generate comparison table for docs/presets.md
+# ---------------------------------------------------------------------------
+generate_comparison_table() {
+    # Header row
+    local header="| Feature |"
+    for preset in "${primary_presets[@]}"; do
+        # Capitalize first letter
+        local capitalized
+        capitalized="$(echo "${preset:0:1}" | tr '[:lower:]' '[:upper:]')${preset:1}"
+        header+=" ${capitalized} |"
+    done
+    echo "$header"
+
+    # Separator row
+    local sep="|---------|"
+    for _ in "${primary_presets[@]}"; do
+        sep+="----------|"
+    done
+    echo "$sep"
+
+    # Feature rows - use yq to get values efficiently
+    for key in "${feature_keys[@]}"; do
+        local row="| \`${key}\` |"
+        for preset in "${primary_presets[@]}"; do
+            local value
+            value=$(yq -r ".${key} // false" "$PRESETS_DIR/${preset}.yml")
+            if [[ "$value" == "true" ]]; then
+                row+=" ✓ |"
+            else
+                row+=" ✗ |"
+            fi
+        done
+        echo "$row"
+    done
+}
+
+# ---------------------------------------------------------------------------
+# Replace content between markers in a file
+# ---------------------------------------------------------------------------
+replace_between_markers() {
+    local file="$1"
+    local marker="$2"
+    local new_content="$3"
+    local comment_style="$4"  # "bash" or "html"
+
+    local begin_marker end_marker
+    if [[ "$comment_style" == "bash" ]]; then
+        begin_marker="# BEGIN GENERATED: ${marker}"
+        end_marker="# END GENERATED: ${marker}"
+    else
+        begin_marker="<!-- BEGIN GENERATED: ${marker} -->"
+        end_marker="<!-- END GENERATED: ${marker} -->"
+    fi
+
+    # Check if markers exist
+    if ! grep -qF "$begin_marker" "$file"; then
+        echo "Warning: Begin marker not found in $file: $begin_marker" >&2
+        return 1
+    fi
+    if ! grep -qF "$end_marker" "$file"; then
+        echo "Warning: End marker not found in $file: $end_marker" >&2
+        return 1
+    fi
+
+    # Write new content to temp file for perl to read
+    local content_file
+    content_file=$(mktemp)
+    printf '%s\n' "$new_content" > "$content_file"
+
+    # Use perl for reliable multi-line replacement
+    perl -0777 -pe "
+        BEGIN {
+            open(my \$fh, '<', '$content_file') or die;
+            local \$/;
+            \$replacement = <\$fh>;
+            close(\$fh);
+        }
+        s/(\Q${begin_marker}\E\n).*?(\Q${end_marker}\E)/\$1\$replacement\$2/s;
+    " "$file"
+
+    rm -f "$content_file"
+}
+
+# ---------------------------------------------------------------------------
+# Update a file and track changes
+# ---------------------------------------------------------------------------
+changes=0
+update_file() {
+    local file="$1"
+    local marker="$2"
+    local new_content="$3"
+    local comment_style="$4"
+
+    local updated_content
+    updated_content=$(replace_between_markers "$file" "$marker" "$new_content" "$comment_style")
+
+    local current_content
+    current_content=$(<"$file")
+
+    if [[ "$updated_content" != "$current_content" ]]; then
+        ((changes++)) || true  # Prevent exit on arithmetic returning 0
+        if [[ "$CHECK_MODE" == true ]]; then
+            echo "❌ Out of sync: $file ($marker)"
+        else
+            printf '%s' "$updated_content" > "$file"
+            echo "✅ Updated: $file ($marker)"
+        fi
+    else
+        echo "✓ In sync: $file ($marker)"
+    fi
+}
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+echo "Generating code from presets..."
+echo ""
+
+# Generate get_preset_flags()
+wrapper_script="$PROJECT_ROOT/bin/claylo-rs"
+flags_content=$(generate_get_preset_flags)
+update_file "$wrapper_script" "get_preset_flags" "$flags_content" "bash"
+
+# Generate comparison table
+presets_doc="$PROJECT_ROOT/docs/presets.md"
+table_content=$(generate_comparison_table)
+update_file "$presets_doc" "preset-comparison" "$table_content" "html"
+
+echo ""
+if [[ "$CHECK_MODE" == true ]]; then
+    if [[ $changes -gt 0 ]]; then
+        echo "❌ $changes file(s) out of sync. Run: just sync-presets"
+        exit 1
+    else
+        echo "✅ All files in sync."
+    fi
+else
+    if [[ $changes -gt 0 ]]; then
+        echo "Updated $changes file(s)."
+    else
+        echo "No changes needed."
+    fi
+fi

@@ -1,17 +1,5 @@
-project_name: test-minimal
-crate_name: test_minimal
-owner: testorg
-copyright_name: Test Org
-copyright_year: "2026"
-project_description: Minimal test project
-edition: "2024"
-msrv: "1.88.0"
-pinned_dev_toolchain: "1.93.0"
-license:
-  - MIT
-  - Apache-2.0
-categories:
-  - command-line-utilities
+# Minimal preset feature flags (project-specific values like project_name
+# and crate_name are set by the wrapper script, not in preset files)
 preset: minimal
 lint_level: standard
 hook_system: none

@@ -23,35 +23,52 @@
 
 ## Conditional File and Directory Patterns
 
-Copier evaluates Jinja2 expressions in file and directory **names** automatically — no `.jinja` suffix needed for the name itself.
+Copier evaluates Jinja2 expressions in file and directory **names** automatically.
 
-### Conditional directories
+### Conditional directories (static name)
+
+When a directory name is static and should be conditionally included:
 
 ```
-template/crates/{{project_name if has_cli else "__skip_cli__"}}/
+{% if has_github %}.github{% endif %}
 ```
 
-Names starting with `__skip_` are excluded via `_exclude` in copier.yaml. The parent directory condition gates all files inside it.
+When the condition is **false**, the directory name evaluates to empty string → copier skips it.
+When the condition is **true**, the directory name evaluates to `.github` → copier creates it.
+
+### Conditional directories (dynamic name)
+
+When a directory name includes a variable, use a ternary with empty string fallback:
+
+```
+{{ project_name if has_cli else "" }}
+```
+
+When `has_cli=true`, evaluates to the project name.
+When `has_cli=false`, evaluates to empty string → copier skips it.
+
+**Important**: Do NOT nest `{{ }}` inside `{% if %}{% endif %}` for directory names — this pattern doesn't work reliably.
 
 ### Conditional files (content has no Jinja)
 
-When a file's **contents** are plain (no template variables), use a conditional filename only:
+When a file's **contents** are plain (no template variables), use a conditional filename:
 
 ```
-commands/{{"serve.rs" if has_mcp_server else "__skip_serve__.rs"}}
+{% if has_mcp_server %}serve.rs{% endif %}
 ```
 
 No `.jinja` suffix — Copier copies the file as-is.
 
 ### Conditional files (content has Jinja)
 
-When a file's **contents** use Jinja template variables, add the `.jinja` suffix so Copier renders the contents:
+When a file's **contents** use Jinja template variables, add the `.jinja` suffix **outside** the condition:
 
 ```
-src/{{"server.rs" if has_mcp_server else "__skip_mcp_server__.rs"}}.jinja
+{% if has_mcp_server %}server.rs{% endif %}.jinja
 ```
 
 The `.jinja` suffix is stripped from the output filename (`_templates_suffix: .jinja`).
+When the condition is **false**, the filename evaluates to just `.jinja` → copier skips it.
 
 ### Files always present (content has Jinja)
 
@@ -71,9 +88,12 @@ Plain files with no template variables or conditional naming — just use the ac
 commands/info.rs           → copied verbatim
 ```
 
-### Key rule
+### Key rules
 
-The `.jinja` suffix controls **content rendering**. The `{{...}}` filename controls **file inclusion**. These are orthogonal — a file can use either, both, or neither.
+1. The `.jinja` suffix controls **content rendering**
+2. The `{% if %}{% endif %}` or `{{ }}` filename controls **file inclusion**
+3. For conditional files with Jinja content, `.jinja` must be **outside** the condition
+4. For dynamic directory names, use `{{ name if cond else "" }}` — NOT `{% if cond %}{{ name }}{% endif %}`
 
 ## Structural Changes Require Discussion
 

@@ -4,6 +4,8 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 # claylo-rs — friendly wrapper around copier for the claylo-rs template
 # ---------------------------------------------------------------------------
+# This script can run standalone (e.g., installed via brew) or from within
+# the template repository. When standalone, it uses gh:claylo/claylo-rs.
 
 # Require bash 4+ for associative arrays
 if ((BASH_VERSINFO[0] < 4)); then
@@ -12,9 +14,62 @@ if ((BASH_VERSINFO[0] < 4)); then
   exit 1
 fi
 
-# Resolve template directory relative to this script
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TEMPLATE_DIR="${SCRIPT_DIR}/../template"
+# Default template source (GitHub shorthand)
+DEFAULT_TEMPLATE="gh:claylo/claylo-rs"
+
+# ---------------------------------------------------------------------------
+# Resolve symlinks to find the real script location
+# ---------------------------------------------------------------------------
+# ${BASH_SOURCE[0]} returns the symlink path if invoked via symlink.
+# We need the actual script location to find template resources.
+#
+# Note: We can't use `readlink -f` here — that's GNU-only and doesn't exist
+# on macOS's BSD readlink. This loop approach is portable across both.
+resolve_script_path() {
+  local source="${BASH_SOURCE[0]}"
+  local dir
+
+  # Follow symlink chain until we reach the actual file
+  while [[ -L "$source" ]]; do
+    dir="$(cd -P "$(dirname "$source")" && pwd)"
+    source="$(readlink "$source")"
+    # Handle relative symlinks (resolve them relative to symlink's directory)
+    [[ "$source" != /* ]] && source="$dir/$source"
+  done
+
+  # Return the directory containing the resolved script
+  cd -P "$(dirname "$source")" && pwd
+}
+
+SCRIPT_DIR="$(resolve_script_path)"
+LOCAL_TEMPLATE="${SCRIPT_DIR}/.."
+
+# Default filename for auto-discovered defaults
+DEFAULTS_FILENAME=".claylo-rs.defaults.yaml"
+
+# ---------------------------------------------------------------------------
+# Find a defaults file by crawling upward from current directory
+# ---------------------------------------------------------------------------
+# Looks for .claylo-rs.defaults.yaml starting from cwd and walking up to /
+find_defaults_file() {
+  local dir="$PWD"
+
+  while [[ "$dir" != "/" ]]; do
+    if [[ -f "$dir/$DEFAULTS_FILENAME" ]]; then
+      echo "$dir/$DEFAULTS_FILENAME"
+      return 0
+    fi
+    dir="$(dirname "$dir")"
+  done
+
+  # Check root as well
+  if [[ -f "/$DEFAULTS_FILENAME" ]]; then
+    echo "/$DEFAULTS_FILENAME"
+    return 0
+  fi
+
+  return 1
+}
 
 # ---------------------------------------------------------------------------
 # Alias map: short name → copier variable
@@ -73,9 +128,16 @@ Options:
   --owner <name>       GitHub org/username
   --copyright <name>   Copyright holder name
   --desc <text>        Project description
+  --vcs-ref <ref>      Template git ref (see: copier copy --help-all)
+  --local              Use local template repo instead of GitHub
   --data key=value     Pass arbitrary data to copier (repeatable)
+  --data-file <path>   YAML file with default values (copier --data-file)
   --dry-run            Preview without writing files
+  -y, --yes            Accept preset defaults, only prompt for missing values
   --help               Show this help
+
+If --data-file is not specified, the script looks for .claylo-rs.defaults.yaml
+in the current directory and each parent directory up to /.
 
 Feature flags (prefix with + to enable, - to disable):
   cli, core, config, jsonl, otel, mcp, bench, gungraun, site,
@@ -88,6 +150,9 @@ Examples:
   claylo-rs new ./my-app --owner myorg --copyright "My Name"
   claylo-rs new ./my-app --preset full +otel-site
   claylo-rs new ./my-app --preset minimal +core+config+bench
+  claylo-rs new ./my-app --preset minimal -y
+  claylo-rs new ./my-app --data-file ~/my-defaults.yaml
+  claylo-rs new ./my-app --vcs-ref v1.0.0
   claylo-rs update ./my-app +otel
   claylo-rs update . -site-community
   claylo-rs new ./my-app --data edition=2021 --data msrv=1.80.0
@@ -144,6 +209,218 @@ parse_features() {
 }
 
 # ---------------------------------------------------------------------------
+# Pretty-print command array for readable output
+# ---------------------------------------------------------------------------
+print_command() {
+  local -n arr=$1
+  local i=0
+  local len=${#arr[@]}
+  local prev_was_flag=false
+
+  echo "Running:"
+  printf "  %s" "${arr[0]}"  # copier
+  printf " %s" "${arr[1]}"   # copy/update
+  ((i=2))
+
+  while ((i < len)); do
+    local arg="${arr[i]}"
+    case "$arg" in
+      --*)
+        # Start new line for each flag
+        printf " \\\\\n    %s" "$arg"
+        prev_was_flag=true
+        ;;
+      *)
+        if [[ "$prev_was_flag" == true ]]; then
+          # Value following a flag - stay on same line, quote if needed
+          if [[ "$arg" == *" "* ]]; then
+            printf " '%s'" "$arg"
+          else
+            printf " %s" "$arg"
+          fi
+          prev_was_flag=false
+        else
+          # Positional argument (not following a flag) - new line
+          printf " \\\\\n    %s" "$arg"
+        fi
+        ;;
+    esac
+    ((i++))
+  done
+  echo ""
+}
+
+# ---------------------------------------------------------------------------
+# Check for recommended tools and report any that are missing
+# ---------------------------------------------------------------------------
+check_recommended_tools() {
+  local -a missing=()
+
+  # Tools the generated project will want
+  command -v cargo-binstall &>/dev/null || missing+=("cargo-binstall")
+  command -v just &>/dev/null || missing+=(just)
+  command -v taplo &>/dev/null || missing+=(taplo)
+  command -v cargo-nextest &>/dev/null || missing+=("cargo-nextest")
+  command -v cargo-deny &>/dev/null || missing+=("cargo-deny")
+  command -v cargo-llvm-cov &>/dev/null || missing+=("cargo-llvm-cov")
+  command -v cargo-outdated &>/dev/null || missing+=("cargo-outdated")
+  command -v cargo-install-update &>/dev/null || missing+=("cargo-install-update")
+
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    echo ""
+    echo "────────────────────────────────────────────────────────────────────────"
+    echo "Note: The following tools are recommended for this project:"
+    echo ""
+    for tool in "${missing[@]}"; do
+      case "$tool" in
+        cargo-binstall)
+          echo "  • cargo-binstall — binary installer (cargo install cargo-binstall)"
+          ;;
+        just)
+          echo "  • just — task runner (cargo bininstall just)"
+          ;;
+        taplo)
+          echo "  • taplo — TOML formatter (cargo bininstall taplo-cli)"
+          ;;
+        cargo-nextest)
+          echo "  • cargo-nextest — fast test runner (cargo bininstall cargo-nextest)"
+          ;;
+        cargo-deny)
+          echo "  • cargo-deny — license/security checker (cargo bininstall cargo-deny)"
+          ;;
+        cargo-llvm-cov)
+          echo "  • cargo-llvm-cov — code coverage (cargo bininstall cargo-llvm-cov)"
+          ;;
+        cargo-outdated)
+          echo "  • cargo-outdated — dependency freshness (cargo bininstall cargo-outdated)"
+          ;;
+        cargo-install-update)
+          echo "  • cargo-install-update — update installed crates (cargo bininstall cargo-update)"
+          ;;
+      esac
+    done
+    echo ""
+    echo "Install all with:"
+    echo "  cargo install cargo-binstall && \\"
+    echo "  cargo binstall just taplo-cli cargo-nextest cargo-deny \\"
+    echo "    cargo-llvm-cov cargo-outdated cargo-update"
+    echo "────────────────────────────────────────────────────────────────────────"
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Get preset feature flags as --data arguments
+# Since we can't rely on local preset files when installed standalone,
+# preset differences are encoded here. copier.yaml handles most defaults.
+# ---------------------------------------------------------------------------
+# BEGIN GENERATED: get_preset_flags
+get_preset_flags() {
+  local preset="$1"
+  local -n out=$2
+
+  case "$preset" in
+    full)
+      out+=(--data "has_cli=true")
+      out+=(--data "has_core_library=true")
+      out+=(--data "has_config=true")
+      out+=(--data "has_jsonl_logging=true")
+      out+=(--data "has_opentelemetry=true")
+      out+=(--data "has_mcp_server=false")
+      out+=(--data "has_benchmarks=true")
+      out+=(--data "has_gungraun=false")
+      out+=(--data "has_site=true")
+      out+=(--data "has_xtask=true")
+      out+=(--data "has_community_files=true")
+      out+=(--data "has_yamlfmt=true")
+      out+=(--data "has_yamllint=true")
+      out+=(--data "has_editorconfig=true")
+      out+=(--data "has_env_files=true")
+      out+=(--data "has_agents_md=true")
+      out+=(--data "has_just=true")
+      out+=(--data "has_gitattributes=true")
+      out+=(--data "has_github=true")
+      out+=(--data "has_security_md=true")
+      out+=(--data "has_issue_templates=true")
+      out+=(--data "has_pr_templates=true")
+      out+=(--data "has_md=true")
+      out+=(--data "has_md_strict=false")
+      out+=(--data "has_claude=true")
+      out+=(--data "has_claude_skills=true")
+      out+=(--data "has_claude_commands=true")
+      out+=(--data "has_claude_rules=true")
+      out+=(--data "has_skill_markdown_authoring=true")
+      out+=(--data "has_skill_capturing_decisions=true")
+      out+=(--data "has_skill_using_git=true")
+      out+=(--data "lint_level=strict")
+      ;;
+    minimal)
+      out+=(--data "has_cli=true")
+      out+=(--data "has_core_library=false")
+      out+=(--data "has_config=false")
+      out+=(--data "has_jsonl_logging=false")
+      out+=(--data "has_opentelemetry=false")
+      out+=(--data "has_mcp_server=false")
+      out+=(--data "has_benchmarks=false")
+      out+=(--data "has_site=false")
+      out+=(--data "has_xtask=false")
+      out+=(--data "has_community_files=false")
+      out+=(--data "has_yamlfmt=false")
+      out+=(--data "has_yamllint=false")
+      out+=(--data "has_editorconfig=false")
+      out+=(--data "has_env_files=false")
+      out+=(--data "has_agents_md=true")
+      out+=(--data "has_just=true")
+      out+=(--data "has_gitattributes=true")
+      out+=(--data "has_github=true")
+      out+=(--data "has_security_md=true")
+      out+=(--data "has_issue_templates=true")
+      out+=(--data "has_pr_templates=true")
+      out+=(--data "has_md=false")
+      out+=(--data "has_claude=true")
+      out+=(--data "has_claude_skills=true")
+      out+=(--data "has_claude_commands=true")
+      out+=(--data "has_claude_rules=true")
+      out+=(--data "has_skill_markdown_authoring=false")
+      out+=(--data "has_skill_capturing_decisions=true")
+      out+=(--data "has_skill_using_git=true")
+      ;;
+    standard)
+      out+=(--data "has_cli=true")
+      out+=(--data "has_core_library=true")
+      out+=(--data "has_config=true")
+      out+=(--data "has_jsonl_logging=true")
+      out+=(--data "has_opentelemetry=false")
+      out+=(--data "has_mcp_server=false")
+      out+=(--data "has_benchmarks=false")
+      out+=(--data "has_site=false")
+      out+=(--data "has_xtask=true")
+      out+=(--data "has_community_files=false")
+      out+=(--data "has_yamlfmt=false")
+      out+=(--data "has_yamllint=false")
+      out+=(--data "has_editorconfig=false")
+      out+=(--data "has_env_files=false")
+      out+=(--data "has_agents_md=true")
+      out+=(--data "has_just=true")
+      out+=(--data "has_gitattributes=true")
+      out+=(--data "has_github=true")
+      out+=(--data "has_security_md=true")
+      out+=(--data "has_issue_templates=true")
+      out+=(--data "has_pr_templates=true")
+      out+=(--data "has_md=true")
+      out+=(--data "has_md_strict=false")
+      out+=(--data "has_claude=true")
+      out+=(--data "has_claude_skills=true")
+      out+=(--data "has_claude_commands=true")
+      out+=(--data "has_claude_rules=true")
+      out+=(--data "has_skill_markdown_authoring=true")
+      out+=(--data "has_skill_capturing_decisions=true")
+      out+=(--data "has_skill_using_git=true")
+      ;;
+  esac
+}
+# END GENERATED: get_preset_flags
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 main() {
@@ -185,7 +462,11 @@ main() {
   local owner=""
   local copyright=""
   local desc=""
+  local vcs_ref=""
+  local use_local=false
   local dry_run=false
+  local use_defaults=false
+  local data_file=""
   local feature_strings=()
   local data_args=()
   local extra_data=()
@@ -235,13 +516,35 @@ main() {
         desc="$2"
         shift 2
         ;;
+      --vcs-ref)
+        [[ $# -lt 2 ]] && { echo "Error: --vcs-ref requires a git ref" >&2; exit 1; }
+        vcs_ref="$2"
+        shift 2
+        ;;
+      --local)
+        use_local=true
+        shift
+        ;;
       --data)
         [[ $# -lt 2 ]] && { echo "Error: --data requires a key=value" >&2; exit 1; }
         extra_data+=("--data" "$2")
         shift 2
         ;;
+      --data-file)
+        [[ $# -lt 2 ]] && { echo "Error: --data-file requires a path" >&2; exit 1; }
+        if [[ ! -f "$2" ]]; then
+          echo "Error: data file not found: $2" >&2
+          exit 1
+        fi
+        data_file="$2"
+        shift 2
+        ;;
       --dry-run)
         dry_run=true
+        shift
+        ;;
+      -y | --yes)
+        use_defaults=true
         shift
         ;;
       --help | -h)
@@ -269,10 +572,31 @@ main() {
     parse_features "$fs" data_args
   done
 
+  # Auto-discover defaults file if not explicitly provided
+  if [[ -z "$data_file" ]]; then
+    local discovered
+    if discovered="$(find_defaults_file)"; then
+      data_file="$discovered"
+      echo "Using defaults from: $data_file"
+    fi
+  fi
+
+  # Determine template source
+  local template_src="$DEFAULT_TEMPLATE"
+  if [[ "$use_local" == true ]]; then
+    if [[ -f "${LOCAL_TEMPLATE}/copier.yaml" ]]; then
+      template_src="$LOCAL_TEMPLATE"
+    else
+      echo "Error: --local specified but no copier.yaml found at ${LOCAL_TEMPLATE}" >&2
+      exit 1
+    fi
+  fi
+
   # ---------------------------------------------------------------------------
   # Build the copier command
   # ---------------------------------------------------------------------------
   local -a cmd=()
+  local -a preset_flags=()
 
   if [[ "$command" == "new" ]]; then
     [[ -z "$dest" ]] && { echo "Error: destination path required" >&2; echo "Usage: claylo-rs new <dest>" >&2; exit 1; }
@@ -280,8 +604,15 @@ main() {
     local project_name
     project_name="$(basename "$dest")"
 
-    cmd=(copier copy --trust --defaults)
+    cmd=(copier copy)
+    [[ -n "$data_file" ]] && cmd+=(--data-file "$data_file")
+    [[ "$use_defaults" == true ]] && cmd+=(--defaults)
     [[ "$dry_run" == true ]] && cmd+=(--pretend)
+    [[ -n "$vcs_ref" ]] && cmd+=(--vcs-ref "$vcs_ref")
+
+    # Apply preset-specific flags
+    get_preset_flags "$preset" preset_flags
+    cmd+=("${preset_flags[@]}")
 
     cmd+=(--data "project_name=${project_name}")
     cmd+=(--data "preset=${preset}")
@@ -292,16 +623,25 @@ main() {
     [[ -n "$hook" ]] && cmd+=(--data "hook_system=${hook}")
     cmd+=("${data_args[@]}")
     [[ ${#extra_data[@]} -gt 0 ]] && cmd+=("${extra_data[@]}")
-    cmd+=("$TEMPLATE_DIR" "$dest")
+    cmd+=("$template_src" "$dest")
 
   elif [[ "$command" == "update" ]]; then
     [[ -z "$dest" ]] && dest="."
 
-    cmd=(copier update --trust)
+    cmd=(copier update)
+    [[ -n "$data_file" ]] && cmd+=(--data-file "$data_file")
+    [[ "$use_defaults" == true ]] && cmd+=(--defaults)
     [[ "$dry_run" == true ]] && cmd+=(--pretend)
+    [[ -n "$vcs_ref" ]] && cmd+=(--vcs-ref "$vcs_ref")
+    # we always want the .rej files option
+    cmd+=(--conflict rej)
 
     # For update, only pass overrides — no preset/project_name defaults
-    [[ "$preset_set" == true ]] && cmd+=(--data "preset=${preset}")
+    if [[ "$preset_set" == true ]]; then
+      get_preset_flags "$preset" preset_flags
+      cmd+=("${preset_flags[@]}")
+      cmd+=(--data "preset=${preset}")
+    fi
     [[ -n "$owner" ]] && cmd+=(--data "owner=${owner}")
     [[ -n "$copyright" ]] && cmd+=(--data "copyright_name=${copyright}")
     [[ -n "$desc" ]] && cmd+=(--data "project_description=${desc}")
@@ -313,9 +653,19 @@ main() {
   fi
 
   # Show what we're running
-  echo "Running: ${cmd[*]}"
+  print_command cmd
   echo ""
-  exec "${cmd[@]}"
+
+  # Run copier (not exec, so we can check tools afterward)
+  "${cmd[@]}"
+  local exit_code=$?
+
+  # If successful and not a dry run, check for recommended tools
+  if [[ $exit_code -eq 0 && "$dry_run" == false ]]; then
+    check_recommended_tools
+  fi
+
+  exit $exit_code
 }
 
 main "$@"
