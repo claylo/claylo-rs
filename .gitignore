@@ -43,6 +43,7 @@ bench-reports/*
 # commit message draft
 .commit.md
 commit.txt
+.commit.txt
 
 # agent instructions that won't be committed
 INTERNAL-PLAN.md
@@ -55,3 +56,7 @@ bin/coverage/
 # for little tests, scripts or notes
 scratch
 scratch/
+.scratch
+
+# Node modules (anywhere in repo)
+node_modules/

@@ -1,17 +1,4 @@
-project_name: test-standard-otel
-crate_name: test_standard_otel
-owner: testorg
-copyright_name: Test Org
-copyright_year: "2026"
-project_description: Standard test with OpenTelemetry
-edition: "2024"
-msrv: "1.88.0"
-pinned_dev_toolchain: "1.93.0"
-license:
-  - MIT
-  - Apache-2.0
-categories:
-  - command-line-utilities
+# Standard + OpenTelemetry preset feature flags
 preset: standard
 lint_level: standard
 hook_system: none

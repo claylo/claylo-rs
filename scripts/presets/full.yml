@@ -1,18 +1,5 @@
-project_name: test-full
-crate_name: test_full
-owner: testorg
-copyright_name: Test Org
-copyright_year: "2026"
-conduct_email: conduct@test.org
-project_description: Full test project
-edition: "2024"
-msrv: "1.88.0"
-pinned_dev_toolchain: "1.93.0"
-license:
-  - MIT
-  - Apache-2.0
-categories:
-  - command-line-utilities
+# Full preset feature flags (project-specific values like project_name
+# and crate_name are set by the wrapper script, not in preset files)
 preset: full
 lint_level: strict
 hook_system: none

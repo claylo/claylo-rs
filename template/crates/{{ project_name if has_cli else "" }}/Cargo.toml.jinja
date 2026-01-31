@@ -10,24 +10,22 @@ homepage.workspace = true
 readme.workspace = true
 exclude = [
     # Workspace-level files (/ = workspace root)
-    "/.claude/",
-    "/.github/",
-    "/AGENTS.md",
-    "/.justfile",
-    "/.editorconfig",
-    "/.markdownlint.yaml",
-    "/.yamllint",
-    "/.envrc",
+{% if has_claude %}   "/.claude/",
+{% endif %}{% if has_github %}    "/.github/",
+{% endif %}{% if has_agents_md %}    "/AGENTS.md",
+{% endif %}{% if has_just %}    "/.justfile",
+{% endif %}{% if has_editorconfig %}    "/.editorconfig",
+{% endif %}{% if has_md or has_md_strict %}    "/.markdownlint.yaml",
+{% endif %}{% if has_yamllint %}    "/.yamllint",
+{% endif %}{% if has_env_files %}    "/.envrc",
     "/.env",
     "/.env.rust",
-{% if has_benchmarks %}
+{% endif %}{% if has_benchmarks %}
     "/bench-reports/",
     "/scripts/",
 {% endif %}
     "/docs/",
     "/deny.toml",
-    # Example config files
-    "/*.example",
 ]
 
 [[bin]]

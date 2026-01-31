@@ -21,13 +21,8 @@ _min_copier_version: "9.0.0"
 _answers_file: .repo.yml
 _exclude:
   - copier.yaml
-  - _tasks.yaml
   - "*.DS_Store"
   - ".git"
-  # Skip directories when features are disabled (conditional directory pattern)
-  - "__skip_*"
-  - "**/__skip_*"
-  - "*__skip_*"
 # Use .jinja suffix for template files
 _templates_suffix: .jinja
 
@@ -57,17 +52,6 @@ _message_after_update: |
   {%- endif %}
 
 # =============================================================================
-# Post-generation tasks (requires --trust flag)
-# =============================================================================
-# Tasks are included from _tasks.yaml using YAML's multi-document pattern.
-# The !include directive replaces an entire document, so it must appear
-# between --- separators, and the included file must contain the _tasks: key.
-# See: https://copier.readthedocs.io/en/stable/configuring/#tasks
-# See: https://copier.readthedocs.io/en/stable/configuring/#include-other-yaml-files
----
-!include _tasks.yaml
----
-# =============================================================================
 # User-Prompted Variables
 # =============================================================================
 project_name:
@@ -83,7 +67,7 @@ copyright_name:
 copyright_year:
   type: str
   default: "{{ copyright_year | default('%Y' | strftime) }}"
-  when: false  # Computed once at init, locked via answers file
+  when: false # Computed once at init, locked via answers file
 project_description:
   type: str
   default: "A modern, production-ready Rust CLI application."
@@ -285,27 +269,27 @@ hook_system:
 crate_name:
   type: str
   default: "{{ project_name | replace('-', '_') }}"
-  when: false  # Don't prompt, just compute
+  when: false # Don't prompt, just compute
 has_xtask:
   type: bool
   default: "{{ has_cli }}"
-  when: false  # Don't prompt, just compute
+  when: false # Don't prompt, just compute
 needs_tokio:
   type: bool
   default: "{{ has_opentelemetry or has_mcp_server }}"
-  when: false  # Don't prompt, just compute
+  when: false # Don't prompt, just compute
 crate_type:
   type: str
   default: "{% if has_cli %}bin{% else %}lib{% endif %}"
-  when: false  # Don't prompt, just compute
+  when: false # Don't prompt, just compute
 has_pre_commit:
   type: bool
   default: "{{ hook_system == 'pre-commit' }}"
-  when: false  # Don't prompt, just compute
+  when: false # Don't prompt, just compute
 has_lefthook:
   type: bool
   default: "{{ hook_system == 'lefthook' }}"
-  when: false  # Don't prompt, just compute
+  when: false # Don't prompt, just compute
 # =============================================================================
 # Dotfiles (Optional in most presets, default only in 'full')
 # =============================================================================

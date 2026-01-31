@@ -37,6 +37,14 @@ test-legacy-preset preset:
 clean:
     rm -rf target/template-tests
 
+# Regenerate code from preset YAML files
+sync-presets:
+    ./scripts/sync-presets
+
+# Check if preset-generated code is in sync (for CI)
+check-presets:
+    ./scripts/sync-presets --check
+
 # Generate a project interactively for manual testing
 generate output_dir:
     copier copy --trust . {{ output_dir }}

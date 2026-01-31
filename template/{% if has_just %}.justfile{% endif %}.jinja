@@ -1,4 +1,4 @@
-set shell := ["zsh", "-c"]
+set shell := ["bash", "-c"]
 set dotenv-load := true
 toolchain := `taplo get -f rust-toolchain.toml toolchain.channel | tr -d '"'`
 msrv := "{{ msrv }}"
@@ -8,8 +8,36 @@ default:
 
 # First-time project setup after cloning
 bootstrap:
-    #!/usr/bin/env zsh
+    #!/usr/bin/env bash
     set -euo pipefail
+
+    # Find bootstrap hook by walking up from current directory to /
+    # See: docs/tasks.md for hook documentation
+    find_bootstrap_hook() {
+        local dir="$PWD"
+        while [[ "$dir" != "/" ]]; do
+            if [[ -f "$dir/.claylo-rs.bootstrap.sh" ]]; then
+                echo "$dir/.claylo-rs.bootstrap.sh"
+                return 0
+            fi
+            dir="$(dirname "$dir")"
+        done
+        # Check root as well
+        if [[ -f "/.claylo-rs.bootstrap.sh" ]]; then
+            echo "/.claylo-rs.bootstrap.sh"
+            return 0
+        fi
+        return 1
+    }
+
+    # Source custom bootstrap hook if found
+    SKIP_HOOK_INSTALL=false
+    post_bootstrap() { :; }  # no-op default
+    if bootstrap_hook="$(find_bootstrap_hook)"; then
+        echo "📎 Loading $bootstrap_hook..."
+        source "$bootstrap_hook"
+    fi
+
     echo "🔧 Bootstrapping {{ project_name }}..."
     echo ""
     # Check Rust version
@@ -22,12 +50,20 @@ bootstrap:
     echo ""
 {% if has_pre_commit %}
     # Install git hooks (pre-commit)
-    echo "🪝 Installing git hooks (pre-commit)..."
-    pre-commit install 2>/dev/null || echo "   (pre-commit not installed, run: pip install pre-commit)"
+    if [[ "$SKIP_HOOK_INSTALL" != "true" ]]; then
+        echo "🪝 Installing git hooks (pre-commit)..."
+        pre-commit install 2>/dev/null || echo "   (pre-commit not installed, run: pip install pre-commit)"
+    else
+        echo "⏭️  Skipping hook installation (SKIP_HOOK_INSTALL=true)"
+    fi
 {% elif has_lefthook %}
     # Install git hooks (lefthook)
-    echo "🪝 Installing git hooks (lefthook)..."
-    lefthook install 2>/dev/null || echo "   (lefthook not installed, run: brew install lefthook)"
+    if [[ "$SKIP_HOOK_INSTALL" != "true" ]]; then
+        echo "🪝 Installing git hooks (lefthook)..."
+        lefthook install 2>/dev/null || echo "   (lefthook not installed, run: brew install lefthook)"
+    else
+        echo "⏭️  Skipping hook installation (SKIP_HOOK_INSTALL=true)"
+    fi
 {% else %}
     # No git hooks configured (hook_system=none)
     echo "ℹ️  No git hooks configured"
@@ -46,6 +82,9 @@ bootstrap:
     cargo xtask man
     echo ""
 {% endif %}
+    # Run custom post-bootstrap hook if defined
+    post_bootstrap
+
     echo "✅ Bootstrap complete!"
     echo ""
     echo "Next steps:"
@@ -118,7 +157,7 @@ mdlint *files='':
     elif command -v markdownlint &>/dev/null; then
         markdownlint ${files:-"**/*.md"}
     else
-        echo "Install rumdl (cargo install rumdl) or markdownlint (npm i -g markdownlint-cli)"
+        echo "Install rumdl (cargo bininstall rumdl) or markdownlint (npm i -g markdownlint-cli)"
         exit 1
     fi
 
@@ -130,7 +169,7 @@ mdfix *files='':
     elif command -v markdownlint &>/dev/null; then
         markdownlint --fix ${files:-"**/*.md"}
     else
-        echo "Install rumdl (cargo install rumdl) or markdownlint (npm i -g markdownlint-cli)"
+        echo "Install rumdl (cargo bininstall rumdl) or markdownlint (npm i -g markdownlint-cli)"
         exit 1
     fi
 {% endif %}
