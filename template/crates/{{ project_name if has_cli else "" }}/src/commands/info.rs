@@ -1,15 +1,14 @@
 //! Info command implementation
 
 use clap::Args;
+use owo_colors::OwoColorize;
 use serde::Serialize;
 use tracing::{debug, instrument};
 
 /// Arguments for the `info` subcommand.
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Default)]
 pub struct InfoArgs {
-    /// Output as JSON
-    #[arg(long)]
-    pub json: bool,
+    // No subcommand-specific arguments; uses global --json flag
 }
 
 #[derive(Serialize)]
@@ -42,35 +41,31 @@ impl PackageInfo {
 /// Print package information
 ///
 /// # Arguments
-/// * `args` - Command-specific arguments
-/// * `global_json` - Global `--json` flag from CLI (either works)
+/// * `global_json` - Global `--json` flag from CLI
 #[instrument(name = "cmd_info", skip_all, fields(json_output))]
-pub fn cmd_info(args: InfoArgs, global_json: bool) -> anyhow::Result<()> {
+pub fn cmd_info(_args: InfoArgs, global_json: bool) -> anyhow::Result<()> {
     let info = PackageInfo::new();
-    let json_output = args.json || global_json;
 
     debug!(
-        args.json = args.json,
-        global_json = global_json,
-        json_output = json_output,
+        json_output = global_json,
         "executing info command"
     );
 
-    if json_output {
+    if global_json {
         println!("{}", serde_json::to_string_pretty(&info)?);
     } else {
-        println!("{} {}", info.name, info.version);
+        println!("{} {}", info.name.bold(), info.version.green());
         if !info.description.is_empty() {
             println!("{}", info.description);
         }
         if !info.license.is_empty() {
-            println!("License: {}", info.license);
+            println!("{}: {}", "License".dimmed(), info.license);
         }
         if !info.repository.is_empty() {
-            println!("Repository: {}", info.repository);
+            println!("{}: {}", "Repository".dimmed(), info.repository.cyan());
         }
         if !info.homepage.is_empty() {
-            println!("Homepage: {}", info.homepage);
+            println!("{}: {}", "Homepage".dimmed(), info.homepage.cyan());
         }
     }
 
@@ -83,16 +78,11 @@ mod tests {
 
     #[test]
     fn test_cmd_info_text_succeeds() {
-        assert!(cmd_info(InfoArgs { json: false }, false).is_ok());
-    }
-
-    #[test]
-    fn test_cmd_info_json_via_arg() {
-        assert!(cmd_info(InfoArgs { json: true }, false).is_ok());
+        assert!(cmd_info(InfoArgs::default(), false).is_ok());
     }
 
     #[test]
     fn test_cmd_info_json_via_global() {
-        assert!(cmd_info(InfoArgs { json: false }, true).is_ok());
+        assert!(cmd_info(InfoArgs::default(), true).is_ok());
     }
 }

@@ -52,12 +52,11 @@ db-urls = ["https://github.com/RustSec/advisory-db"]
 
 # Ignore specific advisories (use with caution in enterprise)
 ignore = [
-    # Unmaintained crates in dev/build-time dependencies only (not runtime)
-    # These require upstream projects to migrate; no security vulnerability.
-
+{% if has_benchmarks %}
     # bincode 1.3.3 - via gungraun (dev-dep benchmark harness)
     # Upstream recommends bincode 2.x but gungraun hasn't migrated
     "RUSTSEC-2025-0141",
+{% endif %}
 ]
 
 # ==============================================================================
@@ -75,13 +74,14 @@ deny = []
 
 # Skip duplicate version checks for commonly duplicated crates and
 # transitive dependencies we can't control
-# These come from ML ecosystem (candle, tokenizers) and rmcp having different dep versions
 skip = [
+    # Proc-macro ecosystem - affects all presets
+    { crate = "syn", reason = "proc-macro ecosystem version churn" },
+{% if has_mcp_server or has_benchmarks %}
     # Macro/derive crates with version splits across ecosystems
     { crate = "darling", reason = "rmcp-macros vs tokenizers use different versions" },
     { crate = "darling_core", reason = "follows darling" },
     { crate = "darling_macro", reason = "follows darling" },
-    { crate = "syn", reason = "proc-macro ecosystem version churn" },
 
     # Encoding/serialization
     { crate = "base64", reason = "tokenizers (0.13) vs modern ecosystem (0.22)" },
@@ -108,6 +108,7 @@ skip = [
     { crate = "windows-core", reason = "windows ecosystem version spread" },
     { crate = "windows-sys", reason = "windows ecosystem version spread" },
     { crate = "windows-targets", reason = "windows ecosystem version spread" },
+{% endif %}
 ]
 
 # ==============================================================================

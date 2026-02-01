@@ -25,6 +25,31 @@ pub mod server;
 use clap::{CommandFactory, Parser, Subcommand};
 use std::path::PathBuf;
 
+/// Color output preference.
+#[derive(Debug, Clone, Copy, Default, clap::ValueEnum)]
+pub enum ColorChoice {
+    /// Detect terminal capabilities automatically.
+    #[default]
+    Auto,
+    /// Always emit colors.
+    Always,
+    /// Never emit colors.
+    Never,
+}
+
+impl ColorChoice {
+    /// Configure global color output based on this choice.
+    ///
+    /// Call this once at startup to set the color mode.
+    pub fn apply(self) {
+        match self {
+            Self::Auto => {} // owo-colors auto-detects by default
+            Self::Always => owo_colors::set_override(true),
+            Self::Never => owo_colors::set_override(false),
+        }
+    }
+}
+
 /// Command-line interface definition for {{ project_name }}.
 #[derive(Parser)]
 #[command(name = "{{ project_name }}")]
@@ -47,9 +72,9 @@ pub struct Cli {
     #[arg(short, long, global = true, action = clap::ArgAction::Count)]
     pub verbose: u8,
 
-    /// Colorize output: auto|always|never
-    #[arg(long, global = true, default_value = "auto")]
-    pub color: String,
+    /// Colorize output
+    #[arg(long, global = true, value_enum, default_value_t)]
+    pub color: ColorChoice,
 
     /// Output as JSON (for scripting)
     #[arg(long, global = true)]

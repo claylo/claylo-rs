@@ -37,12 +37,17 @@ const LOG_FILE_SUFFIX: &str = ".jsonl";
 /// Configuration for observability setup.
 #[derive(Clone, Debug)]
 pub struct ObservabilityConfig {
+    /// The service name used in log entries and traces.
     pub service: String,
 {% if has_opentelemetry -%}
+    /// Deployment environment (e.g., "dev", "staging", "prod").
     pub env: String,
+    /// Service version, typically from Cargo.toml.
     pub version: String,
+    /// OpenTelemetry OTLP endpoint for trace export (e.g., "http://localhost:4317").
     pub otlp_endpoint: Option<String>,
 {% endif -%}
+    /// Directory for JSONL log files. Falls back to platform defaults if unset.
     pub log_dir: Option<PathBuf>,
 }
 
