@@ -80,6 +80,7 @@ generate_project() {
         --data "project_name=${test_name}"
         --data "owner=test-owner"
         --data "copyright_name=Test Copyright"
+        --data "conduct_email=conduct@test.org"
     )
 
     if [[ -n "$data_file" ]]; then
@@ -113,6 +114,7 @@ generate_project_with_data() {
         --data "project_name=${test_name}"
         --data "owner=test-owner"
         --data "copyright_name=Test Copyright"
+        --data "conduct_email=conduct@test.org"
     )
     for arg in "$@"; do
         data_args+=(--data "$arg")

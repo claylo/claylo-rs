@@ -33,7 +33,7 @@ setup() {
 
     # Generate if not already present
     if [[ ! -d "$output_dir" ]]; then
-        output_dir=$(generate_project "preset-standard-otel" "standard-otel.yml")
+        output_dir=$(generate_project "preset-standard-otel" "_standard-otel.yml")
     fi
 
     cd "$output_dir"

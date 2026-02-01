@@ -159,7 +159,7 @@ EOF
 
 @test "standard-otel preset: generates and builds" {
     local output_dir
-    output_dir=$(generate_project "preset-standard-otel" "standard-otel.yml")
+    output_dir=$(generate_project "preset-standard-otel" "_standard-otel.yml")
 
     cd "$output_dir"
     cargo_clippy "$output_dir"
@@ -213,7 +213,7 @@ EOF
 
     [[ -d "$output_dir" ]] || skip "full preset not built"
 
-    assert_file_in_project "$output_dir" "crates/test-full-core/benches"
+    assert_file_in_project "$output_dir" "crates/preset-full-core/benches"
 }
 
 @test "full preset: has site directory" {
