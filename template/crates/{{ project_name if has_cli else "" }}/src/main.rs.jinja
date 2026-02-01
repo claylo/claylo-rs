@@ -25,6 +25,7 @@ async fn main() -> anyhow::Result<()> {
 fn main() -> anyhow::Result<()> {
 {% endif -%}
     let cli = Cli::parse();
+    cli.color.apply();
 
     if let Some(ref dir) = cli.chdir {
         std::env::set_current_dir(dir)
@@ -32,8 +33,10 @@ fn main() -> anyhow::Result<()> {
     }
 {% if has_config %}
     let cwd = std::env::current_dir().context("failed to determine current directory")?;
+    let cwd = camino::Utf8PathBuf::try_from(cwd)
+        .map_err(|e| anyhow::anyhow!("current directory is not valid UTF-8: {}", e.into_path_buf().display()))?;
     let config = ConfigLoader::new()
-        .with_project_search(cwd)
+        .with_project_search(&cwd)
         .load()
         .context("failed to load configuration")?;
 {% endif %}
@@ -65,7 +68,7 @@ fn main() -> anyhow::Result<()> {
         verbose = cli.verbose,
         quiet = cli.quiet,
         json = cli.json,
-        color = %cli.color,
+        color = ?cli.color,
         chdir = ?cli.chdir,
         "CLI initialized"
     );

@@ -1,3 +1,16 @@
+//! Build automation tasks for {{ project_name }}.
+//!
+//! This crate provides development utilities:
+//! - `completions` - Generate shell completions
+//! - `man` - Generate man pages
+//! - `install` - Install binary to ~/.bin
+{% if has_benchmarks -%}
+//! - `gen-benchmarks` - Generate benchmark harnesses
+//! - `bench` - Run benchmarks
+{% endif -%}
+//!
+//! Run `cargo xtask --help` to see available commands.
+
 #![deny(unsafe_code)]
 
 mod commands;

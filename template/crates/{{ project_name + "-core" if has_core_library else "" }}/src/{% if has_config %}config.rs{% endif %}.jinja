@@ -22,10 +22,13 @@
 //!
 //! # Example
 //! ```no_run
+//! use camino::Utf8PathBuf;
 //! use {{ crate_name }}_core::config::{Config, ConfigLoader};
 //!
+//! let cwd = std::env::current_dir().unwrap();
+//! let cwd = Utf8PathBuf::try_from(cwd).expect("current directory is not valid UTF-8");
 //! let config = ConfigLoader::new()
-//!     .with_project_search(std::env::current_dir().unwrap())
+//!     .with_project_search(&cwd)
 //!     .load()
 //!     .unwrap();
 //! ```
@@ -34,7 +37,6 @@ use camino::{Utf8Path, Utf8PathBuf};
 use figment::Figment;
 use figment::providers::{Format, Json, Serialized, Toml, Yaml};
 use serde::{Deserialize, Serialize};
-use std::path::Path;
 
 use crate::error::{ConfigError, ConfigResult};
 
@@ -115,8 +117,8 @@ impl ConfigLoader {
     /// Set the starting directory for project config search.
     ///
     /// The loader will walk up from this directory looking for config files.
-    pub fn with_project_search<P: AsRef<Path>>(mut self, path: P) -> Self {
-        self.project_search_root = Utf8PathBuf::from_path_buf(path.as_ref().to_path_buf()).ok();
+    pub fn with_project_search<P: AsRef<Utf8Path>>(mut self, path: P) -> Self {
+        self.project_search_root = Some(path.as_ref().to_path_buf());
         self
     }
 
@@ -145,10 +147,8 @@ impl ConfigLoader {
     ///
     /// Files are loaded in order, with later files taking precedence.
     /// Explicit files are loaded after discovered files.
-    pub fn with_file<P: AsRef<Path>>(mut self, path: P) -> Self {
-        if let Ok(utf8_path) = Utf8PathBuf::from_path_buf(path.as_ref().to_path_buf()) {
-            self.explicit_files.push(utf8_path);
-        }
+    pub fn with_file<P: AsRef<Utf8Path>>(mut self, path: P) -> Self {
+        self.explicit_files.push(path.as_ref().to_path_buf());
         self
     }
 
@@ -272,12 +272,11 @@ impl ConfigLoader {
 /// Find the project config file path without loading it.
 ///
 /// Useful for commands that need to know where config is located.
-pub fn find_project_config<P: AsRef<Path>>(start: P) -> Option<Utf8PathBuf> {
-    let start = Utf8PathBuf::from_path_buf(start.as_ref().to_path_buf()).ok()?;
+pub fn find_project_config<P: AsRef<Utf8Path>>(start: P) -> Option<Utf8PathBuf> {
     ConfigLoader::new()
-        .with_project_search(&start)
+        .with_project_search(start.as_ref())
         .without_boundary_marker()
-        .find_project_config(&start)
+        .find_project_config(start.as_ref())
 }
 
 /// Get the user config directory path.
@@ -334,6 +333,9 @@ log_dir = "/tmp/{{ project_name }}"
         )
         .unwrap();
 
+        // Convert to Utf8PathBuf for API call
+        let config_path = Utf8PathBuf::try_from(config_path).unwrap();
+
         let config = ConfigLoader::new()
             .with_user_config(false)
             .with_file(&config_path)
@@ -363,6 +365,10 @@ log_dir = "/tmp/{{ project_name }}"
         let override_config = tmp.path().join("override.toml");
         fs::write(&override_config, r#"log_level = "error""#).unwrap();
 
+        // Convert to Utf8PathBuf for API calls
+        let base_config = Utf8PathBuf::try_from(base_config).unwrap();
+        let override_config = Utf8PathBuf::try_from(override_config).unwrap();
+
         let config = ConfigLoader::new()
             .with_user_config(false)
             .with_file(&base_config)
@@ -384,6 +390,9 @@ log_dir = "/tmp/{{ project_name }}"
         // Create config in project root
         let config_path = project_dir.join(".{{ project_name }}.toml");
         fs::write(&config_path, r#"log_level = "debug""#).unwrap();
+
+        // Convert to Utf8PathBuf for API call
+        let sub_dir = Utf8PathBuf::try_from(sub_dir).unwrap();
 
         // Search from deep subdirectory
         let config = ConfigLoader::new()
@@ -412,6 +421,9 @@ log_dir = "/tmp/{{ project_name }}"
         // .git marker in child
         fs::create_dir(child.join(".git")).unwrap();
 
+        // Convert to Utf8PathBuf for API call
+        let work = Utf8PathBuf::try_from(work).unwrap();
+
         // Search from work directory - should not find parent config
         let config = ConfigLoader::new()
             .with_user_config(false)
@@ -436,10 +448,14 @@ log_dir = "/tmp/{{ project_name }}"
         let override_config = tmp.path().join("override.toml");
         fs::write(&override_config, r#"log_level = "error""#).unwrap();
 
+        // Convert to Utf8PathBuf for API calls
+        let tmp_path = Utf8PathBuf::try_from(tmp.path().to_path_buf()).unwrap();
+        let override_config = Utf8PathBuf::try_from(override_config).unwrap();
+
         let config = ConfigLoader::new()
             .with_user_config(false)
             .without_boundary_marker()
-            .with_project_search(tmp.path())
+            .with_project_search(&tmp_path)
             .with_file(&override_config)
             .load()
             .unwrap();
@@ -463,6 +479,9 @@ log_dir = "/tmp/{{ project_name }}"
         let tmp = TempDir::new().unwrap();
         let config_path = tmp.path().join("config.toml");
         fs::write(&config_path, r#"log_level = "debug""#).unwrap();
+
+        // Convert to Utf8PathBuf for API call
+        let config_path = Utf8PathBuf::try_from(config_path).unwrap();
 
         let config = ConfigLoader::new()
             .with_user_config(false)

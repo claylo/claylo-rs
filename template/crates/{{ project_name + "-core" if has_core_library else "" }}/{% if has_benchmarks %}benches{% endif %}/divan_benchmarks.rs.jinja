@@ -29,7 +29,7 @@ mod config {
                 .with_user_config(false)
                 .without_boundary_marker()
                 .load()
-                .unwrap(),
+                .expect("default config should always load successfully"),
         )
     }
 

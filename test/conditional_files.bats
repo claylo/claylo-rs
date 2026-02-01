@@ -287,11 +287,11 @@ load 'test_helper'
     output_dir=$(generate_project_with_data "cond-mcp-on" "standard.yml" \
         "has_mcp_server=true")
 
-    assert_file_in_project "$output_dir" "crates/test-standard/src/server.rs"
-    assert_file_in_project "$output_dir" "crates/test-standard/src/commands/serve.rs"
-    assert_file_contains "$output_dir" "crates/test-standard/Cargo.toml" 'rmcp'
-    assert_file_contains "$output_dir" "crates/test-standard/Cargo.toml" 'schemars'
-    assert_file_contains "$output_dir" "crates/test-standard/Cargo.toml" 'tokio'
+    assert_file_in_project "$output_dir" "crates/cond-mcp-on/src/server.rs"
+    assert_file_in_project "$output_dir" "crates/cond-mcp-on/src/commands/serve.rs"
+    assert_file_contains "$output_dir" "crates/cond-mcp-on/Cargo.toml" 'rmcp'
+    assert_file_contains "$output_dir" "crates/cond-mcp-on/Cargo.toml" 'schemars'
+    assert_file_contains "$output_dir" "crates/cond-mcp-on/Cargo.toml" 'tokio'
 }
 
 @test "has_mcp_server=false excludes server.rs and serve command" {
@@ -299,9 +299,9 @@ load 'test_helper'
     output_dir=$(generate_project_with_data "cond-mcp-off" "standard.yml" \
         "has_mcp_server=false")
 
-    assert_no_file_in_project "$output_dir" "crates/test-standard/src/server.rs"
-    assert_no_file_in_project "$output_dir" "crates/test-standard/src/commands/serve.rs"
-    assert_file_not_contains "$output_dir" "crates/test-standard/Cargo.toml" 'rmcp'
+    assert_no_file_in_project "$output_dir" "crates/cond-mcp-off/src/server.rs"
+    assert_no_file_in_project "$output_dir" "crates/cond-mcp-off/src/commands/serve.rs"
+    assert_file_not_contains "$output_dir" "crates/cond-mcp-off/Cargo.toml" 'rmcp'
 }
 
 @test "has_mcp_server=true includes MCP development guide" {
