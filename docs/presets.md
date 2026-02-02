@@ -154,7 +154,6 @@ my-tool/
 | `has_benchmarks` | ✓ | ✗ | ✗ |
 | `has_claude` | ✓ | ✓ | ✓ |
 | `has_claude_commands` | ✓ | ✓ | ✓ |
-| `has_claude_rules` | ✓ | ✓ | ✓ |
 | `has_claude_skills` | ✓ | ✓ | ✓ |
 | `has_cli` | ✓ | ✓ | ✓ |
 | `has_community_files` | ✓ | ✗ | ✗ |

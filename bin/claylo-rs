@@ -87,7 +87,6 @@ declare -A ALIAS_MAP=(
   [claude]=has_claude
   [claude_skills]=has_claude_skills
   [claude_commands]=has_claude_commands
-  [claude_rules]=has_claude_rules
   [yamlfmt]=has_yamlfmt
   [yamllint]=has_yamllint
   [editorconfig]=has_editorconfig
@@ -105,6 +104,9 @@ declare -A ALIAS_MAP=(
   [skill_markdown]=has_skill_markdown_authoring
   [skill_decisions]=has_skill_capturing_decisions
   [skill_git]=has_skill_using_git
+  [releases]=has_releases
+  [coda]=has_coda
+  [roadmap_votes]=has_roadmap_votes
 )
 
 # Sorted alias names for display
@@ -141,10 +143,11 @@ in the current directory and each parent directory up to /.
 
 Feature flags (prefix with + to enable, - to disable):
   cli, core, config, jsonl, otel, mcp, bench, gungraun, site,
-  community, claude, claude_skills, claude_commands, claude_rules,
+  community, claude, claude_skills, claude_commands,
   yamlfmt, yamllint, editorconfig, env, agents_md, just,
   gitattributes, github, security_md, issues, prs, md, md_strict,
-  skill_markdown, skill_decisions, skill_git
+  skill_markdown, skill_decisions, skill_git,
+  releases, coda, roadmap_votes
 
 Examples:
   claylo-rs new ./my-app --owner myorg --copyright "My Name"
@@ -347,10 +350,12 @@ get_preset_flags() {
       out+=(--data "has_claude=true")
       out+=(--data "has_claude_skills=true")
       out+=(--data "has_claude_commands=true")
-      out+=(--data "has_claude_rules=true")
       out+=(--data "has_skill_markdown_authoring=true")
       out+=(--data "has_skill_capturing_decisions=true")
       out+=(--data "has_skill_using_git=true")
+      out+=(--data "has_releases=true")
+      out+=(--data "has_coda=true")
+      out+=(--data "has_roadmap_votes=false")
       out+=(--data "lint_level=strict")
       ;;
     minimal)
@@ -379,10 +384,12 @@ get_preset_flags() {
       out+=(--data "has_claude=true")
       out+=(--data "has_claude_skills=true")
       out+=(--data "has_claude_commands=true")
-      out+=(--data "has_claude_rules=true")
       out+=(--data "has_skill_markdown_authoring=false")
       out+=(--data "has_skill_capturing_decisions=true")
       out+=(--data "has_skill_using_git=true")
+      out+=(--data "has_releases=false")
+      out+=(--data "has_coda=true")
+      out+=(--data "has_roadmap_votes=false")
       ;;
     standard)
       out+=(--data "has_cli=true")
@@ -411,10 +418,12 @@ get_preset_flags() {
       out+=(--data "has_claude=true")
       out+=(--data "has_claude_skills=true")
       out+=(--data "has_claude_commands=true")
-      out+=(--data "has_claude_rules=true")
       out+=(--data "has_skill_markdown_authoring=true")
       out+=(--data "has_skill_capturing_decisions=true")
       out+=(--data "has_skill_using_git=true")
+      out+=(--data "has_releases=false")
+      out+=(--data "has_coda=true")
+      out+=(--data "has_roadmap_votes=false")
       ;;
   esac
 }

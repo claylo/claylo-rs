@@ -1,0 +1,284 @@
+# Release Automation
+
+This project includes optional release automation using [git-cliff](https://git-cliff.org/) for changelog generation and semantic versioning.
+
+## Overview
+
+The release system has two modes:
+
+1. **Manual releases** — Use `just` recipes to control when releases happen
+2. **Automatic releases** — Merge to main triggers version detection and tagging
+
+Both modes use conventional commits to determine version bumps:
+
+| Commit type | Version bump |
+|-------------|--------------|
+| `fix:` | Patch (0.0.X) |
+| `feat:` | Minor (0.X.0) |
+| `feat!:` or `BREAKING CHANGE:` | Major (X.0.0) |
+
+## Quick Start
+
+### Manual Release
+
+```bash
+# Preview what would be released
+just changelog-preview
+
+# Bump version automatically based on commits
+just bump
+
+# Or specify an exact version
+just release v1.2.3
+```
+
+### Automatic Release
+
+Enable automatic releases by setting a repository variable:
+
+```bash
+gh variable set AUTO_RELEASE_ENABLED --body "true"
+```
+
+Now when you merge PRs to main, the release workflow will:
+
+1. Analyze commits since the last tag
+2. Calculate the next semantic version
+3. Create and push a tag
+4. Trigger the CD workflow to build and publish
+
+## Justfile Recipes
+
+| Recipe | Description |
+|--------|-------------|
+| `just changelog` | Generate CHANGELOG.md from all commits |
+| `just changelog-preview` | Preview unreleased changes (dry run) |
+| `just bump` | Auto-calculate next version, update Cargo.toml and CHANGELOG |
+| `just release v1.2.3` | Full release with pre-checks, changelog, and tagging |
+| `just release-check` | Run pre-release validation (tests, clippy, deny) |
+
+### Example: Manual Release Flow
+
+```bash
+# 1. Preview the release
+just changelog-preview
+
+# 2. Run pre-release checks
+just release-check
+
+# 3. Create the release
+just release v1.0.0
+
+# 4. Push to trigger CD
+git push && git push --tags
+```
+
+## GitHub Workflows
+
+### release.yml
+
+Runs on every push to `main`. Checks if commits warrant a release.
+
+**Controlled by repository variables:**
+
+| Variable | Purpose |
+|----------|---------|
+| `AUTO_RELEASE_ENABLED` | Set to `true` to enable automatic releases |
+| `AUTO_RELEASE_DRY_RUN` | Set to `true` to log without creating tags |
+
+### cd.yml
+
+Triggered by version tags (`v*.*.*`). Builds binaries for multiple platforms and optionally publishes to package registries.
+
+**Build matrix:**
+
+- Linux: x64/arm64, glibc/musl
+- macOS: x64/arm64
+- Windows: x64/arm64 MSVC
+
+**Optional publishing (controlled by repository variables):**
+
+| Variable | Purpose | Required Secrets |
+|----------|---------|------------------|
+| `CRATES_IO_ENABLED` | Publish to crates.io | `CARGO_TOKEN` |
+| `HOMEBREW_ENABLED` | Update Homebrew formula | `HOMEBREW_COMMITTER_TOKEN` |
+| `DEB_ENABLED` | Build Debian packages | — |
+| `RPM_ENABLED` | Build RPM packages | — |
+| `NPM_ENABLED` | Publish to npm | `NPM_TOKEN` |
+| `PYPI_ENABLED` | Publish to PyPI | `PYPI_API_TOKEN` |
+| `SBOM_ENABLED` | Generate CycloneDX SBOM | — |
+| `GPG_SIGNING_ENABLED` | Sign artifacts | `GPG_RELEASE_KEY`, `GPG_PASSPHRASE` |
+
+## Configuration
+
+### cliff.toml
+
+The git-cliff configuration file controls changelog generation:
+
+- Parses conventional commits
+- Groups by type (Features, Bug Fixes, etc.)
+- Links to GitHub PRs and contributors
+- Supports GitHub usernames via `--github-repo`
+
+Customize sections by editing the `commit_parsers` array.
+
+### Setting Up Secrets
+
+For crates.io publishing:
+
+```bash
+gh secret set CARGO_TOKEN
+```
+
+For GPG signing:
+
+```bash
+# Export your GPG key
+gpg --export-secret-keys --armor YOUR_KEY_ID | base64 > key.txt
+
+# Set secrets
+gh secret set GPG_RELEASE_KEY < key.txt
+gh secret set GPG_PASSPHRASE
+rm key.txt
+```
+
+For Homebrew (requires a PAT with repo scope on your tap repo):
+
+```bash
+gh secret set HOMEBREW_COMMITTER_TOKEN
+```
+
+### Setting Up Homebrew Distribution
+
+1. Create a tap repository: `homebrew-tap` (e.g., `yourname/homebrew-tap`)
+
+2. Create an initial formula `Formula/{{ project_name }}.rb`:
+
+```ruby
+class {{ project_name | replace("-", "") | title }} < Formula
+  desc "{{ project_description }}"
+  homepage "https://github.com/{{ owner }}/{{ project_name }}"
+  version "0.1.0"
+  license "{{ license | replace("Apache 2.0", "Apache-2.0") | replace("MIT/Apache 2.0", '["MIT", "Apache-2.0"]') }}"
+
+  on_macos do
+    if Hardware::CPU.arm?
+      url "https://github.com/{{ owner }}/{{ project_name }}/releases/download/v#{version}/{{ project_name }}-#{version}-aarch64-apple-darwin.tar.gz"
+      sha256 "PLACEHOLDER"
+    else
+      url "https://github.com/{{ owner }}/{{ project_name }}/releases/download/v#{version}/{{ project_name }}-#{version}-x86_64-apple-darwin.tar.gz"
+      sha256 "PLACEHOLDER"
+    end
+  end
+
+  on_linux do
+    if Hardware::CPU.arm?
+      url "https://github.com/{{ owner }}/{{ project_name }}/releases/download/v#{version}/{{ project_name }}-#{version}-aarch64-unknown-linux-gnu.tar.gz"
+      sha256 "PLACEHOLDER"
+    else
+      url "https://github.com/{{ owner }}/{{ project_name }}/releases/download/v#{version}/{{ project_name }}-#{version}-x86_64-unknown-linux-gnu.tar.gz"
+      sha256 "PLACEHOLDER"
+    end
+  end
+
+  def install
+    bin.install "bin/{{ project_name }}"
+    man1.install Dir["share/man/man1/*.1"]
+    bash_completion.install "share/completions/{{ project_name }}.bash" => "{{ project_name }}"
+    zsh_completion.install "share/completions/_{{ project_name }}"
+    fish_completion.install "share/completions/{{ project_name }}.fish"
+  end
+
+  test do
+    assert_match version.to_s, shell_output("#{bin}/{{ project_name }} --version")
+  end
+end
+```
+
+3. After your first release, the `mislav/bump-homebrew-formula-action` will update the version and SHA256 automatically
+
+## Build Features
+
+### Release Tarball Structure
+
+Each release tarball contains:
+
+```
+{{ project_name }}-{version}-{target}/
+├── bin/
+│   └── {{ project_name }}          # The compiled binary
+├── share/
+│   ├── man/
+│   │   └── man1/
+│   │       ├── {{ project_name }}.1           # Main command man page
+│   │       └── {{ project_name }}-*.1         # Subcommand man pages
+│   └── completions/
+│       ├── {{ project_name }}.bash            # Bash completions
+│       ├── {{ project_name }}.fish            # Fish completions
+│       ├── {{ project_name }}.ps1             # PowerShell completions
+│       └── _{{ project_name }}                # Zsh completions
+├── LICENSE-*
+├── README.md
+└── CHANGELOG.md
+```
+
+This structure follows [XDG conventions](https://specifications.freedesktop.org/basedir-spec/latest/) and is compatible with Homebrew's standard installation methods.
+
+### cargo-auditable
+
+All release builds use [cargo-auditable](https://github.com/rust-secure-code/cargo-auditable) to embed dependency information in the binary. This enables vulnerability scanning of deployed binaries:
+
+```bash
+cargo audit bin ./target/release/{{ project_name }}
+```
+
+### CycloneDX SBOM
+
+When `SBOM_ENABLED=true`, builds generate a [CycloneDX](https://cyclonedx.org/) Software Bill of Materials in JSON format. This is useful for supply chain security and compliance.
+
+## Pre-release Versions
+
+Tags containing a hyphen are treated as pre-releases:
+
+- `v1.0.0` → Full release
+- `v1.0.0-beta.1` → Pre-release (marked as such on GitHub)
+
+Pre-releases skip Homebrew formula updates but are published to other registries.
+
+## Troubleshooting
+
+### "No version bump detected"
+
+git-cliff found no conventional commits since the last tag. Ensure commits follow the format:
+
+```
+feat: add new feature
+fix: resolve bug
+docs: update readme
+```
+
+### Release workflow not triggering
+
+Check that:
+
+1. `AUTO_RELEASE_ENABLED` is set to exactly `true` (case-sensitive)
+2. You're pushing to the `main` branch
+3. The workflow has `contents: write` permission
+
+### CD workflow skipping jobs
+
+Most publishing jobs require their respective `*_ENABLED` variable to be set. Check:
+
+```bash
+gh variable list
+```
+
+### GPG signing fails
+
+Ensure the key is base64-encoded:
+
+```bash
+gpg --export-secret-keys --armor KEY_ID | base64 -w0
+```
+
+And that `GPG_PASSPHRASE` matches the key's passphrase.

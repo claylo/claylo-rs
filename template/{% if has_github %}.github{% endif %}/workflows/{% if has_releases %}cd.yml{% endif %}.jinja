@@ -1,0 +1,377 @@
+{% raw %}name: CD
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+{% endraw %}  PROJECT_NAME: {{ project_name }}
+{% raw %}
+jobs:
+  generate-changelog:
+    name: Generate changelog
+    runs-on: ubuntu-latest
+    outputs:
+      release_body: ${{ steps.git-cliff.outputs.content }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Extract version
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Generate changelog
+        uses: orhun/git-cliff-action@4a4a951bc43b41eb579d5333ef58f3d9830d0d8f # v4.4.2
+        id: git-cliff
+        with:
+          config: cliff.toml
+          args: -vv --latest --no-exec --github-repo ${{ github.repository }}
+
+  publish-binaries:
+    name: Build ${{ matrix.build.NAME }}
+    needs: generate-changelog
+    runs-on: ${{ matrix.build.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        build:
+          - { NAME: linux-x64-gnu, os: ubuntu-22.04, target: x86_64-unknown-linux-gnu }
+          - { NAME: linux-x64-musl, os: ubuntu-22.04, target: x86_64-unknown-linux-musl }
+          - { NAME: linux-arm64-gnu, os: ubuntu-22.04, target: aarch64-unknown-linux-gnu }
+          - { NAME: linux-arm64-musl, os: ubuntu-22.04, target: aarch64-unknown-linux-musl }
+          - { NAME: darwin-x64, os: macos-15, target: x86_64-apple-darwin }
+          - { NAME: darwin-arm64, os: macos-15, target: aarch64-apple-darwin }
+          - { NAME: windows-x64-msvc, os: windows-2025, target: x86_64-pc-windows-msvc }
+          - { NAME: windows-arm64-msvc, os: windows-2025, target: aarch64-pc-windows-msvc }
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: Install musl tools
+        if: contains(matrix.build.target, 'musl')
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+
+      - name: Install cross-compilation tools
+        if: matrix.build.target == 'aarch64-unknown-linux-gnu'
+        run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561
+        with:
+          toolchain: stable
+          targets: ${{ matrix.build.target }}
+
+      - name: Rust cache
+        uses: ./.github/actions/setup-rust-cache
+        with:
+          cache-key-suffix: release-${{ matrix.build.target }}
+          toolchain: stable
+
+      - name: Install cargo-auditable
+        uses: ./.github/actions/setup-cargo-tools
+        with:
+          binstall-tools: cargo-auditable
+
+      - name: Build
+        shell: bash
+        run: |
+          if [[ "${{ matrix.build.os }}" == "ubuntu-22.04" && "${{ matrix.build.target }}" == "aarch64-unknown-linux-gnu" ]]; then
+            export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
+          fi
+          cargo auditable build --release --locked --target ${{ matrix.build.target }}
+
+{% endraw %}{% if has_xtask %}
+{% raw %}      - name: Generate man pages
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          mkdir -p dist/share/man/man1
+          cargo run --package xtask -- man --out-dir dist/share/man/man1
+
+      - name: Generate shell completions
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          mkdir -p dist/share/completions
+          cargo run --package xtask -- completions --out-dir dist/share/completions
+{% endraw %}{% endif %}
+{% raw %}      - name: Install cargo-cyclonedx
+        if: vars.SBOM_ENABLED == 'true'
+        uses: ./.github/actions/setup-cargo-tools
+        with:
+          binstall-tools: cargo-cyclonedx
+
+      - name: Generate SBOM
+        if: vars.SBOM_ENABLED == 'true'
+        run: cargo cyclonedx --target ${{ matrix.build.target }} --format json
+
+      - name: Prepare release assets
+        shell: bash
+        env:
+          VERSION: ${{ needs.generate-changelog.outputs.version }}
+          TARGET: ${{ matrix.build.target }}
+        run: |
+          mkdir -p release/bin release/share
+          cp LICENSE-* README.md CHANGELOG.md release/ 2>/dev/null || true
+
+          # Binary
+          bin="$PROJECT_NAME"
+          if [[ "${{ matrix.build.os }}" == "windows-2025" ]]; then
+            bin="${bin}.exe"
+          fi
+          cp "target/${TARGET}/release/${bin}" release/bin/
+
+          # Man pages and completions (Unix only)
+          if [[ -d dist/share/man ]]; then
+            cp -r dist/share/man release/share/
+          fi
+          if [[ -d dist/share/completions ]]; then
+            cp -r dist/share/completions release/share/
+          fi
+
+          # Package
+          cd release
+          if [[ "${{ matrix.build.os }}" == "windows-2025" ]]; then
+            7z a -tzip "../${PROJECT_NAME}-${VERSION}-${TARGET}.zip" *
+          else
+            tar -czvf "../${PROJECT_NAME}-${VERSION}-${TARGET}.tar.gz" *
+            shasum -a 256 "../${PROJECT_NAME}-${VERSION}-${TARGET}.tar.gz" > "../${PROJECT_NAME}-${VERSION}-${TARGET}.tar.gz.sha256"
+          fi
+
+      - name: Sign release (GPG)
+        if: (matrix.build.os == 'ubuntu-22.04' || matrix.build.os == 'macos-15') && vars.GPG_SIGNING_ENABLED == 'true'
+        env:
+          VERSION: ${{ needs.generate-changelog.outputs.version }}
+          TARGET: ${{ matrix.build.target }}
+        run: |
+          echo "${{ secrets.GPG_RELEASE_KEY }}" | base64 --decode > private.key
+          echo "${{ secrets.GPG_PASSPHRASE }}" | gpg --pinentry-mode=loopback --passphrase-fd 0 --import private.key
+          echo "${{ secrets.GPG_PASSPHRASE }}" | gpg --pinentry-mode=loopback --passphrase-fd 0 --detach-sign "${PROJECT_NAME}-${VERSION}-${TARGET}.tar.gz"
+
+      - name: Upload release
+        if: ${{ !contains(github.ref, '-') }}
+        uses: svenstaro/upload-release-action@81c65b7cd4de9b2570615ce3aad67a41de5b1a13 # v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ env.PROJECT_NAME }}-${{ needs.generate-changelog.outputs.version }}-${{ matrix.build.target }}*
+          file_glob: true
+          overwrite: true
+          tag: ${{ github.ref }}
+          release_name: "Release v${{ needs.generate-changelog.outputs.version }}"
+          body: "${{ needs.generate-changelog.outputs.release_body }}"
+
+      - name: Upload pre-release
+        if: ${{ contains(github.ref, '-') }}
+        uses: svenstaro/upload-release-action@81c65b7cd4de9b2570615ce3aad67a41de5b1a13 # v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ env.PROJECT_NAME }}-${{ needs.generate-changelog.outputs.version }}-${{ matrix.build.target }}*
+          file_glob: true
+          overwrite: true
+          tag: ${{ github.ref }}
+          release_name: "Pre-release v${{ needs.generate-changelog.outputs.version }}"
+          prerelease: true
+
+  publish-crates-io:
+    name: Publish to crates.io
+    if: ${{ !contains(github.ref, '-') && vars.CRATES_IO_ENABLED == 'true' }}
+    needs: generate-changelog
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561
+        with:
+          toolchain: stable
+
+      - name: Publish
+        run: cargo publish --locked --token ${{ secrets.CARGO_TOKEN }}
+
+  publish-homebrew:
+    name: Publish Homebrew formula
+    if: ${{ !contains(github.ref, '-') && vars.HOMEBREW_ENABLED == 'true' }}
+    needs: publish-binaries
+    runs-on: ubuntu-latest
+    steps:
+      - name: Bump formula
+        uses: mislav/bump-homebrew-formula-action@8e2baa47daaa8db10fcdeb04105dfa6850eb0d68 # v3.4
+        with:
+          formula-name: ${{ env.PROJECT_NAME }}
+        env:
+          COMMITTER_TOKEN: ${{ secrets.HOMEBREW_COMMITTER_TOKEN }}
+
+  publish-deb:
+    name: Publish Debian package
+    if: vars.DEB_ENABLED == 'true'
+    needs: generate-changelog
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561
+        with:
+          toolchain: stable
+          targets: x86_64-unknown-linux-gnu
+
+      - name: Install cargo-deb
+        uses: ./.github/actions/setup-cargo-tools
+        with:
+          binstall-tools: cargo-deb
+
+      - name: Build Debian package
+        env:
+          VERSION: ${{ needs.generate-changelog.outputs.version }}
+        run: |
+          cargo build --release --locked
+          cargo deb --no-build -o "${PROJECT_NAME}-${VERSION}.deb"
+
+      - name: Sign package
+        if: vars.GPG_SIGNING_ENABLED == 'true'
+        env:
+          VERSION: ${{ needs.generate-changelog.outputs.version }}
+        run: |
+          echo "${{ secrets.GPG_RELEASE_KEY }}" | base64 --decode > private.key
+          echo "${{ secrets.GPG_PASSPHRASE }}" | gpg --pinentry-mode=loopback --passphrase-fd 0 --import private.key
+          echo "${{ secrets.GPG_PASSPHRASE }}" | gpg --pinentry-mode=loopback --passphrase-fd 0 --detach-sign "${PROJECT_NAME}-${VERSION}.deb"
+
+      - name: Upload release
+        if: ${{ !contains(github.ref, '-') }}
+        uses: svenstaro/upload-release-action@81c65b7cd4de9b2570615ce3aad67a41de5b1a13 # v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ env.PROJECT_NAME }}-${{ needs.generate-changelog.outputs.version }}.deb*
+          file_glob: true
+          overwrite: true
+          tag: ${{ github.ref }}
+          release_name: "Release v${{ needs.generate-changelog.outputs.version }}"
+          body: "${{ needs.generate-changelog.outputs.release_body }}"
+
+      - name: Upload pre-release
+        if: ${{ contains(github.ref, '-') }}
+        uses: svenstaro/upload-release-action@81c65b7cd4de9b2570615ce3aad67a41de5b1a13 # v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ env.PROJECT_NAME }}-${{ needs.generate-changelog.outputs.version }}.deb*
+          file_glob: true
+          overwrite: true
+          tag: ${{ github.ref }}
+          release_name: "Pre-release v${{ needs.generate-changelog.outputs.version }}"
+          prerelease: true
+
+  publish-rpm:
+    name: Publish RPM package
+    if: vars.RPM_ENABLED == 'true'
+    needs: generate-changelog
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561
+        with:
+          toolchain: stable
+          targets: x86_64-unknown-linux-gnu
+
+      - name: Install cargo-generate-rpm
+        uses: ./.github/actions/setup-cargo-tools
+        with:
+          binstall-tools: cargo-generate-rpm
+
+      - name: Build RPM package
+        env:
+          VERSION: ${{ needs.generate-changelog.outputs.version }}
+        run: |
+          cargo build --release --locked
+          cargo generate-rpm -o "${PROJECT_NAME}-${VERSION}.x86_64.rpm"
+
+      - name: Sign package
+        if: vars.GPG_SIGNING_ENABLED == 'true'
+        env:
+          VERSION: ${{ needs.generate-changelog.outputs.version }}
+        run: |
+          echo "${{ secrets.GPG_RELEASE_KEY }}" | base64 --decode > private.key
+          echo "${{ secrets.GPG_PASSPHRASE }}" | gpg --pinentry-mode=loopback --passphrase-fd 0 --import private.key
+          echo "${{ secrets.GPG_PASSPHRASE }}" | gpg --pinentry-mode=loopback --passphrase-fd 0 --detach-sign "${PROJECT_NAME}-${VERSION}.x86_64.rpm"
+
+      - name: Upload release
+        if: ${{ !contains(github.ref, '-') }}
+        uses: svenstaro/upload-release-action@81c65b7cd4de9b2570615ce3aad67a41de5b1a13 # v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ env.PROJECT_NAME }}-${{ needs.generate-changelog.outputs.version }}.x86_64.rpm*
+          file_glob: true
+          overwrite: true
+          tag: ${{ github.ref }}
+          release_name: "Release v${{ needs.generate-changelog.outputs.version }}"
+          body: "${{ needs.generate-changelog.outputs.release_body }}"
+
+      - name: Upload pre-release
+        if: ${{ contains(github.ref, '-') }}
+        uses: svenstaro/upload-release-action@81c65b7cd4de9b2570615ce3aad67a41de5b1a13 # v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ env.PROJECT_NAME }}-${{ needs.generate-changelog.outputs.version }}.x86_64.rpm*
+          file_glob: true
+          overwrite: true
+          tag: ${{ github.ref }}
+          release_name: "Pre-release v${{ needs.generate-changelog.outputs.version }}"
+          prerelease: true
+
+  publish-npm:
+    name: Publish to NPM
+    if: vars.NPM_ENABLED == 'true'
+    needs: publish-binaries
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 20
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Publish
+        working-directory: npm
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-pypi:
+    name: Publish to PyPI
+    if: vars.PYPI_ENABLED == 'true'
+    needs: publish-binaries
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: Build wheel
+        uses: PyO3/maturin-action@e10f6c464b90acceb5f640d31beda6d586ba7b4a # v1.49.3
+        with:
+          working-directory: pypi
+          args: --release --sdist --out wheels
+
+      - name: Publish to PyPI
+        uses: PyO3/maturin-action@e10f6c464b90acceb5f640d31beda6d586ba7b4a # v1.49.3
+        env:
+          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        with:
+          command: upload
+          args: --skip-existing pypi/wheels/*
+{% endraw %}

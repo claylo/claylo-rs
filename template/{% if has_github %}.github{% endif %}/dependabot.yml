@@ -26,8 +26,8 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
-    # Allow PRs for Actions updates (usually safe)
-    open-pull-requests-limit: 5
+    # Disable automatic PRs - use issues workflow instead
+    open-pull-requests-limit: 0
     labels:
       - "dependencies"
       - "github-actions"

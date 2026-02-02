@@ -34,8 +34,12 @@ has_md_strict: false
 has_claude: true
 has_claude_skills: true
 has_claude_commands: true
-has_claude_rules: true
 # Skills
 has_skill_markdown_authoring: true
 has_skill_capturing_decisions: true
 has_skill_using_git: true
+# Release automation (standard = off)
+has_releases: false
+# Repository tooling
+has_coda: true
+has_roadmap_votes: false

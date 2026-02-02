@@ -162,7 +162,6 @@ When enabled, adds `just mdlint` and `just mdfix` recipes.
 | `has_claude` | `claude` | true | `.claude/` directory |
 | `has_claude_skills` | `claude_skills` | true | `.claude/skills/` |
 | `has_claude_commands` | `claude_commands` | true | `.claude/commands/` |
-| `has_claude_rules` | `claude_rules` | true | `.claude/rules/` |
 
 ### Skills
 

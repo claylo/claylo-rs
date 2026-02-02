@@ -112,7 +112,7 @@ Key Copier variables (see `copier.yaml` for full list):
 - `has_md`, `has_md_strict`
 
 **Claude Code config:**
-- `has_claude`, `has_claude_skills`, `has_claude_commands`, `has_claude_rules`
+- `has_claude`, `has_claude_skills`, `has_claude_commands`
 - `has_skill_markdown_authoring`, `has_skill_capturing_decisions`, `has_skill_using_git`
 
 **Computed (not user-facing):**

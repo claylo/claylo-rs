@@ -247,11 +247,6 @@ has_claude_commands:
   default: true
   when: "{{ has_claude }}"
   help: "Include .claude/commands/ (skip if you have global commands)"
-has_claude_rules:
-  type: bool
-  default: true
-  when: "{{ has_claude }}"
-  help: "Include .claude/rules/ (skip if you have global rules)"
 # =============================================================================
 # Git Hooks & Commit Tooling
 # =============================================================================
@@ -375,3 +370,21 @@ has_skill_using_git:
   default: "{{ has_claude_skills }}"
   when: "{{ has_claude_skills }}"
   help: "Include using-git skill"
+# =============================================================================
+# Release Automation
+# =============================================================================
+has_releases:
+  type: bool
+  default: "{{ preset == 'full' }}"
+  help: "Include release automation (git-cliff changelogs, CD workflow)"
+# =============================================================================
+# Repository Tooling
+# =============================================================================
+has_coda:
+  type: bool
+  default: true
+  help: "Include gh-coda config for repo settings automation"
+has_roadmap_votes:
+  type: bool
+  default: false
+  help: "Include roadmap voting workflow (publishes votes to wiki)"
