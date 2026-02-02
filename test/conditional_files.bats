@@ -120,7 +120,6 @@ load 'test_helper'
         "has_claude=true" \
         "has_claude_skills=false" \
         "has_claude_commands=true" \
-        "has_claude_rules=true" \
         "has_github=false" \
         "has_just=false" \
         "has_agents_md=false" \
@@ -130,7 +129,6 @@ load 'test_helper'
     assert_file_in_project "$output_dir" ".claude"
     assert_file_in_project "$output_dir" ".claude/CLAUDE.md"
     assert_file_in_project "$output_dir" ".claude/commands"
-    assert_file_in_project "$output_dir" ".claude/rules"
     assert_no_file_in_project "$output_dir" ".claude/skills"
 }
 
@@ -140,7 +138,6 @@ load 'test_helper'
         "has_claude=true" \
         "has_claude_skills=true" \
         "has_claude_commands=false" \
-        "has_claude_rules=false" \
         "has_skill_markdown_authoring=false" \
         "has_skill_capturing_decisions=true" \
         "has_skill_using_git=false" \
@@ -154,7 +151,6 @@ load 'test_helper'
     assert_no_file_in_project "$output_dir" ".claude/skills/markdown-authoring"
     assert_no_file_in_project "$output_dir" ".claude/skills/using-git"
     assert_no_file_in_project "$output_dir" ".claude/commands"
-    assert_no_file_in_project "$output_dir" ".claude/rules"
 }
 
 # =============================================================================
@@ -318,6 +314,78 @@ load 'test_helper'
         "has_mcp_server=false")
 
     assert_no_file_in_project "$output_dir" "docs/mcp-development.md"
+}
+
+# =============================================================================
+# Release Automation
+# =============================================================================
+
+@test "has_releases=true includes cliff.toml and release workflows" {
+    local output_dir
+    output_dir=$(generate_project_with_data "cond-releases-on" "full.yml" \
+        "has_releases=true")
+
+    assert_file_in_project "$output_dir" "cliff.toml"
+    assert_file_in_project "$output_dir" ".github/workflows/cd.yml"
+    assert_file_in_project "$output_dir" ".github/workflows/release.yml"
+    assert_file_in_project "$output_dir" "docs/releases.md"
+}
+
+@test "has_releases=false excludes cliff.toml and release workflows" {
+    local output_dir
+    output_dir=$(generate_project_with_data "cond-releases-off" "standard.yml" \
+        "has_releases=false")
+
+    assert_no_file_in_project "$output_dir" "cliff.toml"
+    assert_no_file_in_project "$output_dir" ".github/workflows/cd.yml"
+    assert_no_file_in_project "$output_dir" ".github/workflows/release.yml"
+    assert_no_file_in_project "$output_dir" "docs/releases.md"
+    # CI workflow should still exist
+    assert_file_in_project "$output_dir" ".github/workflows/ci.yml"
+}
+
+# =============================================================================
+# Repository Tooling
+# =============================================================================
+
+@test "has_coda=true includes coda.yml" {
+    local output_dir
+    output_dir=$(generate_project_with_data "cond-coda-on" "minimal.yml" \
+        "has_coda=true" \
+        "has_github=true")
+
+    assert_file_in_project "$output_dir" ".github/coda.yml"
+}
+
+@test "has_coda=false excludes coda.yml" {
+    local output_dir
+    output_dir=$(generate_project_with_data "cond-coda-off" "minimal.yml" \
+        "has_coda=false" \
+        "has_github=true")
+
+    assert_no_file_in_project "$output_dir" ".github/coda.yml"
+    # Other GitHub files should still exist
+    assert_file_in_project "$output_dir" ".github/workflows/ci.yml"
+}
+
+@test "has_roadmap_votes=true includes roadmap.yml workflow" {
+    local output_dir
+    output_dir=$(generate_project_with_data "cond-roadmap-on" "minimal.yml" \
+        "has_roadmap_votes=true" \
+        "has_github=true")
+
+    assert_file_in_project "$output_dir" ".github/workflows/roadmap.yml"
+}
+
+@test "has_roadmap_votes=false excludes roadmap.yml workflow" {
+    local output_dir
+    output_dir=$(generate_project_with_data "cond-roadmap-off" "minimal.yml" \
+        "has_roadmap_votes=false" \
+        "has_github=true")
+
+    assert_no_file_in_project "$output_dir" ".github/workflows/roadmap.yml"
+    # Other workflows should still exist
+    assert_file_in_project "$output_dir" ".github/workflows/ci.yml"
 }
 
 # =============================================================================

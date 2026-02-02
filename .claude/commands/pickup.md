@@ -1,5 +1,9 @@
 Continue work from the latest handoff document.
 
+<EXTREMELY-IMPORTANT>
+DO NOT automatically run the full `just test` suite without asking. It is very slow.
+</EXTREMELY-IMPORTANT>
+
 1. List files in `.handoffs/` directory sorted by date (newest first)
 2. Read the most recent handoff document
 3. Summarize what was being worked on and what remains

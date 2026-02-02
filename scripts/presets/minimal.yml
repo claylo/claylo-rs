@@ -33,8 +33,12 @@ has_md: false
 has_claude: true
 has_claude_skills: true
 has_claude_commands: true
-has_claude_rules: true
 # Skills (need explicit values when has_claude_skills is true)
 has_skill_markdown_authoring: false
 has_skill_capturing_decisions: true
 has_skill_using_git: true
+# Release automation (minimal = off)
+has_releases: false
+# Repository tooling
+has_coda: true
+has_roadmap_votes: false

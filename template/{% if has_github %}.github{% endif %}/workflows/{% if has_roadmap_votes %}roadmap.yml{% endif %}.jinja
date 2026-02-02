@@ -1,0 +1,66 @@
+{% raw %}name: Update Roadmap Scores
+
+on:
+  issues:
+    types: [opened, closed, labeled, unlabeled]
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout wiki
+        run: |
+          git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git wiki
+
+      - name: Generate roadmap
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          LABEL: ${{ vars.ROADMAP_LABEL || 'roadmap' }}
+        run: |
+          OWNER="${REPO%/*}"
+          REPO_NAME="${REPO#*/}"
+
+          cat > wiki/Roadmap.md << 'HEADER'
+          # Roadmap
+
+          Prioritized by community votes. Add :+1: to [open issues](https://github.com/${{ github.repository }}/issues?q=is%3Aissue+is%3Aopen+label%3A${LABEL}) to vote!
+
+          *Last updated: $(date -u +"%Y-%m-%d %H:%M UTC")*
+
+          HEADER
+
+          # Fetch issues and generate table
+          gh api graphql -f query='
+          query($repo: String!, $owner: String!, $label: String!) {
+            repository(name: $repo, owner: $owner) {
+              issues(first: 50, states: OPEN, labels: [$label], orderBy: {field: CREATED_AT, direction: DESC}) {
+                nodes {
+                  number
+                  title
+                  url
+                  reactions(content: THUMBS_UP) { totalCount }
+                  labels(first: 5) { nodes { name color } }
+                }
+              }
+            }
+          }' -f owner="$OWNER" -f repo="$REPO_NAME" -f label="$LABEL" \
+            | jq -r '.data.repository.issues.nodes | sort_by(-.reactions.totalCount) | .[] |
+              "| \(.reactions.totalCount) | [#\(.number)](\(.url)) | \(.title) |"' \
+            | { echo "| Votes | Issue | Feature |"; echo "|------:|:------|:--------|"; cat; } >> wiki/Roadmap.md
+
+      - name: Push to wiki
+        run: |
+          cd wiki
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Roadmap.md
+          git diff --staged --quiet || git commit -m "Update roadmap scores"
+          git push
+{% endraw %}
