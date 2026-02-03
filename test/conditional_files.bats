@@ -352,6 +352,30 @@ load 'test_helper'
     assert_file_in_project "$output_dir" ".github/workflows/ci.yml"
 }
 
+@test "has_attestations=true includes attestation permissions and step" {
+    local output_dir
+    output_dir=$(generate_project_with_data "cond-attest-on" "full.yml" \
+        "has_releases=true" \
+        "has_attestations=true")
+
+    assert_file_in_project "$output_dir" ".github/workflows/cd.yml"
+    assert_file_contains "$output_dir" ".github/workflows/cd.yml" "id-token: write"
+    assert_file_contains "$output_dir" ".github/workflows/cd.yml" "attestations: write"
+    assert_file_contains "$output_dir" ".github/workflows/cd.yml" "attest-build-provenance"
+}
+
+@test "has_attestations=false excludes attestation permissions" {
+    local output_dir
+    output_dir=$(generate_project_with_data "cond-attest-off" "full.yml" \
+        "has_releases=true" \
+        "has_attestations=false")
+
+    assert_file_in_project "$output_dir" ".github/workflows/cd.yml"
+    assert_file_not_contains "$output_dir" ".github/workflows/cd.yml" "id-token: write"
+    assert_file_not_contains "$output_dir" ".github/workflows/cd.yml" "attestations: write"
+    assert_file_not_contains "$output_dir" ".github/workflows/cd.yml" "attest-build-provenance"
+}
+
 # =============================================================================
 # Repository Tooling
 # =============================================================================

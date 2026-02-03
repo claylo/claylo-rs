@@ -44,6 +44,7 @@ declare -A ACTIONS=(
     ["actions/download-artifact"]=""
     ["actions/github-script"]=""
     ["actions/setup-node"]=""
+    ["actions/attest-build-provenance"]=""
     ["dtolnay/rust-toolchain"]=""
     ["EmbarkStudios/cargo-deny-action"]=""
     ["Swatinem/rust-cache"]=""
