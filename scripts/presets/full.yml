@@ -42,6 +42,7 @@ has_skill_capturing_decisions: true
 has_skill_using_git: true
 # Release automation
 has_releases: true
+has_attestations: true
 # Repository tooling
 has_coda: true
 has_roadmap_votes: false

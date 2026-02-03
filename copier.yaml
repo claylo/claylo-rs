@@ -377,6 +377,11 @@ has_releases:
   type: bool
   default: "{{ preset == 'full' }}"
   help: "Include release automation (git-cliff changelogs, CD workflow)"
+has_attestations:
+  type: bool
+  default: "{{ preset != 'minimal' }}"
+  when: "{{ has_releases }}"
+  help: "Include artifact attestations (Sigstore-signed provenance, requires public repo or GH Enterprise)"
 # =============================================================================
 # Repository Tooling
 # =============================================================================

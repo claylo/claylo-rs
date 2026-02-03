@@ -38,8 +38,9 @@ has_claude_commands: true
 has_skill_markdown_authoring: true
 has_skill_capturing_decisions: true
 has_skill_using_git: true
-# Release automation (standard = off)
+# Release automation (standard = off, but attestations default on when releases enabled)
 has_releases: false
+has_attestations: true
 # Repository tooling
 has_coda: true
 has_roadmap_votes: false
