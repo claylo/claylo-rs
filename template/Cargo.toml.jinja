@@ -5,7 +5,7 @@ resolver = "2"
 
 [workspace.package]
 edition = "{{ edition }}"
-license = "{% if license | length == 2 %}MIT OR Apache-2.0{% elif 'MIT' in license %}MIT{% else %}Apache-2.0{% endif %}"
+license = "{% if license | length > 1 %}{{ license | join(' OR ') }}{% else %}{{ license | first }}{% endif %}"
 version = "0.1.0"
 # version we want to allow
 rust-version = "{{ msrv }}"

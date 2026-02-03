@@ -329,6 +329,13 @@ load 'test_helper'
     assert_file_in_project "$output_dir" ".github/workflows/cd.yml"
     assert_file_in_project "$output_dir" ".github/workflows/release.yml"
     assert_file_in_project "$output_dir" "docs/releases.md"
+    # npm scaffold
+    assert_file_in_project "$output_dir" "npm/cond-releases-on/package.json"
+    assert_file_in_project "$output_dir" "npm/cond-releases-on/index.js"
+    assert_file_in_project "$output_dir" "npm/cond-releases-on/cli.js"
+    assert_file_in_project "$output_dir" "npm/cond-releases-on/install.js"
+    assert_file_in_project "$output_dir" "npm/platforms/cond-releases-on-darwin-arm64/package.json"
+    assert_file_in_project "$output_dir" "npm/platforms/cond-releases-on-linux-x64/package.json"
 }
 
 @test "has_releases=false excludes cliff.toml and release workflows" {
@@ -340,6 +347,7 @@ load 'test_helper'
     assert_no_file_in_project "$output_dir" ".github/workflows/cd.yml"
     assert_no_file_in_project "$output_dir" ".github/workflows/release.yml"
     assert_no_file_in_project "$output_dir" "docs/releases.md"
+    assert_no_file_in_project "$output_dir" "npm"
     # CI workflow should still exist
     assert_file_in_project "$output_dir" ".github/workflows/ci.yml"
 }

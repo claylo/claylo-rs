@@ -1,0 +1,13 @@
+{
+  "name": "@{{ owner }}/{{ project_name }}-darwin-arm64",
+  "version": "0.1.0",
+  "description": "{{ project_description }} (darwin-arm64 binary)",
+  "license": "{% if license | length > 1 %}({{ license | join(' OR ') }}){% else %}{{ license | first }}{% endif %}",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/{{ owner }}/{{ project_name }}"
+  },
+  "os": ["darwin"],
+  "cpu": ["arm64"],
+  "files": ["bin/"]
+}
