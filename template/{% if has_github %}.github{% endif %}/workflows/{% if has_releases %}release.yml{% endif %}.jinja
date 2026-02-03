@@ -35,7 +35,7 @@ jobs:
       changelog: ${{ steps.changelog.outputs.content }}
     steps:
       - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.1
         with:
           fetch-depth: 0
 
@@ -73,7 +73,7 @@ jobs:
 
       - name: Generate changelog
         if: steps.check.outputs.should_release == 'true'
-        uses: orhun/git-cliff-action@4a4a951bc43b41eb579d5333ef58f3d9830d0d8f # v4.4.2
+        uses: orhun/git-cliff-action@e16f179f0be49ecdfe63753837f20b9531642772 # v4.7.0
         id: changelog
         with:
           config: cliff.toml
@@ -86,14 +86,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.1
         with:
           fetch-depth: 0
 
       - name: Configure git
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+        uses: ./.github/actions/bot-setup
 
       - name: Dry run
         if: inputs.dry_run == true || vars.AUTO_RELEASE_DRY_RUN == 'true'

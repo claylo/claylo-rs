@@ -18,7 +18,7 @@ Contributing to the claylo-rs template.
 - Rust (see `rust-toolchain.toml` for pinned version)
 - [just](https://github.com/casey/just) — task runner
 - [cargo-nextest](https://nexte.st/) — fast test runner
-- [copier](https://copier.readthedocs.io/) — `pipx install copier` or `uv tool install copier`
+- [copier](https://copier.readthedocs.io/) — `uv tool install copier` or `pipx install copier`
 - Bash 4+ (macOS: `brew install bash`)
 
 

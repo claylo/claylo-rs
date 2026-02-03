@@ -1,0 +1,691 @@
+#!/usr/bin/env bash
+# deps - Check and update GitHub Actions and crate dependencies
+#
+# Usage:
+#   deps actions outdated    # Show outdated GitHub Actions
+#   deps actions update      # Update GitHub Actions in workflow files
+#   deps crates outdated     # Show outdated crates
+#   deps crates update       # Update crates in Cargo.toml.jinja files
+#   deps report              # Generate JSON report of all dependencies
+#
+# Requirements:
+#   - gh CLI (authenticated)
+#   - jq
+#   - curl
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+TEMPLATE_DIR="$PROJECT_ROOT/template"
+
+# Template workflow directories (Jinja conditional paths)
+TEMPLATE_WORKFLOWS_DIR="$TEMPLATE_DIR/{% if has_github %}.github{% endif %}/workflows"
+TEMPLATE_ACTIONS_DIR="$TEMPLATE_DIR/{% if has_github %}.github{% endif %}/actions"
+
+# Root project workflows (actual CI for this template repo)
+ROOT_WORKFLOWS_DIR="$PROJECT_ROOT/.github/workflows"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+DIM='\033[2m'
+NC='\033[0m'
+
+# ============================================================================
+# GitHub Actions we track
+# ============================================================================
+declare -A ACTIONS=(
+    ["actions/checkout"]=""
+    ["actions/cache"]=""
+    ["actions/upload-artifact"]=""
+    ["actions/download-artifact"]=""
+    ["actions/github-script"]=""
+    ["actions/setup-node"]=""
+    ["dtolnay/rust-toolchain"]=""
+    ["EmbarkStudios/cargo-deny-action"]=""
+    ["Swatinem/rust-cache"]=""
+    ["orhun/git-cliff-action"]=""
+    ["svenstaro/upload-release-action"]=""
+    ["amannn/action-semantic-pull-request"]=""
+    ["mislav/bump-homebrew-formula-action"]=""
+    ["astral-sh/setup-uv"]=""
+)
+
+# ============================================================================
+# Crates we track
+# ============================================================================
+CRATES=(
+    "clap"
+    "clap_complete"
+    "clap_mangen"
+    "anyhow"
+    "thiserror"
+    "tracing"
+    "tracing-subscriber"
+    "tracing-appender"
+    "serde"
+    "serde_json"
+    "owo-colors"
+    "camino"
+    "dirs"
+    "figment"
+    "tokio"
+    "opentelemetry"
+    "opentelemetry_sdk"
+    "opentelemetry-otlp"
+    "tracing-opentelemetry"
+    "rmcp"
+    "schemars"
+    "assert_cmd"
+    "predicates"
+    "tempfile"
+    "insta"
+    "divan"
+    "gungraun"
+    "kdl"
+)
+
+# ============================================================================
+# Helpers
+# ============================================================================
+
+check_requirements() {
+    local missing=()
+    command -v gh &>/dev/null || missing+=("gh")
+    command -v jq &>/dev/null || missing+=("jq")
+    command -v curl &>/dev/null || missing+=("curl")
+
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        echo -e "${RED}Missing required tools: ${missing[*]}${NC}" >&2
+        exit 1
+    fi
+
+    if ! gh auth status &>/dev/null; then
+        echo -e "${RED}Not authenticated with gh. Run: gh auth login${NC}" >&2
+        exit 1
+    fi
+}
+
+usage() {
+    cat <<EOF
+Usage: deps <command> <subcommand>
+
+Commands:
+  actions outdated    Show outdated GitHub Actions
+  actions update      Update GitHub Actions in workflow files
+  crates outdated     Show outdated crates
+  crates update       Update crates in Cargo.toml.jinja files
+  report              Generate JSON report of all dependencies
+
+Examples:
+  deps actions outdated
+  deps crates update
+EOF
+    exit 1
+}
+
+# ============================================================================
+# GitHub Actions - GraphQL API
+# ============================================================================
+
+# Build and execute GraphQL query for all actions
+fetch_actions_graphql() {
+    local query='query {'
+    local idx=0
+    local actions_list=("${!ACTIONS[@]}")
+
+    for action in "${actions_list[@]}"; do
+        local owner="${action%/*}"
+        local repo="${action#*/}"
+        query+="
+  repo${idx}: repository(owner: \"$owner\", name: \"$repo\") {
+    nameWithOwner
+    latestRelease { tagName }
+    refs(refPrefix: \"refs/tags/\", first: 1, orderBy: {field: TAG_COMMIT_DATE, direction: DESC}) {
+      nodes {
+        name
+        target {
+          ... on Commit { oid }
+          ... on Tag { target { ... on Commit { oid } } }
+        }
+      }
+    }
+  }"
+        idx=$((idx + 1))
+    done
+    query+=$'\n}'
+
+    gh api graphql -f query="$query"
+}
+
+# Parse GraphQL response into ACTIONS associative array
+parse_actions_response() {
+    local response="$1"
+    local idx=0
+    local actions_list=("${!ACTIONS[@]}")
+
+    for action in "${actions_list[@]}"; do
+        local repo_data
+        repo_data=$(echo "$response" | jq -r ".data.repo${idx}")
+
+        local version
+        version=$(echo "$repo_data" | jq -r '.latestRelease.tagName // .refs.nodes[0].name // "unknown"')
+
+        local sha
+        sha=$(echo "$repo_data" | jq -r '.refs.nodes[0].target.oid // .refs.nodes[0].target.target.oid // "unknown"')
+
+        ACTIONS["$action"]="${version}:${sha}"
+        idx=$((idx + 1))
+    done
+}
+
+# Extract current versions from workflow files
+get_current_action_versions() {
+    local action="$1"
+    local results=()
+
+    # Search in template workflow files (conditional Jinja filenames)
+    for file in "$TEMPLATE_WORKFLOWS_DIR"/*.yml "$TEMPLATE_WORKFLOWS_DIR"/*.jinja "$TEMPLATE_ACTIONS_DIR"/*/action.yml.jinja; do
+        [[ -f "$file" ]] || continue
+
+        # Match: uses: owner/repo@version or uses: owner/repo@sha # version
+        while IFS= read -r line; do
+            if [[ "$line" =~ uses:[[:space:]]*${action}@([^[:space:]#]+) ]]; then
+                local ref="${BASH_REMATCH[1]}"
+                local filename=$(basename "$file")
+                results+=("$ref|template/$filename")
+            fi
+        done < "$file"
+    done
+
+    # Search in root project workflow files
+    for file in "$ROOT_WORKFLOWS_DIR"/*.yml "$ROOT_WORKFLOWS_DIR"/*.yaml; do
+        [[ -f "$file" ]] || continue
+
+        while IFS= read -r line; do
+            if [[ "$line" =~ uses:[[:space:]]*${action}@([^[:space:]#]+) ]]; then
+                local ref="${BASH_REMATCH[1]}"
+                local filename=$(basename "$file")
+                results+=("$ref|.github/$filename")
+            fi
+        done < "$file"
+    done
+
+    printf '%s\n' "${results[@]}" | sort -u
+}
+
+actions_outdated() {
+    echo -e "${BLUE}Fetching latest action versions...${NC}"
+    local response
+    response=$(fetch_actions_graphql)
+    parse_actions_response "$response"
+
+    echo ""
+    printf "%-45s %-14s %-14s %s\n" "ACTION" "CURRENT" "LATEST" "FILE"
+    printf "%-45s %-14s %-14s %s\n" "------" "-------" "------" "----"
+
+    local has_outdated=false
+
+    for action in "${!ACTIONS[@]}"; do
+        local latest_info="${ACTIONS[$action]}"
+        local latest_version="${latest_info%%:*}"
+        local latest_sha="${latest_info##*:}"
+        local short_sha="${latest_sha:0:7}"
+
+        # Get current usages
+        local current_usages
+        current_usages=$(get_current_action_versions "$action")
+
+        if [[ -z "$current_usages" ]]; then
+            continue  # Action not used in any file
+        fi
+
+        while IFS='|' read -r current_ref filename; do
+            [[ -z "$current_ref" ]] && continue
+
+            local status=""
+            local current_display="$current_ref"
+
+            # Determine if outdated
+            if [[ "$current_ref" =~ ^[a-f0-9]{40}$ ]]; then
+                # SHA reference
+                if [[ "$current_ref" != "$latest_sha" ]]; then
+                    status="${YELLOW}outdated${NC}"
+                    has_outdated=true
+                else
+                    status="${GREEN}current${NC}"
+                fi
+                current_display="${current_ref:0:7}"
+            elif [[ "$current_ref" =~ ^v[0-9]+$ ]]; then
+                # Major version tag (v4, v5, etc.)
+                local latest_major="${latest_version%%.*}"
+                latest_major="${latest_major#v}"
+                local current_major="${current_ref#v}"
+                if [[ "$current_major" != "$latest_major" ]]; then
+                    status="${YELLOW}outdated${NC}"
+                    has_outdated=true
+                else
+                    status="${GREEN}current${NC}"
+                fi
+            elif [[ "$current_ref" == "$latest_version" ]]; then
+                status="${GREEN}current${NC}"
+            elif [[ "$action" == "dtolnay/rust-toolchain" && "$current_ref" =~ ^(stable|beta|nightly) ]]; then
+                # dtolnay/rust-toolchain uses channel names as refs
+                # These are valid and intentional
+                status="${DIM}channel${NC}"
+            else
+                status="${YELLOW}outdated${NC}"
+                has_outdated=true
+            fi
+
+            printf "%-45s %-14s %-14s %s  %b\n" \
+                "$action" "$current_display" "$latest_version" "$filename" "$status"
+
+        done <<< "$current_usages"
+    done
+
+    echo ""
+    if [[ "$has_outdated" == "true" ]]; then
+        echo -e "Run ${BLUE}deps actions update${NC} to update outdated actions."
+    else
+        echo -e "${GREEN}All actions are up to date.${NC}"
+    fi
+}
+
+actions_update() {
+    echo -e "${BLUE}Fetching latest action versions...${NC}"
+    local response
+    response=$(fetch_actions_graphql)
+    parse_actions_response "$response"
+
+    echo -e "${YELLOW}Updating workflow files...${NC}"
+    echo ""
+
+    local updated_count=0
+
+    for action in "${!ACTIONS[@]}"; do
+        local latest_info="${ACTIONS[$action]}"
+        local latest_version="${latest_info%%:*}"
+        local latest_sha="${latest_info##*:}"
+
+        [[ "$latest_version" == "unknown" || "$latest_sha" == "unknown" ]] && continue
+
+        local escaped_action="${action//\//\\/}"
+
+        # Update template workflow files
+        for file in "$TEMPLATE_WORKFLOWS_DIR"/*.yml "$TEMPLATE_WORKFLOWS_DIR"/*.jinja "$TEMPLATE_ACTIONS_DIR"/*/action.yml.jinja; do
+            [[ -f "$file" ]] || continue
+            _update_action_in_file "$file" "$action" "$latest_sha" "$latest_version" "template/" && updated_count=$((updated_count + 1))
+        done
+
+        # Update root project workflow files
+        for file in "$ROOT_WORKFLOWS_DIR"/*.yml "$ROOT_WORKFLOWS_DIR"/*.yaml; do
+            [[ -f "$file" ]] || continue
+            _update_action_in_file "$file" "$action" "$latest_sha" "$latest_version" ".github/" && updated_count=$((updated_count + 1))
+        done
+    done
+
+    echo ""
+    if [[ $updated_count -gt 0 ]]; then
+        echo -e "${GREEN}Updated $updated_count action reference(s).${NC}"
+        echo -e "Review changes with: ${BLUE}git diff${NC}"
+    else
+        echo -e "${GREEN}All actions already up to date.${NC}"
+    fi
+}
+
+# Helper to update action in a single file
+# Returns 0 (true) if file was changed, 1 (false) otherwise
+_update_action_in_file() {
+    local file="$1"
+    local action="$2"
+    local latest_sha="$3"
+    local latest_version="$4"
+    local prefix="$5"
+
+    # Check if action is used
+    if ! grep -q "uses: ${action}@" "$file" 2>/dev/null; then
+        return 1
+    fi
+
+    local changed=false
+
+    # Update SHA-pinned versions: @sha # vX.Y.Z
+    if grep -qE "uses: ${action}@[a-f0-9]{40}" "$file"; then
+        ACTION="$action" SHA="$latest_sha" VER="$latest_version" \
+        perl -i.bak -pe '
+            my $a = quotemeta($ENV{ACTION});
+            s/(uses: $a)\@[a-f0-9]{40}(\s*#\s*v[\d.]+)?/$1\@$ENV{SHA} # $ENV{VER}/g
+        ' "$file"
+        changed=true
+    fi
+
+    # Update semver major tags: @v4 -> @v5
+    local latest_major="${latest_version%%.*}"
+    if [[ "$latest_major" =~ ^v[0-9]+$ ]]; then
+        if grep -qE "uses: ${action}@v[0-9]+([[:space:]]|$)" "$file"; then
+            ACTION="$action" MAJOR="$latest_major" \
+            perl -i.bak -pe '
+                my $a = quotemeta($ENV{ACTION});
+                s/(uses: $a)\@v\d+(\s|$)/$1\@$ENV{MAJOR}$2/g
+            ' "$file"
+            changed=true
+        fi
+    fi
+
+    if [[ "$changed" == "true" ]]; then
+        echo -e "  ${GREEN}✓${NC} ${prefix}$(basename "$file"): $action → $latest_version"
+        rm -f "$file.bak"
+        return 0
+    fi
+
+    return 1
+}
+
+# ============================================================================
+# Rust Crates - sparse index (no rate limiting!)
+# ============================================================================
+
+# Build sparse index URL for a crate name
+# See: https://doc.rust-lang.org/cargo/reference/registry-index.html
+sparse_index_url() {
+    local crate="$1"
+    local len=${#crate}
+    local base="https://index.crates.io"
+
+    case $len in
+        1) echo "${base}/1/${crate}" ;;
+        2) echo "${base}/2/${crate}" ;;
+        3) echo "${base}/3/${crate:0:1}/${crate}" ;;
+        *) echo "${base}/${crate:0:2}/${crate:2:2}/${crate}" ;;
+    esac
+}
+
+# Fetch latest version from sparse index (NDJSON format, last line is newest)
+fetch_crate_version() {
+    local crate="$1"
+    local url
+    url=$(sparse_index_url "$crate")
+
+    # Sparse index returns NDJSON (one JSON object per line, newest last)
+    # Extract the latest non-yanked version
+    curl -sf "$url" \
+        -H "User-Agent: claylo-rs-deps (https://github.com/claylo/claylo-rs)" \
+        | jq -rs '[.[] | select(.yanked == false)] | last | .vers // "unknown"' 2>/dev/null || echo "unknown"
+}
+
+# Fetch a single crate and output "crate:version" (for parallel use)
+_fetch_crate_for_parallel() {
+    local crate="$1"
+    local version
+    version=$(fetch_crate_version "$crate")
+    echo "${crate}:${version}"
+}
+export -f _fetch_crate_for_parallel fetch_crate_version sparse_index_url
+
+# Batch fetch all crate versions in parallel
+# Returns associative array via nameref
+fetch_all_crate_versions() {
+    local -n result_map=$1
+    shift
+    local crates=("$@")
+    local parallelism=8
+
+    # Run fetches in parallel, collect "crate:version" lines
+    local output
+    output=$(printf '%s\n' "${crates[@]}" | xargs -P "$parallelism" -I {} bash -c '_fetch_crate_for_parallel "$@"' _ {})
+
+    # Parse output into associative array
+    while IFS=: read -r crate version; do
+        [[ -n "$crate" ]] && result_map["$crate"]="$version"
+    done <<< "$output"
+}
+
+# Extract current crate version from Cargo.toml.jinja files
+get_current_crate_version() {
+    local crate="$1"
+    local results=()
+
+    # Use while read to handle paths with spaces and special chars
+    while IFS= read -r -d '' file; do
+        # Match patterns like: crate = "1.0" or crate = { version = "1.0" ... }
+        local version=""
+
+        # Simple: crate = "version" or crate = { version = "..." }
+        version=$(grep -E "^${crate}[[:space:]]*=" "$file" 2>/dev/null | head -1 | sed -E 's/.*"([0-9.]+)".*/\1/' || true)
+
+        if [[ -z "$version" ]]; then
+            # Table style with quoted crate name: "crate" = { version = "X.Y" }
+            version=$(grep -E "\"${crate}\"[[:space:]]*=" "$file" 2>/dev/null | head -1 | grep -oE 'version[[:space:]]*=[[:space:]]*"[0-9.]+"' | sed -E 's/.*"([0-9.]+)".*/\1/' || true)
+        fi
+
+        if [[ -n "$version" && "$version" =~ ^[0-9] ]]; then
+            local relpath="${file#$TEMPLATE_DIR/}"
+            results+=("$version|$relpath")
+        fi
+    done < <(find "$TEMPLATE_DIR" -name "Cargo.toml.jinja" -type f -print0 2>/dev/null)
+
+    printf '%s\n' "${results[@]}" | sort -u
+}
+
+crates_outdated() {
+    echo -e "${BLUE}Fetching latest crate versions from crates.io (parallel)...${NC}"
+
+    # Fetch all versions in parallel
+    declare -A CRATE_VERSIONS
+    fetch_all_crate_versions CRATE_VERSIONS "${CRATES[@]}"
+
+    echo ""
+    printf "%-25s %-12s %-12s %s\n" "CRATE" "CURRENT" "LATEST" "FILE"
+    printf "%-25s %-12s %-12s %s\n" "-----" "-------" "------" "----"
+
+    local has_outdated=false
+
+    for crate in "${CRATES[@]}"; do
+        local latest="${CRATE_VERSIONS[$crate]:-unknown}"
+
+        local current_usages
+        current_usages=$(get_current_crate_version "$crate")
+
+        if [[ -z "$current_usages" ]]; then
+            continue  # Crate not used
+        fi
+
+        while IFS='|' read -r current_version filepath; do
+            [[ -z "$current_version" ]] && continue
+
+            local status=""
+
+            # Semver comparison: check if current spec is compatible with latest
+            # "1.0" is compatible with "1.0.228" (any 1.0.x)
+            # "0.31" is compatible with "0.31.0" (any 0.31.x)
+            local is_compatible=false
+
+            # If current is a prefix of latest (with optional .patch), it's compatible
+            if [[ "$latest" == "$current_version"* ]] || [[ "$latest" == "${current_version}."* ]]; then
+                is_compatible=true
+            fi
+
+            # Also check major.minor match for x.y vs x.y.z
+            local current_parts latest_parts
+            IFS='.' read -ra current_parts <<< "$current_version"
+            IFS='.' read -ra latest_parts <<< "$latest"
+
+            # Compare major.minor (first two components)
+            if [[ "${current_parts[0]:-0}" == "${latest_parts[0]:-0}" ]] && \
+               [[ "${current_parts[1]:-0}" == "${latest_parts[1]:-0}" ]]; then
+                is_compatible=true
+            fi
+
+            if [[ "$is_compatible" == "true" ]]; then
+                status="${GREEN}current${NC}"
+            else
+                status="${YELLOW}outdated${NC}"
+                has_outdated=true
+            fi
+
+            printf "%-25s %-12s %-12s %-40s %b\n" \
+                "$crate" "$current_version" "$latest" "$filepath" "$status"
+
+        done <<< "$current_usages"
+
+    done
+
+    echo ""
+    if [[ "$has_outdated" == "true" ]]; then
+        echo -e "Run ${BLUE}deps crates update${NC} to update outdated crates."
+    else
+        echo -e "${GREEN}All crates are up to date.${NC}"
+    fi
+}
+
+crates_update() {
+    echo -e "${BLUE}Fetching latest crate versions from crates.io (parallel)...${NC}"
+
+    # Fetch all versions in parallel
+    declare -A CRATE_VERSIONS
+    fetch_all_crate_versions CRATE_VERSIONS "${CRATES[@]}"
+
+    echo -e "${YELLOW}Updating Cargo.toml.jinja files...${NC}"
+    echo ""
+
+    local updated_count=0
+
+    for crate in "${CRATES[@]}"; do
+        local latest="${CRATE_VERSIONS[$crate]:-unknown}"
+
+        [[ "$latest" == "unknown" ]] && continue
+
+        # Use major.minor for semver compatibility
+        local latest_mm="${latest%.*}"
+
+        while IFS= read -r -d '' file; do
+            local changed=false
+
+            # Update simple: crate = "X.Y"
+            if grep -qE "^${crate}[[:space:]]*=[[:space:]]*\"[0-9.]+\"" "$file" 2>/dev/null; then
+                CRATE="$crate" VER="$latest_mm" \
+                perl -i.bak -pe '
+                    my $c = quotemeta($ENV{CRATE});
+                    s/^($c\s*=\s*)"[\d.]+"/$1"$ENV{VER}"/
+                ' "$file"
+                changed=true
+            fi
+
+            # Update table style: crate = { version = "X.Y" ... }
+            if grep -qE "^${crate}[[:space:]]*=.*version[[:space:]]*=[[:space:]]*\"[0-9.]+\"" "$file" 2>/dev/null; then
+                CRATE="$crate" VER="$latest_mm" \
+                perl -i.bak -pe '
+                    my $c = quotemeta($ENV{CRATE});
+                    s/^($c[^}]*version\s*=\s*)"[\d.]+"/$1"$ENV{VER}"/
+                ' "$file"
+                changed=true
+            fi
+
+            if [[ "$changed" == "true" ]]; then
+                echo -e "  ${GREEN}✓${NC} $(basename "$file"): $crate → $latest_mm"
+                updated_count=$((updated_count + 1))
+                rm -f "$file.bak"
+            fi
+        done < <(find "$TEMPLATE_DIR" -name "Cargo.toml.jinja" -type f -print0 2>/dev/null)
+
+    done
+
+    echo ""
+    if [[ $updated_count -gt 0 ]]; then
+        echo -e "${GREEN}Updated $updated_count crate reference(s).${NC}"
+        echo -e "Review changes with: ${BLUE}git diff${NC}"
+    else
+        echo -e "${GREEN}All crates already up to date.${NC}"
+    fi
+}
+
+# ============================================================================
+# Report generation
+# ============================================================================
+
+generate_report() {
+    local report_file="$PROJECT_ROOT/target/deps-report.json"
+    mkdir -p "$PROJECT_ROOT/target"
+
+    echo -e "${BLUE}Generating dependency report...${NC}"
+
+    # Fetch actions
+    local response
+    response=$(fetch_actions_graphql)
+    parse_actions_response "$response"
+
+    local actions_json='{'
+    local first=true
+    for action in "${!ACTIONS[@]}"; do
+        local info="${ACTIONS[$action]}"
+        local version="${info%%:*}"
+        local sha="${info##*:}"
+        [[ "$first" == "true" ]] && first=false || actions_json+=','
+        actions_json+="\"$action\":{\"version\":\"$version\",\"sha\":\"$sha\"}"
+    done
+    actions_json+='}'
+
+    # Fetch crates (parallel)
+    declare -A CRATE_VERSIONS
+    fetch_all_crate_versions CRATE_VERSIONS "${CRATES[@]}"
+
+    local crates_json='{'
+    first=true
+    for crate in "${CRATES[@]}"; do
+        local version="${CRATE_VERSIONS[$crate]:-unknown}"
+        [[ "$first" == "true" ]] && first=false || crates_json+=','
+        crates_json+="\"$crate\":\"$version\""
+    done
+    crates_json+='}'
+
+    jq -n \
+        --argjson actions "$actions_json" \
+        --argjson crates "$crates_json" \
+        '{
+            "generated_at": now | strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "actions": $actions,
+            "crates": $crates
+        }' > "$report_file"
+
+    echo -e "${GREEN}Report saved to: $report_file${NC}"
+}
+
+# ============================================================================
+# Main
+# ============================================================================
+
+main() {
+    check_requirements
+
+    local cmd="${1:-}"
+    local subcmd="${2:-}"
+
+    case "$cmd" in
+        actions)
+            case "$subcmd" in
+                outdated) actions_outdated ;;
+                update) actions_update ;;
+                *) usage ;;
+            esac
+            ;;
+        crates)
+            case "$subcmd" in
+                outdated) crates_outdated ;;
+                update) crates_update ;;
+                *) usage ;;
+            esac
+            ;;
+        report)
+            generate_report
+            ;;
+        *)
+            usage
+            ;;
+    esac
+}
+
+main "$@"

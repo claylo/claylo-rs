@@ -63,7 +63,7 @@ Plus Justfile recipes for manual release management.
 │  │                          │                │                │  │
 │  │                          ▼                ▼                │  │
 │  │                   GitHub Release    crates.io / npm /     │  │
-│  │                   + artifacts       pypi / brew / deb     │  │
+│  │                   + artifacts       brew / deb / rpm      │  │
 │  └───────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -98,7 +98,6 @@ All publishing is controlled by **repository variables**, not template flags. Th
 | `DEB_ENABLED` | Build .deb packages | — |
 | `RPM_ENABLED` | Build .rpm packages | — |
 | `NPM_ENABLED` | Publish to npm | `NPM_TOKEN` |
-| `PYPI_ENABLED` | Publish to PyPI | `PYPI_API_TOKEN` |
 | `SBOM_ENABLED` | Generate CycloneDX SBOM | — |
 | `GPG_SIGNING_ENABLED` | Sign release artifacts | `GPG_RELEASE_KEY`, `GPG_PASSPHRASE` |
 
@@ -107,6 +106,158 @@ Set variables with:
 ```bash
 gh variable set CRATES_IO_ENABLED --body "true"
 gh variable set DEB_ENABLED --body "true"
+```
+
+### Setting Up crates.io Publishing
+
+1. Create an API token at [crates.io/settings/tokens](https://crates.io/settings/tokens)
+2. Set the secret:
+
+```bash
+gh secret set CARGO_TOKEN
+```
+
+### Setting Up Homebrew Distribution
+
+1. Create a tap repository: `homebrew-tap` (e.g., `yourname/homebrew-tap`)
+2. Create a Personal Access Token with `repo` scope for the tap repository
+3. Set the secret:
+
+```bash
+gh secret set HOMEBREW_COMMITTER_TOKEN
+```
+
+4. Create an initial formula in your tap — see the generated `docs/releases.md` for a complete template
+
+After your first release, `mislav/bump-homebrew-formula-action` updates the version and SHA256 automatically.
+
+### Setting Up Debian Package Distribution
+
+[cargo-deb](https://github.com/kornelski/cargo-deb) builds `.deb` packages from Cargo metadata.
+
+Add to `Cargo.toml`:
+
+```toml
+[package.metadata.deb]
+maintainer = "Your Name <email@example.com>"
+copyright = "Your Name"
+license-file = ["LICENSE-MIT", "4"]
+extended-description = "Your project description"
+section = "utility"
+priority = "optional"
+assets = [
+    # Binary
+    ["target/release/your-app", "usr/bin/", "755"],
+    # Man pages (if using xtask)
+    ["target/dist/share/man/man1/*", "usr/share/man/man1/", "644"],
+    # Shell completions
+    ["target/dist/share/completions/your-app.bash", "usr/share/bash-completion/completions/your-app", "644"],
+    ["target/dist/share/completions/_your-app", "usr/share/zsh/vendor-completions/", "644"],
+    ["target/dist/share/completions/your-app.fish", "usr/share/fish/vendor_completions.d/", "644"],
+]
+```
+
+### Setting Up RPM Package Distribution
+
+[cargo-generate-rpm](https://github.com/cat-in-136/cargo-generate-rpm) builds `.rpm` packages from Cargo metadata.
+
+Add to `Cargo.toml`:
+
+```toml
+[package.metadata.generate-rpm]
+assets = [
+    { source = "target/release/your-app", dest = "/usr/bin/your-app", mode = "755" },
+    { source = "target/dist/share/man/man1/*", dest = "/usr/share/man/man1/", mode = "644", doc = true },
+    { source = "target/dist/share/completions/your-app.bash", dest = "/usr/share/bash-completion/completions/your-app", mode = "644" },
+    { source = "target/dist/share/completions/_your-app", dest = "/usr/share/zsh/site-functions/_your-app", mode = "644" },
+    { source = "target/dist/share/completions/your-app.fish", dest = "/usr/share/fish/vendor_completions.d/your-app.fish", mode = "644" },
+]
+
+[package.metadata.generate-rpm.requires]
+# Add runtime dependencies here if needed
+# glibc = ">= 2.17"
+```
+
+### Setting Up npm Distribution
+
+npm distribution uses the [Sentry multi-package strategy](https://sentry.engineering/blog/publishing-binaries-on-npm): platform-specific packages with a wrapper that handles binary resolution.
+
+#### Package Structure
+
+```
+npm/
+├── your-app/                      # Main wrapper package
+│   ├── package.json
+│   ├── index.js                   # Binary resolution
+│   ├── cli.js                     # CLI entry point
+│   └── install.js                 # Postinstall fallback
+└── platforms/
+    ├── your-app-darwin-arm64/
+    │   ├── package.json
+    │   └── bin/your-app
+    ├── your-app-darwin-x64/
+    ├── your-app-linux-arm64/
+    ├── your-app-linux-x64/
+    ├── your-app-win32-arm64/
+    └── your-app-win32-x64/
+```
+
+#### Platform Package (`package.json`)
+
+```json
+{
+  "name": "@yourscope/your-app-linux-x64",
+  "version": "0.1.0",
+  "os": ["linux"],
+  "cpu": ["x64"],
+  "files": ["bin/"]
+}
+```
+
+The `os` and `cpu` fields cause npm to skip incompatible packages automatically.
+
+#### Main Wrapper Package
+
+```json
+{
+  "name": "@yourscope/your-app",
+  "bin": { "your-app": "cli.js" },
+  "scripts": { "postinstall": "node install.js" },
+  "optionalDependencies": {
+    "@yourscope/your-app-darwin-arm64": "0.1.0",
+    "@yourscope/your-app-darwin-x64": "0.1.0",
+    "@yourscope/your-app-linux-arm64": "0.1.0",
+    "@yourscope/your-app-linux-x64": "0.1.0",
+    "@yourscope/your-app-win32-arm64": "0.1.0",
+    "@yourscope/your-app-win32-x64": "0.1.0"
+  }
+}
+```
+
+The `postinstall` script downloads the binary directly from npm's registry as a fallback when `optionalDependencies` are skipped (e.g., `--ignore-optional`).
+
+See the generated `docs/releases.md` for complete `index.js`, `cli.js`, and `install.js` implementations.
+
+#### Setup
+
+1. Create an npm organization or use your username as scope
+2. Create an automation token at [npmjs.com/settings/tokens](https://www.npmjs.com/settings/tokens)
+3. Set the secret:
+
+```bash
+gh secret set NPM_TOKEN
+```
+
+### Setting Up GPG Signing
+
+```bash
+# Export your GPG key (base64 encoded)
+gpg --export-secret-keys --armor YOUR_KEY_ID | base64 -w0 > key.txt
+
+# Set secrets
+gh secret set GPG_RELEASE_KEY < key.txt
+gh secret set GPG_PASSPHRASE
+rm key.txt
 ```
 
 ## Release Workflow (release.yml)

@@ -458,7 +458,7 @@ main() {
   # Check for copier (only needed for new/update, not help)
   if ! command -v copier &>/dev/null; then
     echo "Error: copier not found." >&2
-    echo "Install: pipx install copier" >&2
+    echo "Install: uv tool install copier" >&2
     exit 1
   fi
 
