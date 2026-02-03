@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TEMPLATE_DIR="$SCRIPT_DIR/../template"
+PROJECT_ROOT="$SCRIPT_DIR/.."
 
 echo "Fetching categories from crates.io..."
 PAGE1=$(curl -s "https://crates.io/api/v1/categories?page=1")
@@ -32,7 +32,7 @@ tail -n +2 "$TEMP_FILE" | sort -u >> "${TEMP_FILE}.sorted"
 mv "${TEMP_FILE}.sorted" "$TEMP_FILE"
 
 # Inject into copier.yaml
-cd "$TEMPLATE_DIR"
+cd "$PROJECT_ROOT"
 yq -i ".categories.choices = load(\"$TEMP_FILE\").choices" copier.yaml
 
-echo "Done! Updated $(tail -n +2 "$TEMP_FILE" | wc -l | tr -d ' ') categories in template/copier.yaml"
+echo "Done! Updated $(tail -n +2 "$TEMP_FILE" | wc -l | tr -d ' ') categories in copier.yaml"

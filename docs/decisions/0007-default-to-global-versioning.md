@@ -1,7 +1,7 @@
 ---
 status: superseded
 date: 2026-01-04
-superseded_by: Release tooling moved to separate template (2026-01-27). Workspace version inheritance is now always used.
+superseded_by: Workspace version inheritance is now always used (no independent versioning option)
 ---
 
 # Default to Global Versioning
