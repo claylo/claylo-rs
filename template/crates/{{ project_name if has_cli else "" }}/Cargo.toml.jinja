@@ -10,6 +10,8 @@ homepage.workspace = true
 readme.workspace = true
 exclude = [
     # Workspace-level files (/ = workspace root)
+    # Copier answers file (template state, not project code)
+    "/.repo.yml",
 {% if has_claude %}   "/.claude/",
 {% endif %}{% if has_github %}    "/.github/",
 {% endif %}{% if has_agents_md %}    "/AGENTS.md",

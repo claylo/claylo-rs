@@ -1,0 +1,48 @@
+# MCP server preset for testing MCP functionality
+# Based on standard preset with MCP server enabled
+preset: standard
+lint_level: standard
+hook_system: none
+has_cli: true
+has_core_library: true
+has_config: true
+has_jsonl_logging: true
+has_opentelemetry: false
+needs_tokio: true
+has_mcp_server: true
+has_benchmarks: false
+has_gungraun: false
+has_site: false
+has_xtask: true
+has_community_files: false
+# Dotfiles (minimal)
+has_yamlfmt: false
+has_yamllint: false
+has_editorconfig: false
+has_env_files: false
+# Core files
+has_agents_md: false
+has_just: true
+has_gitattributes: true
+# GitHub
+has_github: false
+has_security_md: false
+has_issue_templates: false
+has_pr_templates: false
+# Markdown
+has_md: false
+has_md_strict: false
+# Claude
+has_claude: false
+has_claude_skills: false
+has_claude_commands: false
+# Skills
+has_skill_markdown_authoring: false
+has_skill_capturing_decisions: false
+has_skill_using_git: false
+# Release automation
+has_releases: false
+has_attestations: false
+# Repository tooling
+has_coda: false
+has_roadmap_votes: false

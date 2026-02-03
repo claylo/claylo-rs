@@ -232,3 +232,45 @@ EOF
     assert_file_in_project "$output_dir" "CODE_OF_CONDUCT.md"
     assert_file_in_project "$output_dir" "CONTRIBUTING.md"
 }
+
+# =============================================================================
+# MCP Server Preset
+# =============================================================================
+
+@test "mcp-server preset: generates and builds" {
+    local output_dir
+    output_dir=$(generate_project "preset-mcp-server" "_mcp-server.yml")
+
+    cd "$output_dir"
+    cargo_clippy "$output_dir"
+}
+
+@test "mcp-server preset: tests pass" {
+    local output_dir="${TEST_OUTPUT_DIR}/preset-mcp-server"
+
+    [[ -d "$output_dir" ]] || skip "mcp-server preset not built"
+
+    cd "$output_dir"
+    cargo_test "$output_dir"
+}
+
+@test "mcp-server preset: has serve command" {
+    local output_dir="${TEST_OUTPUT_DIR}/preset-mcp-server"
+
+    [[ -d "$output_dir" ]] || skip "mcp-server preset not built"
+
+    cd "$output_dir"
+    run cargo run --quiet -- --help
+    assert_success
+    assert_output --partial "serve"
+}
+
+@test "mcp-server preset: serve help shows MCP info" {
+    local output_dir="${TEST_OUTPUT_DIR}/preset-mcp-server"
+
+    [[ -d "$output_dir" ]] || skip "mcp-server preset not built"
+
+    cd "$output_dir"
+    run cargo run --quiet -- serve --help
+    assert_success
+}
