@@ -105,7 +105,6 @@ Triggered by version tags (`v*.*.*`). Builds binaries for multiple platforms and
 | `DEB_ENABLED` | Build Debian packages | — |
 | `RPM_ENABLED` | Build RPM packages | — |
 | `NPM_ENABLED` | Publish to npm | `NPM_TOKEN` |
-| `PYPI_ENABLED` | Publish to PyPI | `PYPI_API_TOKEN` |
 | `SBOM_ENABLED` | Generate CycloneDX SBOM | — |
 | `GPG_SIGNING_ENABLED` | Sign artifacts | `GPG_RELEASE_KEY`, `GPG_PASSPHRASE` |
 
@@ -196,6 +195,313 @@ end
 ```
 
 3. After your first release, the `mislav/bump-homebrew-formula-action` will update the version and SHA256 automatically
+
+### Setting Up Debian Package Distribution
+
+[cargo-deb](https://github.com/kornelski/cargo-deb) builds `.deb` packages from Cargo metadata.
+
+1. Add metadata to your `Cargo.toml`:
+
+```toml
+[package.metadata.deb]
+maintainer = "{{ copyright_name }} <your-email@example.com>"
+copyright = "{{ copyright_name }}"
+license-file = ["LICENSE-MIT", "4"]
+extended-description = """\
+{{ project_description }}"""
+section = "utility"
+priority = "optional"
+assets = [
+    # Binary
+    ["target/release/{{ project_name }}", "usr/bin/", "755"],
+    # Man pages (if using xtask)
+    ["target/dist/share/man/man1/*", "usr/share/man/man1/", "644"],
+    # Shell completions
+    ["target/dist/share/completions/{{ project_name }}.bash", "usr/share/bash-completion/completions/{{ project_name }}", "644"],
+    ["target/dist/share/completions/_{{ project_name }}", "usr/share/zsh/vendor-completions/", "644"],
+    ["target/dist/share/completions/{{ project_name }}.fish", "usr/share/fish/vendor_completions.d/", "644"],
+]
+```
+
+2. Enable the workflow:
+
+```bash
+gh variable set DEB_ENABLED --body "true"
+```
+
+### Setting Up RPM Package Distribution
+
+[cargo-generate-rpm](https://github.com/cat-in-136/cargo-generate-rpm) builds `.rpm` packages from Cargo metadata.
+
+1. Add metadata to your `Cargo.toml`:
+
+```toml
+[package.metadata.generate-rpm]
+assets = [
+    # Binary
+    { source = "target/release/{{ project_name }}", dest = "/usr/bin/{{ project_name }}", mode = "755" },
+    # Man pages (if using xtask)
+    { source = "target/dist/share/man/man1/*", dest = "/usr/share/man/man1/", mode = "644", doc = true },
+    # Shell completions
+    { source = "target/dist/share/completions/{{ project_name }}.bash", dest = "/usr/share/bash-completion/completions/{{ project_name }}", mode = "644" },
+    { source = "target/dist/share/completions/_{{ project_name }}", dest = "/usr/share/zsh/site-functions/_{{ project_name }}", mode = "644" },
+    { source = "target/dist/share/completions/{{ project_name }}.fish", dest = "/usr/share/fish/vendor_completions.d/{{ project_name }}.fish", mode = "644" },
+]
+
+[package.metadata.generate-rpm.requires]
+# Add runtime dependencies here if needed
+# glibc = ">= 2.17"
+```
+
+2. Enable the workflow:
+
+```bash
+gh variable set RPM_ENABLED --body "true"
+```
+
+### Setting Up npm Distribution
+
+npm distribution uses platform-specific packages with a wrapper package that handles binary resolution. This approach (inspired by [Sentry's strategy](https://sentry.engineering/blog/publishing-binaries-on-npm)) ensures compatibility across all npm environments.
+
+#### Package Structure
+
+```
+npm/
+├── {{ project_name }}/                    # Main wrapper package
+│   ├── package.json
+│   ├── index.js                           # Binary resolution
+│   ├── cli.js                             # CLI entry point
+│   └── install.js                         # Postinstall fallback
+└── platforms/
+    ├── {{ project_name }}-darwin-arm64/
+    │   ├── package.json
+    │   └── bin/{{ project_name }}
+    ├── {{ project_name }}-darwin-x64/
+    ├── {{ project_name }}-linux-arm64/
+    ├── {{ project_name }}-linux-x64/
+    ├── {{ project_name }}-win32-arm64/
+    └── {{ project_name }}-win32-x64/
+```
+
+#### Platform Package (e.g., `npm/platforms/{{ project_name }}-linux-x64/package.json`)
+
+```json
+{
+  "name": "@{{ owner }}/{{ project_name }}-linux-x64",
+  "version": "0.1.0",
+  "description": "{{ project_description }} (linux-x64 binary)",
+  "license": "{{ license }}",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/{{ owner }}/{{ project_name }}"
+  },
+  "os": ["linux"],
+  "cpu": ["x64"],
+  "files": ["bin/"]
+}
+```
+
+Valid `os` values: `"linux"`, `"darwin"`, `"win32"`
+Valid `cpu` values: `"x64"`, `"arm64"`
+
+#### Main Wrapper Package (`npm/{{ project_name }}/package.json`)
+
+```json
+{
+  "name": "@{{ owner }}/{{ project_name }}",
+  "version": "0.1.0",
+  "description": "{{ project_description }}",
+  "license": "{{ license }}",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/{{ owner }}/{{ project_name }}"
+  },
+  "bin": {
+    "{{ project_name }}": "cli.js"
+  },
+  "scripts": {
+    "postinstall": "node install.js"
+  },
+  "files": ["index.js", "cli.js", "install.js"],
+  "optionalDependencies": {
+    "@{{ owner }}/{{ project_name }}-darwin-arm64": "0.1.0",
+    "@{{ owner }}/{{ project_name }}-darwin-x64": "0.1.0",
+    "@{{ owner }}/{{ project_name }}-linux-arm64": "0.1.0",
+    "@{{ owner }}/{{ project_name }}-linux-x64": "0.1.0",
+    "@{{ owner }}/{{ project_name }}-win32-arm64": "0.1.0",
+    "@{{ owner }}/{{ project_name }}-win32-x64": "0.1.0"
+  }
+}
+```
+
+#### Binary Resolution (`npm/{{ project_name }}/index.js`)
+
+```javascript
+const path = require("path");
+const fs = require("fs");
+
+const PLATFORMS = {
+  "darwin-arm64": "@{{ owner }}/{{ project_name }}-darwin-arm64",
+  "darwin-x64": "@{{ owner }}/{{ project_name }}-darwin-x64",
+  "linux-arm64": "@{{ owner }}/{{ project_name }}-linux-arm64",
+  "linux-x64": "@{{ owner }}/{{ project_name }}-linux-x64",
+  "win32-arm64": "@{{ owner }}/{{ project_name }}-win32-arm64",
+  "win32-x64": "@{{ owner }}/{{ project_name }}-win32-x64",
+};
+
+function getBinaryPath() {
+  const platformKey = `${process.platform}-${process.arch}`;
+  const packageName = PLATFORMS[platformKey];
+
+  if (!packageName) {
+    throw new Error(`Unsupported platform: ${platformKey}`);
+  }
+
+  const binaryName = process.platform === "win32" ? "{{ project_name }}.exe" : "{{ project_name }}";
+
+  // Try optionalDependency first
+  try {
+    const packagePath = require.resolve(`${packageName}/package.json`);
+    const binaryPath = path.join(path.dirname(packagePath), "bin", binaryName);
+    if (fs.existsSync(binaryPath)) {
+      return binaryPath;
+    }
+  } catch {}
+
+  // Fall back to postinstall location
+  const fallbackPath = path.join(__dirname, "bin", binaryName);
+  if (fs.existsSync(fallbackPath)) {
+    return fallbackPath;
+  }
+
+  throw new Error(
+    `Could not find {{ project_name }} binary. ` +
+    `Try reinstalling @{{ owner }}/{{ project_name }}`
+  );
+}
+
+module.exports = { getBinaryPath };
+```
+
+#### CLI Entry Point (`npm/{{ project_name }}/cli.js`)
+
+```javascript
+#!/usr/bin/env node
+const { spawn } = require("child_process");
+const { getBinaryPath } = require("./index.js");
+
+const child = spawn(getBinaryPath(), process.argv.slice(2), {
+  stdio: "inherit",
+});
+
+child.on("close", (code) => process.exit(code ?? 0));
+```
+
+#### Postinstall Fallback (`npm/{{ project_name }}/install.js`)
+
+```javascript
+const https = require("https");
+const fs = require("fs");
+const path = require("path");
+const zlib = require("zlib");
+
+const PLATFORMS = {
+  "darwin-arm64": "@{{ owner }}/{{ project_name }}-darwin-arm64",
+  "darwin-x64": "@{{ owner }}/{{ project_name }}-darwin-x64",
+  "linux-arm64": "@{{ owner }}/{{ project_name }}-linux-arm64",
+  "linux-x64": "@{{ owner }}/{{ project_name }}-linux-x64",
+  "win32-arm64": "@{{ owner }}/{{ project_name }}-win32-arm64",
+  "win32-x64": "@{{ owner }}/{{ project_name }}-win32-x64",
+};
+
+async function install() {
+  const platformKey = `${process.platform}-${process.arch}`;
+  const packageName = PLATFORMS[platformKey];
+
+  if (!packageName) {
+    console.warn(`Unsupported platform: ${platformKey}`);
+    return;
+  }
+
+  // Check if optionalDependency already installed
+  try {
+    require.resolve(`${packageName}/package.json`);
+    return; // Already installed
+  } catch {}
+
+  console.log(`Downloading ${packageName}...`);
+
+  const version = require("./package.json").version;
+  const tarballUrl = `https://registry.npmjs.org/${packageName}/-/${packageName.split("/")[1]}-${version}.tgz`;
+
+  const tarball = await download(tarballUrl);
+  const files = extractTar(zlib.gunzipSync(tarball));
+
+  const binaryName = process.platform === "win32" ? "{{ project_name }}.exe" : "{{ project_name }}";
+  const binaryEntry = files.find((f) => f.name.endsWith(`/bin/${binaryName}`));
+
+  if (!binaryEntry) {
+    throw new Error("Binary not found in package");
+  }
+
+  const binDir = path.join(__dirname, "bin");
+  fs.mkdirSync(binDir, { recursive: true });
+  fs.writeFileSync(path.join(binDir, binaryName), binaryEntry.data, { mode: 0o755 });
+}
+
+function download(url) {
+  return new Promise((resolve, reject) => {
+    https.get(url, (res) => {
+      if (res.statusCode === 302 || res.statusCode === 301) {
+        return download(res.headers.location).then(resolve, reject);
+      }
+      const chunks = [];
+      res.on("data", (chunk) => chunks.push(chunk));
+      res.on("end", () => resolve(Buffer.concat(chunks)));
+      res.on("error", reject);
+    });
+  });
+}
+
+function extractTar(buffer) {
+  const files = [];
+  let offset = 0;
+
+  while (offset < buffer.length - 512) {
+    const header = buffer.slice(offset, offset + 512);
+    if (header[0] === 0) break;
+
+    const name = header.slice(0, 100).toString().replace(/\0/g, "");
+    const size = parseInt(header.slice(124, 136).toString(), 8);
+
+    offset += 512;
+    if (size > 0) {
+      files.push({ name, data: buffer.slice(offset, offset + size) });
+      offset += Math.ceil(size / 512) * 512;
+    }
+  }
+
+  return files;
+}
+
+install().catch((err) => {
+  console.error("Failed to install binary:", err.message);
+  process.exit(1);
+});
+```
+
+#### Enabling npm Publishing
+
+1. Create an npm organization or use your username as scope
+2. Create an automation token at [npmjs.com/settings/tokens](https://www.npmjs.com/settings/tokens)
+3. Set up the secret and variable:
+
+```bash
+gh secret set NPM_TOKEN
+gh variable set NPM_ENABLED --body "true"
+```
+
+**Note:** The CD workflow publishes all packages. You may need to customize `cd.yml` to publish platform packages first, then the main wrapper.
 
 ## Build Features
 

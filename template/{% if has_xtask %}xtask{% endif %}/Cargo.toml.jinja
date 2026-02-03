@@ -8,10 +8,10 @@ repository.workspace = true
 homepage.workspace = true
 
 [dependencies]
-clap = { version = "4.5.26", features = ["derive"] }
+clap = { version = "4.5", features = ["derive"] }
 clap_complete = "4.5"
-clap_mangen = "0.2.31"
+clap_mangen = "0.2"
 {% if has_benchmarks -%}
-kdl = "4"
+kdl = "6.5"
 {% endif -%}
 {{ project_name }} = { path = "../crates/{{ project_name }}" }

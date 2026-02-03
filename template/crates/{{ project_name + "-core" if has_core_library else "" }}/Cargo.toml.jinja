@@ -32,7 +32,7 @@ exclude = [
 
 [dependencies]
 {% if has_config -%}
-camino = { version = "1.1", features = ["serde1"] }
+camino = { version = "1.2", features = ["serde1"] }
 figment = { version = "0.10", features = ["toml", "yaml", "json"] }
 dirs = "6.0"
 serde = { version = "1.0", features = ["derive"] }
@@ -42,7 +42,7 @@ tracing = "0.1"
 
 [dev-dependencies]
 {% if has_config -%}
-tempfile = "3.20"
+tempfile = "3.24"
 {% endif -%}
 {% if has_benchmarks -%}
 divan = "0.1"
