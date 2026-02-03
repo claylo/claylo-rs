@@ -39,6 +39,8 @@ LICENSE* text eol=lf
 *.tgz binary
 
 # Exclude from release archives (crate publish)
+# Copier answers file (template state, not project code)
+.repo.yml export-ignore
 {% if has_claude %}.claude/ export-ignore
 {% endif %}{% if has_github %}.github/ export-ignore
 {% endif %}{% if has_agents_md %}AGENTS.md export-ignore

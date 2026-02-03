@@ -62,8 +62,10 @@ Use `just` commands — they invoke vendored bats automatically:
 For reduced output (saves context window tokens), use the agents formatter:
 
 ```bash
-./test/bats/bin/bats -F "$PWD/test/formatters/agents.bash" test/*.bats
+./test/bats/bin/bats -F "$(pwd)/test/formatters/agents.bash" test/*.bats
 ```
+
+**CRITICAL:** Use `$(pwd)` not `$PWD` — the variable expansion differs in subshell contexts and will cause "Formatter not readable" errors if you use `$PWD`.
 
 ### Test Types
 
