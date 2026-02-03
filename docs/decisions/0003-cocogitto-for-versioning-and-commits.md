@@ -1,7 +1,7 @@
 ---
 status: superseded
 date: 2026-01-04
-superseded_by: Release tooling moved to separate template (2026-01-27)
+superseded_by: ADR-0010 (git-cliff for release automation)
 ---
 
 # Cocogitto for Versioning and Commits

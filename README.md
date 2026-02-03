@@ -12,8 +12,8 @@ Updates that don't abandon you.
 brew install claylo/brew/claylo-rs
 ```
 
-Requires [copier](https://copier.readthedocs.io/) (`pipx install copier` or `uv tool install copier`).
-If you're allergic to Python, we understand — it stays out of your generated project.
+Requires [copier](https://copier.readthedocs.io/) (`uv tool install copier` or `pipx install copier`).
+If you're not a Python fan, don't worry — it stays out of your generated project.
 
 
 ## Quick Start
@@ -43,7 +43,7 @@ You run:
 claylo-rs update . +mcp
 ```
 
-Three-way merge. Your code stays. New features land. No copy-paste archaeology.
+Three-way merge. Your code stays. New features land. No copy-paste-pray.
 
 
 ## Presets
@@ -107,7 +107,7 @@ The structure follows [ADR-0001](docs/decisions/0001-workspace-structure-with-se
 
 ## Works with Claude Code
 
-The generated project includes `.claude/` with skills, rules, and commands tuned for Rust development.
+The generated project includes `.claude/` with skills, and commands tuned for Rust development.
 
 "Add a new subcommand" → There's a skill for that.
 "Set up config file support" → Already documented.
@@ -142,32 +142,13 @@ No archaeology required.
 See [docs/updating.md](docs/updating.md) for the full workflow.
 
 
-## "Where's the release automation?"
+## "What about release automation?"
 
-The CI/CD matrix.
-The cargo-dist config.
-The changelog generation.
-The "publish to crates.io on tag" workflow.
+The CI/CD matrix, cargo-dist config, changelog generation, and "publish to crates.io on tag" workflow are all included.
 
-Not here.
+See [docs/releases.md](docs/releases.md) for the full details.
 
-This template is about **making the thing**.
-Clean scaffolding, sensible defaults, get to work.
-
-Releasing the thing?
-That's a separate template you layer on top:
-
-```bash
-# First, make the thing
-claylo-rs new ./my-tool --preset standard
-
-# Later, when you're ready to ship
-copier copy gh:claylo/claylo-rs-release ./my-tool
-```
-
-Copier merges them.
-One project, multiple templates, each doing one job well.
-Your scaffolding template doesn't need opinions about your release cadence.
+Not your style? The release system is easy to turn off — just delete the workflows you don't want.
 
 ---
 

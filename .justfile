@@ -25,14 +25,6 @@ test-presets:
 test-file file:
     ./test/bats/bin/bats {{ file }}
 
-# Run legacy test script (deprecated, use 'just test' instead)
-test-legacy:
-    ./scripts/test-template.sh
-
-# Run legacy test for a specific preset
-test-legacy-preset preset:
-    ./scripts/test-template.sh {{ preset }}
-
 # Clean up test outputs
 clean:
     rm -rf target/template-tests

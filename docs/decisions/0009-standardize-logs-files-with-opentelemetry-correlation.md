@@ -179,16 +179,3 @@ Datadog’s OpenTelemetry collector guidance shows JSON logs containing `service
 
 This is why we want a single JSON object per log line and to keep the baseline field set small.
 
-## Links
-
-- [Spec: 0002. OTel + NDJSON Logging](../specs/0002-otel-ndjson-logging/README.md)
-
-## More Information
-
-### Index entry for `docs/decisions/README.md`
-
-Add (in numeric order):
-
-```md
-✅ [ADR-0001: Standardize logs as JSONL with OpenTelemetry correlation (Datadog + CloudWatch)](0001-standardize-logs-as-jsonl-with-opentelemetry-correlation-datadog-cloudwatch.md) — 2026-01-05
-```

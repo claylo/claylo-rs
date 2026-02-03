@@ -129,22 +129,9 @@ When `has_gungraun=false`:
 - `just bench-gungraun` recipe is not available
 - CI benchmark workflow still runs (divan + hyperfine only)
 
-## Links
-
-- [Spec: 0001. KDL Benchmark Generator](../specs/0001-kdl-benchmark-generator/README.md)
-
 ## More Information
 
-Implementation details are documented in `BENCHMARK-PLAN.md`, which includes:
-
-* Directory structure and file locations
-* KDL schema for benchmark definitions
-* Generator implementation sketch
-* Cargo xtask integration
-* GitHub Actions CI workflow
-* Platform-specific notes for Valgrind/gungraun
-
-The facet-rs project's benchmark system served as the primary inspiration for the unified definition approach. Their implementation can be referenced at:
+The facet-rs project's benchmark system served as the primary inspiration for the unified definition approach:
 
 * https://facet.rs/contribute/benchmarks/
 * https://github.com/facet-rs/facet/tree/main/facet-json/benches
