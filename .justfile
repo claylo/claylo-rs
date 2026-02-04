@@ -1,29 +1,32 @@
 # claylo-rs template development justfile
 # Run `just` to see available recipes
 
+# Bats with agents formatter (reduced output for LLM context windows)
+bats := "./test/bats/bin/bats -F $(pwd)/test/formatters/agents.bash"
+
 # Default recipe: show help
 default:
     @just --list
 
 # Run all bats tests (conditional + presets)
 test:
-    ./test/bats/bin/bats test/
+    {{ bats }} test/
 
 # Run wrapper script tests only
 test-wrapper:
-    ./test/bats/bin/bats test/wrapper.bats
+    {{ bats }} test/wrapper.bats
 
 # Run fast conditional file tests only
 test-fast:
-    ./test/bats/bin/bats test/conditional_files.bats
+    {{ bats }} test/conditional_files.bats
 
 # Run slow preset build tests only
 test-presets:
-    ./test/bats/bin/bats test/presets.bats
+    {{ bats }} test/presets.bats
 
 # Run a specific bats test file
 test-file file:
-    ./test/bats/bin/bats {{ file }}
+    {{ bats }} {{ file }}
 
 # Clean up test outputs
 clean:
@@ -107,7 +110,7 @@ test-otel:
     @echo "Checking OTEL collector status..."
     @curl -s --connect-timeout 2 http://localhost:3000/api/health > /dev/null || (echo "OTEL stack not running. Start with: just docker-up" && exit 1)
     @echo "Running OTEL tests..."
-    ./test/bats/bin/bats test/otel.bats
+    {{ bats }} test/otel.bats
 
 # Run OTEL tests with Docker stack (starts stack, runs tests, keeps stack running)
 test-otel-docker:
@@ -116,15 +119,15 @@ test-otel-docker:
     @echo "Waiting for OTEL stack to be healthy..."
     @until curl -s --connect-timeout 2 http://localhost:3000/api/health > /dev/null; do sleep 2; done
     @echo "Running OTEL tests..."
-    ./test/bats/bin/bats test/otel.bats
+    {{ bats }} test/otel.bats
 
 # Full test suite including OTEL (slow - builds presets, requires Docker)
 test-full:
     @echo "Running conditional file tests..."
-    ./test/bats/bin/bats test/conditional_files.bats
+    {{ bats }} test/conditional_files.bats
     @echo ""
     @echo "Running preset build tests..."
-    ./test/bats/bin/bats test/presets.bats
+    {{ bats }} test/presets.bats
     @echo ""
     @echo "Running OTEL integration tests..."
     just test-otel-docker
@@ -145,4 +148,4 @@ test-publish:
     @echo "Checking local registry status..."
     @curl -s --connect-timeout 2 http://localhost:8888/api/v1/summary > /dev/null || (echo "Registry not running. See: https://github.com/claylo/crates-io-local" && exit 1)
     @echo "Running publish tests..."
-    ./test/bats/bin/bats test/publish.bats
+    {{ bats }} test/publish.bats

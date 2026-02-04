@@ -182,21 +182,30 @@ assert_file_not_contains() {
     assert_failure
 }
 
+# Environment variables for faster template test builds
+# (fresh builds each time = no incremental benefit, just overhead)
+export CARGO_PROFILE_DEV_INCREMENTAL=false
+export CARGO_PROFILE_TEST_INCREMENTAL=false
+
 # Run cargo check in generated project
 # Usage: cargo_check "$output_dir"
 cargo_check() {
     local project_dir="$1"
     cd "$project_dir"
-    run cargo check --all-targets
+    run cargo check --quiet --all-targets
     assert_success
 }
 
-# Run cargo clippy in generated project
+# Run cargo clippy in generated project (also builds binaries for subsequent tests)
 # Usage: cargo_clippy "$output_dir"
 cargo_clippy() {
     local project_dir="$1"
     cd "$project_dir"
-    run cargo clippy --all-targets --all-features -- -D warnings
+    # Build first (clippy alone doesn't produce binaries)
+    run cargo build --quiet
+    assert_success
+    # Then lint
+    run cargo clippy --quiet --all-targets --all-features -- -D warnings
     assert_success
 }
 
@@ -205,7 +214,7 @@ cargo_clippy() {
 cargo_test() {
     local project_dir="$1"
     cd "$project_dir"
-    run cargo nextest run
+    run cargo nextest run --status-level=fail
     assert_success
 }
 

@@ -32,8 +32,8 @@ load 'test_helper'
 
     [[ -d "$output_dir" ]] || skip "minimal preset not built"
 
-    cd "$output_dir"
-    run cargo run --quiet -- --help
+    # Run binary directly (cargo_clippy already built it)
+    run "$output_dir/target/debug/preset-minimal" --help
     assert_success
     assert_output --partial "Usage:"
 }
@@ -43,8 +43,7 @@ load 'test_helper'
 
     [[ -d "$output_dir" ]] || skip "minimal preset not built"
 
-    cd "$output_dir"
-    run cargo run --quiet -- --version
+    run "$output_dir/target/debug/preset-minimal" --version
     assert_success
 }
 
@@ -53,8 +52,7 @@ load 'test_helper'
 
     [[ -d "$output_dir" ]] || skip "minimal preset not built"
 
-    cd "$output_dir"
-    run cargo run --quiet -- info
+    run "$output_dir/target/debug/preset-minimal" info
     assert_success
 }
 
@@ -84,13 +82,11 @@ load 'test_helper'
 
     [[ -d "$output_dir" ]] || skip "standard preset not built"
 
-    cd "$output_dir"
-
     local log_dir="${output_dir}/test-logs"
     mkdir -p "$log_dir"
 
     # Run with -v to enable debug logging
-    APP_LOG_DIR="$log_dir" cargo run --quiet -- -v info > /dev/null 2>&1
+    APP_LOG_DIR="$log_dir" "$output_dir/target/debug/preset-standard" -v info > /dev/null 2>&1
 
     # Find the log file (rotation creates dated files)
     local log_file
@@ -121,8 +117,7 @@ sys.exit(0 if valid > 0 and invalid == 0 else 1)
 
     [[ -d "$output_dir" ]] || skip "standard preset not built"
 
-    cd "$output_dir"
-    run cargo run --quiet -- info --json
+    run "$output_dir/target/debug/preset-standard" info --json
     assert_success
 
     # Validate JSON
@@ -134,21 +129,19 @@ sys.exit(0 if valid > 0 and invalid == 0 else 1)
 
     [[ -d "$output_dir" ]] || skip "standard preset not built"
 
-    cd "$output_dir"
-
     # Create a test config file
     local config_dir="${output_dir}/config-test"
     mkdir -p "$config_dir"
-    cat > "${config_dir}/.test-standard.toml" << 'EOF'
+    cat > "${config_dir}/.preset-standard.toml" << 'EOF'
 log_level = "debug"
 EOF
 
     local log_dir="${output_dir}/config-test-logs"
     mkdir -p "$log_dir"
 
-    # Run from config directory
+    # Run from config directory (binary uses cwd for config discovery)
     cd "$config_dir"
-    APP_LOG_DIR="$log_dir" cargo run --quiet --manifest-path "${output_dir}/Cargo.toml" -- info > /dev/null 2>&1 || true
+    APP_LOG_DIR="$log_dir" "$output_dir/target/debug/preset-standard" info > /dev/null 2>&1 || true
 
     # Config discovery is best-effort, don't fail test
 }
@@ -179,11 +172,9 @@ EOF
 
     [[ -d "$output_dir" ]] || skip "standard-otel preset not built"
 
-    cd "$output_dir"
-
     # Binary should run even if OTEL endpoint is unreachable
     OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4317" \
-        run cargo run --quiet -- info
+        run "$output_dir/target/debug/preset-standard-otel" info
     assert_success
 }
 
@@ -259,8 +250,7 @@ EOF
 
     [[ -d "$output_dir" ]] || skip "mcp-server preset not built"
 
-    cd "$output_dir"
-    run cargo run --quiet -- --help
+    run "$output_dir/target/debug/preset-mcp-server" --help
     assert_success
     assert_output --partial "serve"
 }
@@ -270,7 +260,6 @@ EOF
 
     [[ -d "$output_dir" ]] || skip "mcp-server preset not built"
 
-    cd "$output_dir"
-    run cargo run --quiet -- serve --help
+    run "$output_dir/target/debug/preset-mcp-server" serve --help
     assert_success
 }
