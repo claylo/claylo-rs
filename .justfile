@@ -24,6 +24,10 @@ test-fast:
 test-presets:
     {{ bats }} test/presets.bats
 
+# Run progressive enhancement tests (very slow - multiple cargo builds per test)
+test-progressive:
+    {{ bats }} test/progressive.bats
+
 # Run a specific bats test file
 test-file file:
     {{ bats }} {{ file }}

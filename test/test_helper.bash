@@ -187,6 +187,15 @@ assert_file_not_contains() {
 export CARGO_PROFILE_DEV_INCREMENTAL=false
 export CARGO_PROFILE_TEST_INCREMENTAL=false
 
+# Use lld for faster linking on macOS (if available)
+# Cargo doesn't auto-detect installed linkers, so we configure explicitly
+if [[ "$OSTYPE" == "darwin"* ]] && [[ -x "/usr/local/bin/ld64.lld" ]]; then
+    export CARGO_TARGET_X86_64_APPLE_DARWIN_LINKER=clang
+    export CARGO_TARGET_X86_64_APPLE_DARWIN_RUSTFLAGS="-C link-arg=-fuse-ld=/usr/local/bin/ld64.lld"
+    export CARGO_TARGET_AARCH64_APPLE_DARWIN_LINKER=clang
+    export CARGO_TARGET_AARCH64_APPLE_DARWIN_RUSTFLAGS="-C link-arg=-fuse-ld=/usr/local/bin/ld64.lld"
+fi
+
 # Run cargo check in generated project
 # Usage: cargo_check "$output_dir"
 cargo_check() {
@@ -216,6 +225,158 @@ cargo_test() {
     cd "$project_dir"
     run cargo nextest run --status-level=fail
     assert_success
+}
+
+# Run cargo nextest with a filter expression
+# Usage: cargo_nextest_filter "$output_dir" "test(/pattern/)"
+cargo_nextest_filter() {
+    local project_dir="$1"
+    local filter="$2"
+    cd "$project_dir"
+    run cargo nextest run --status-level=fail -E "$filter"
+    assert_success
+}
+
+# Clean up orphaned files after feature removal
+# Copier doesn't delete files when features are disabled, so we do it manually.
+# Usage: cleanup_orphaned_files project_dir
+cleanup_orphaned_files() {
+    local project_dir="$1"
+    local answers_file="${project_dir}/.repo.yml"
+    local project_name
+
+    project_name=$(yq -r '.project_name' "$answers_file")
+
+    # Helper to check if a feature is disabled (false or missing)
+    is_disabled() {
+        local value
+        value=$(yq -r ".$1 // false" "$answers_file")
+        [[ "$value" == "false" ]]
+    }
+
+    # Cleanup for has_benchmarks=false
+    if is_disabled "has_benchmarks"; then
+        rm -rf "${project_dir}/crates/${project_name}-core/benches" 2>/dev/null
+        rm -rf "${project_dir}/bench-reports" 2>/dev/null
+        rm -f "${project_dir}/scripts/bench-cli.sh" 2>/dev/null
+        rm -f "${project_dir}/docs/benchmarks-howto.md" 2>/dev/null
+    fi
+
+    # Cleanup for has_xtask=false
+    if is_disabled "has_xtask"; then
+        rm -rf "${project_dir}/xtask" 2>/dev/null
+    fi
+
+    # Cleanup for has_site=false
+    if is_disabled "has_site"; then
+        rm -rf "${project_dir}/site" 2>/dev/null
+    fi
+
+    # Cleanup for has_mcp_server=false
+    if is_disabled "has_mcp_server"; then
+        rm -f "${project_dir}/crates/${project_name}/src/commands/serve.rs" 2>/dev/null
+        rm -f "${project_dir}/crates/${project_name}/src/server.rs" 2>/dev/null
+    fi
+
+    # Cleanup for has_core_library=false
+    if is_disabled "has_core_library"; then
+        rm -rf "${project_dir}/crates/${project_name}-core" 2>/dev/null
+    fi
+
+    # Cleanup for has_config=false
+    if is_disabled "has_config"; then
+        rm -f "${project_dir}/crates/${project_name}/src/config.rs" 2>/dev/null
+        rm -f "${project_dir}/crates/${project_name}-core/src/config.rs" 2>/dev/null
+        rm -rf "${project_dir}/config" 2>/dev/null
+        rm -f "${project_dir}/crates/${project_name}/tests/config_integration.rs" 2>/dev/null
+    fi
+
+    # Cleanup for has_releases=false
+    if is_disabled "has_releases"; then
+        rm -f "${project_dir}/cliff.toml" 2>/dev/null
+        rm -f "${project_dir}/docs/releases.md" 2>/dev/null
+    fi
+
+    # Cleanup for has_community_files=false
+    if is_disabled "has_community_files"; then
+        rm -f "${project_dir}/CODE_OF_CONDUCT.md" 2>/dev/null
+        rm -f "${project_dir}/CONTRIBUTING.md" 2>/dev/null
+    fi
+
+    # Cleanup for observability (both jsonl and otel must be false)
+    if is_disabled "has_jsonl_logging" && is_disabled "has_opentelemetry"; then
+        rm -f "${project_dir}/crates/${project_name}/src/observability.rs" 2>/dev/null
+    fi
+
+    return 0
+}
+
+# Run copier recopy on an existing project with feature flags
+# Usage: copier_recopy project_dir "+feature" "-feature" ...
+#
+# Uses copier recopy instead of update because recopy doesn't need
+# _commit history (works with local template development).
+#
+# To properly merge feature flag changes with existing answers, we:
+# 1. Copy the existing .repo.yml to a temp file
+# 2. Use yq to update the specific values
+# 3. Run recopy with --data-file pointing to the merged answers
+# 4. Clean up orphaned files that copier doesn't delete
+copier_recopy() {
+    local project_dir="$1"
+    shift
+
+    local answers_file="${project_dir}/.repo.yml"
+    local temp_answers
+    temp_answers=$(mktemp)
+
+    # Copy existing answers to temp file
+    cp "$answers_file" "$temp_answers"
+
+    # Apply feature flag changes using yq
+    for arg in "$@"; do
+        case "$arg" in
+            +core)    yq -i '.has_core_library = true' "$temp_answers" ;;
+            -core)    yq -i '.has_core_library = false' "$temp_answers" ;;
+            +config)  yq -i '.has_config = true' "$temp_answers" ;;
+            -config)  yq -i '.has_config = false' "$temp_answers" ;;
+            +jsonl)   yq -i '.has_jsonl_logging = true' "$temp_answers" ;;
+            -jsonl)   yq -i '.has_jsonl_logging = false' "$temp_answers" ;;
+            +otel)    yq -i '.has_opentelemetry = true' "$temp_answers" ;;
+            -otel)    yq -i '.has_opentelemetry = false' "$temp_answers" ;;
+            +mcp)     yq -i '.has_mcp_server = true' "$temp_answers" ;;
+            -mcp)     yq -i '.has_mcp_server = false' "$temp_answers" ;;
+            +bench)   yq -i '.has_benchmarks = true' "$temp_answers" ;;
+            -bench)   yq -i '.has_benchmarks = false' "$temp_answers" ;;
+            +releases) yq -i '.has_releases = true' "$temp_answers" ;;
+            -releases) yq -i '.has_releases = false' "$temp_answers" ;;
+            +site)    yq -i '.has_site = true' "$temp_answers" ;;
+            -site)    yq -i '.has_site = false' "$temp_answers" ;;
+            +community) yq -i '.has_community_files = true' "$temp_answers" ;;
+            -community) yq -i '.has_community_files = false' "$temp_answers" ;;
+            *)
+                echo "Unknown feature flag: $arg" >&2
+                rm -f "$temp_answers"
+                return 1
+                ;;
+        esac
+    done
+
+    copier recopy --force \
+        --skip-answered \
+        --answers-file .repo.yml \
+        --data-file "$temp_answers" \
+        "$project_dir" >&2
+    local exit_code=$?
+
+    rm -f "$temp_answers"
+
+    # Clean up orphaned files after recopy
+    if [[ $exit_code -eq 0 ]]; then
+        cleanup_orphaned_files "$project_dir"
+    fi
+
+    return $exit_code
 }
 
 # =============================================================================
