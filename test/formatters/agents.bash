@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Minimal bats formatter for AI agent consumption.
-# One line per test, no TAP header, no timing, no comments.
+# Only shows failures — passing tests are silent to minimize token usage.
 #
 # Usage:
 #   ./test/bats/bin/bats -F "$PWD/test/formatters/agents.bash" test/*.bats
@@ -25,7 +25,7 @@ bats_tap_stream_begin() {
 
 bats_tap_stream_ok() {
   (( ++_pass ))
-  printf "  pass  %s\n" "$2"
+  # Silent on success
 }
 
 bats_tap_stream_not_ok() {
@@ -35,7 +35,7 @@ bats_tap_stream_not_ok() {
 
 bats_tap_stream_skipped() {
   (( ++_skip ))
-  printf "  skip  %s\n" "$2"
+  # Silent on skip (mention in summary)
 }
 
 bats_tap_stream_comment() {
@@ -55,7 +55,7 @@ bats_tap_stream_unknown() {
 
 bats_parse_internal_extended_tap
 
-printf "\n%d passed" "$_pass"
+printf "%d passed" "$_pass"
 (( _fail > 0 )) && printf ", %d failed" "$_fail"
 (( _skip > 0 )) && printf ", %d skipped" "$_skip"
 printf "\n"

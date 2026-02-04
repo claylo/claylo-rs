@@ -38,11 +38,11 @@ setup() {
 
     cd "$output_dir"
 
-    # Build release binary for faster execution
-    cargo build --release --quiet
+    # Build dev binary (release builds are too slow for testing)
+    cargo build --quiet
 
     # Run with OTEL endpoint - should not error even if export fails
-    run ./target/release/test-standard-otel info
+    run ./target/debug/preset-standard-otel info
     assert_success
 }
 
@@ -58,7 +58,7 @@ setup() {
 
     # Run the binary - this should send traces
     OTEL_RESOURCE_ATTRIBUTES="test.marker=${trace_marker}" \
-        ./target/release/test-standard-otel info > /dev/null 2>&1
+        ./target/debug/preset-standard-otel info > /dev/null 2>&1
 
     # Give the collector a moment to process
     sleep 2
@@ -81,7 +81,7 @@ setup() {
 
     # With OTEL disabled, binary should still run fine
     OTEL_SDK_DISABLED=true \
-        run ./target/release/test-standard-otel info
+        run ./target/debug/preset-standard-otel info
     assert_success
 }
 
@@ -95,7 +95,7 @@ setup() {
     # Point to non-existent collector - should not hang or crash
     OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:59999" \
     OTEL_EXPORTER_OTLP_TIMEOUT=1000 \
-        run timeout 10 ./target/release/test-standard-otel info
+        run timeout 10 ./target/debug/preset-standard-otel info
     assert_success
 }
 
@@ -116,7 +116,7 @@ setup() {
 
     # Run with both OTEL and JSONL logging
     APP_LOG_DIR="$log_dir" \
-        ./target/release/test-standard-otel -v info > /dev/null 2>&1
+        ./target/debug/preset-standard-otel -v info > /dev/null 2>&1
 
     # Verify JSONL log was created
     local log_file
