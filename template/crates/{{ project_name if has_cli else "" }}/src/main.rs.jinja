@@ -75,7 +75,11 @@ fn main() -> anyhow::Result<()> {
 
     // Execute command
     let result = match cli.command {
+{% if has_config -%}
+        Commands::Info(args) => commands::info::cmd_info(args, cli.json, &config, &cwd),
+{% else -%}
         Commands::Info(args) => commands::info::cmd_info(args, cli.json),
+{% endif -%}
 {% if has_mcp_server %}
         Commands::Serve(args) => commands::serve::cmd_serve(args).await,
 {% endif %}
@@ -87,7 +91,11 @@ fn main() -> anyhow::Result<()> {
 {% else %}
     // Execute command
     match cli.command {
+{% if has_config -%}
+        Commands::Info(args) => commands::info::cmd_info(args, cli.json, &config, &cwd),
+{% else -%}
         Commands::Info(args) => commands::info::cmd_info(args, cli.json),
+{% endif -%}
 {% if has_mcp_server %}
         Commands::Serve(args) => commands::serve::cmd_serve(args).await,
 {% endif %}
