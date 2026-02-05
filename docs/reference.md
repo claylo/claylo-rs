@@ -64,6 +64,8 @@ Override preset defaults with these flags.
 | `has_jsonl_logging` | `jsonl` | true (if CLI) | Structured JSONL file logging |
 | `has_opentelemetry` | `otel` | false | OpenTelemetry trace export |
 | `has_mcp_server` | `mcp` | false | MCP server scaffolding |
+| `has_inquire` | `inquire` | false | Interactive prompts (Confirm, Select, Text) |
+| `has_indicatif` | `indicatif` | false | Progress bars and spinners |
 | `has_benchmarks` | `bench` | full only | Benchmark infrastructure |
 | `has_gungraun` | `gungraun` | false | Gungraun benchmark generator |
 | `has_site` | `site` | full only | Site directory placeholder |
@@ -187,4 +189,43 @@ claylo-rs new ./my-tool -claude_skills -claude_rules
 
 ```bash
 claylo-rs new ./my-tool --lint strict
+```
+
+
+## Generated CLI Features
+
+The generated CLI includes these subcommands based on enabled features.
+
+### info
+
+Always included. Shows package version and build information.
+
+```bash
+my-tool info          # Human-readable output
+my-tool info --json   # JSON output for scripting
+```
+
+### doctor
+
+Included when `has_config=true`. Diagnoses configuration and environment.
+
+```bash
+my-tool doctor        # Human-readable diagnostic output
+my-tool doctor --json # JSON output
+```
+
+Shows:
+- **Configuration status** — Whether a config file was found and its path
+- **XDG directories** — Config, cache, data, and local data paths
+- **Environment variables** — RUST_LOG, XDG overrides, OTEL endpoint (if enabled)
+
+When `has_inquire=true`, offers to create a default config file if none exists.
+When `has_indicatif=true`, shows a spinner while gathering diagnostics.
+
+### serve
+
+Included when `has_mcp_server=true`. Runs the MCP server over stdio.
+
+```bash
+my-tool serve
 ```
