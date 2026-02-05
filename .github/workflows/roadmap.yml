@@ -1,0 +1,77 @@
+name: Update Roadmap Scores
+
+on:
+  issues:
+    types: [opened, closed, labeled, unlabeled]
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.1
+
+      # Use real user for manual triggers, bot for scheduled runs
+      - name: Configure git (manual trigger)
+        if: github.event_name != 'schedule'
+        uses: ./.github/actions/bot-setup
+
+      - name: Configure git (scheduled)
+        if: github.event_name == 'schedule'
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Checkout wiki
+        run: |
+          git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git wiki
+
+      - name: Generate roadmap
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          LABEL: ${{ vars.ROADMAP_LABEL || 'roadmap' }}
+        run: |
+          OWNER="${REPO%/*}"
+          REPO_NAME="${REPO#*/}"
+
+          cat > wiki/Home.md << 'HEADER'
+          # Roadmap
+
+          Prioritized by community votes. Add :+1: to [open issues](https://github.com/${{ github.repository }}/issues?q=is%3Aissue+is%3Aopen+label%3A${LABEL}) to vote!
+
+          *Last updated: $(date -u +"%Y-%m-%d %H:%M UTC")*
+
+          HEADER
+
+          # Fetch issues and generate table
+          gh api graphql -f query='
+          query($repo: String!, $owner: String!, $label: String!) {
+            repository(name: $repo, owner: $owner) {
+              issues(first: 50, states: OPEN, labels: [$label], orderBy: {field: CREATED_AT, direction: DESC}) {
+                nodes {
+                  number
+                  title
+                  url
+                  reactions(content: THUMBS_UP) { totalCount }
+                  labels(first: 5) { nodes { name color } }
+                }
+              }
+            }
+          }' -f owner="$OWNER" -f repo="$REPO_NAME" -f label="$LABEL" \
+            | jq -r '.data.repository.issues.nodes | sort_by(-.reactions.totalCount) | .[] |
+              "| \(.reactions.totalCount) | [#\(.number)](\(.url)) | \(.title) |"' \
+            | { echo "| Votes | Issue | Feature |"; echo "|------:|:------|:--------|"; cat; } >> wiki/Roadmap.md
+
+      - name: Push to wiki
+        run: |
+          cd wiki
+          git add Home.md
+          git diff --staged --quiet || git commit -m "Update roadmap scores"
+          git push

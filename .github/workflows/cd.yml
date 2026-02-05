@@ -1,0 +1,89 @@
+# Continuous Deployment workflow for claylo-rs template
+# Generates changelog and updates Homebrew formula on tag push
+
+name: CD
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+env:
+  PROJECT_NAME: claylo-rs
+
+jobs:
+  generate-changelog:
+    name: Generate changelog
+    runs-on: ubuntu-latest
+    outputs:
+      release_body: ${{ steps.git-cliff.outputs.content }}
+      version: ${{ steps.version.outputs.version }}
+      is_prerelease: ${{ steps.version.outputs.is_prerelease }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Extract version
+        id: version
+        run: |
+          version="${GITHUB_REF#refs/tags/v}"
+          echo "version=${version}" >> $GITHUB_OUTPUT
+          # Check if this is a prerelease (contains hyphen like -alpha, -beta, -rc)
+          if [[ "$version" == *-* ]]; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate changelog
+        uses: orhun/git-cliff-action@e16f179f0be49ecdfe63753837f20b9531642772 # v4.7.0
+        id: git-cliff
+        with:
+          config: cliff.toml
+          args: -vv --latest --no-exec --github-repo ${{ github.repository }}
+
+  create-release:
+    name: Create GitHub Release
+    needs: generate-changelog
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.1
+
+      - name: Create release
+        if: needs.generate-changelog.outputs.is_prerelease == 'false'
+        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.7.0
+        with:
+          name: "Release v${{ needs.generate-changelog.outputs.version }}"
+          body: "${{ needs.generate-changelog.outputs.release_body }}"
+          draft: false
+          prerelease: false
+
+      - name: Create pre-release
+        if: needs.generate-changelog.outputs.is_prerelease == 'true'
+        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.7.0
+        with:
+          name: "Pre-release v${{ needs.generate-changelog.outputs.version }}"
+          body: "${{ needs.generate-changelog.outputs.release_body }}"
+          draft: false
+          prerelease: true
+
+  publish-homebrew:
+    name: Publish Homebrew formula
+    # Only publish to Homebrew for stable releases, not prereleases
+    if: needs.generate-changelog.outputs.is_prerelease == 'false'
+    needs: [generate-changelog, create-release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Bump formula
+        uses: mislav/bump-homebrew-formula-action@56a283fa15557e9abaa4bdb63b8212abc68e655c # v3.6
+        with:
+          formula-name: ${{ env.PROJECT_NAME }}
+          homebrew-tap: claylo/homebrew-brew
+        env:
+          COMMITTER_TOKEN: ${{ secrets.HOMEBREW_COMMITTER_TOKEN }}

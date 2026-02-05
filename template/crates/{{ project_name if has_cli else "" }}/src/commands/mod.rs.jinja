@@ -1,5 +1,8 @@
 //! Command implementations
 
+{% if has_config %}
+pub mod doctor;
+{% endif %}
 pub mod info;
 {% if has_mcp_server %}
 pub mod serve;

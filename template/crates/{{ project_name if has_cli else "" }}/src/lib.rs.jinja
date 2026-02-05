@@ -84,6 +84,10 @@ pub struct Cli {
 /// Available subcommands for the CLI.
 #[derive(Subcommand)]
 pub enum Commands {
+{% if has_config %}
+    /// Diagnose configuration and environment
+    Doctor(commands::doctor::DoctorArgs),
+{% endif %}
     /// Show package information
     Info(commands::info::InfoArgs),
 {% if has_mcp_server %}

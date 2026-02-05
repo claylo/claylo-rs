@@ -244,14 +244,14 @@ impl ConfigLoader {
 
     /// Find user config in XDG config directory.
     fn find_user_config(&self) -> Option<Utf8PathBuf> {
-        let config_dir = dirs::config_dir()?;
-        let app_config_dir = config_dir.join(APP_NAME);
+        let proj_dirs = directories::ProjectDirs::from("", "", APP_NAME)?;
+        let config_dir = proj_dirs.config_dir();
 
         // Try each supported extension
         for ext in CONFIG_EXTENSIONS {
-            let config_path = app_config_dir.join(format!("config.{ext}"));
+            let config_path = config_dir.join(format!("config.{ext}"));
             if config_path.is_file() {
-                return Utf8PathBuf::from_path_buf(config_path).ok();
+                return Utf8PathBuf::from_path_buf(config_path.to_path_buf()).ok();
             }
         }
 
@@ -279,12 +279,47 @@ pub fn find_project_config<P: AsRef<Utf8Path>>(start: P) -> Option<Utf8PathBuf> 
         .find_project_config(start.as_ref())
 }
 
+/// Get the project directories for XDG-compliant path resolution.
+///
+/// Returns `None` if the home directory cannot be determined.
+fn project_dirs() -> Option<directories::ProjectDirs> {
+    directories::ProjectDirs::from("", "", APP_NAME)
+}
+
 /// Get the user config directory path.
 ///
-/// Returns `~/.config/{{ project_name }}/` on Unix, equivalent on other platforms.
+/// Returns `~/.config/{{ project_name }}/` on Linux, `~/Library/Application Support/{{ project_name }}/`
+/// on macOS, and equivalent on other platforms.
 pub fn user_config_dir() -> Option<Utf8PathBuf> {
-    let config_dir = dirs::config_dir()?;
-    Utf8PathBuf::from_path_buf(config_dir.join(APP_NAME)).ok()
+    let proj_dirs = project_dirs()?;
+    Utf8PathBuf::from_path_buf(proj_dirs.config_dir().to_path_buf()).ok()
+}
+
+/// Get the user cache directory path.
+///
+/// Returns `~/.cache/{{ project_name }}/` on Linux, `~/Library/Caches/{{ project_name }}/`
+/// on macOS, and equivalent on other platforms.
+pub fn user_cache_dir() -> Option<Utf8PathBuf> {
+    let proj_dirs = project_dirs()?;
+    Utf8PathBuf::from_path_buf(proj_dirs.cache_dir().to_path_buf()).ok()
+}
+
+/// Get the user data directory path.
+///
+/// Returns `~/.local/share/{{ project_name }}/` on Linux, `~/Library/Application Support/{{ project_name }}/`
+/// on macOS, and equivalent on other platforms.
+pub fn user_data_dir() -> Option<Utf8PathBuf> {
+    let proj_dirs = project_dirs()?;
+    Utf8PathBuf::from_path_buf(proj_dirs.data_dir().to_path_buf()).ok()
+}
+
+/// Get the local data directory path (machine-specific, not synced).
+///
+/// Returns `~/.local/share/{{ project_name }}/` on Linux, `~/Library/Application Support/{{ project_name }}/`
+/// on macOS, and equivalent on other platforms.
+pub fn user_data_local_dir() -> Option<Utf8PathBuf> {
+    let proj_dirs = project_dirs()?;
+    Utf8PathBuf::from_path_buf(proj_dirs.data_local_dir().to_path_buf()).ok()
 }
 
 #[cfg(test)]

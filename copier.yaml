@@ -211,6 +211,16 @@ has_mcp_server:
   default: false
   when: "{{ has_cli }}"
   help: "Include MCP server (Model Context Protocol) as a 'serve' subcommand"
+has_inquire:
+  type: bool
+  default: false
+  when: "{{ has_cli }}"
+  help: "Include inquire crate for interactive prompts (Text, Select, Confirm, etc.)"
+has_indicatif:
+  type: bool
+  default: false
+  when: "{{ has_cli }}"
+  help: "Include indicatif crate for progress bars and spinners"
 has_benchmarks:
   type: bool
   default: "{{ preset == 'full' }}"
