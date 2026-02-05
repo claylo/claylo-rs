@@ -439,8 +439,9 @@ fn resolve_log_target_with(
         candidates.push(PathBuf::from(DEFAULT_LOG_DIR_UNIX));
     }
 
-    if let Some(dir) = dirs::data_local_dir() {
-        candidates.push(dir.join(service).join("logs"));
+    // Use XDG-compliant data directory for log storage
+    if let Some(proj_dirs) = directories::ProjectDirs::from("", "", service) {
+        candidates.push(proj_dirs.data_local_dir().join("logs"));
     }
 
     if let Ok(dir) = std::env::current_dir() {

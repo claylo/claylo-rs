@@ -71,14 +71,23 @@ schemars = "1.2"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 owo-colors = { version = "4.2", features = ["supports-colors"] }
+{% if has_indicatif -%}
+indicatif = "0.17"
+{% endif -%}
+{% if has_inquire -%}
+inquire = "0.7"
+{% if has_config -%}
+serde-saphyr = "0.0.17"
+{% endif -%}
+{% endif -%}
 {% if has_config -%}
 camino = { version = "1.2", features = ["serde1"] }
 {% endif -%}
 {% if has_jsonl_logging or has_opentelemetry -%}
-dirs = "6.0"
+directories = "6.0"
 {% endif -%}
 {% if has_config and not has_core_library -%}
-dirs = "6.0"
+directories = "6.0"
 figment = { version = "0.10", features = ["toml", "yaml", "json"] }
 thiserror = "2.0"
 {% endif %}

@@ -613,7 +613,7 @@ main() {
     local project_name
     project_name="$(basename "$dest")"
 
-    cmd=(copier copy)
+    cmd=(copier copy --prereleases)
     [[ -n "$data_file" ]] && cmd+=(--data-file "$data_file")
     [[ "$use_defaults" == true ]] && cmd+=(--defaults)
     [[ "$dry_run" == true ]] && cmd+=(--pretend)
@@ -637,7 +637,7 @@ main() {
   elif [[ "$command" == "update" ]]; then
     [[ -z "$dest" ]] && dest="."
 
-    cmd=(copier update)
+    cmd=(copier update --prereleases)
     [[ -n "$data_file" ]] && cmd+=(--data-file "$data_file")
     [[ "$use_defaults" == true ]] && cmd+=(--defaults)
     [[ "$dry_run" == true ]] && cmd+=(--pretend)

@@ -421,6 +421,50 @@ load 'test_helper'
 }
 
 # =============================================================================
+# CLI Extras (inquire, indicatif)
+# =============================================================================
+
+@test "has_inquire=true adds inquire dependency" {
+    local output_dir
+    output_dir=$(generate_project_with_data "cond-inq-on" "standard.yml" \
+        "has_inquire=true")
+
+    assert_file_contains "$output_dir" "crates/cond-inq-on/Cargo.toml" 'inquire = '
+}
+
+@test "has_inquire=false excludes inquire dependency" {
+    local output_dir
+    output_dir=$(generate_project_with_data "cond-inq-off" "standard.yml" \
+        "has_inquire=false")
+
+    assert_file_not_contains "$output_dir" "crates/cond-inq-off/Cargo.toml" 'inquire = '
+}
+
+@test "has_indicatif=true adds indicatif dependency" {
+    local output_dir
+    output_dir=$(generate_project_with_data "cond-ind-on" "standard.yml" \
+        "has_indicatif=true")
+
+    assert_file_contains "$output_dir" "crates/cond-ind-on/Cargo.toml" 'indicatif = '
+}
+
+@test "has_indicatif=false excludes indicatif dependency" {
+    local output_dir
+    output_dir=$(generate_project_with_data "cond-ind-off" "standard.yml" \
+        "has_indicatif=false")
+
+    assert_file_not_contains "$output_dir" "crates/cond-ind-off/Cargo.toml" 'indicatif = '
+}
+
+@test "has_inquire + has_indicatif compiles with doctor command" {
+    local output_dir
+    output_dir=$(generate_project_with_data "cli-sugar" "standard.yml" \
+        "has_inquire=true" "has_indicatif=true" "has_config=true")
+
+    cargo_clippy "$output_dir"
+}
+
+# =============================================================================
 # Template Sanity Checks
 # =============================================================================
 

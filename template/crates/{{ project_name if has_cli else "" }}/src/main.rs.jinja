@@ -76,6 +76,7 @@ fn main() -> anyhow::Result<()> {
     // Execute command
     let result = match cli.command {
 {% if has_config -%}
+        Commands::Doctor(args) => commands::doctor::cmd_doctor(args, cli.json, &cwd),
         Commands::Info(args) => commands::info::cmd_info(args, cli.json, &config, &cwd),
 {% else -%}
         Commands::Info(args) => commands::info::cmd_info(args, cli.json),
@@ -92,6 +93,7 @@ fn main() -> anyhow::Result<()> {
     // Execute command
     match cli.command {
 {% if has_config -%}
+        Commands::Doctor(args) => commands::doctor::cmd_doctor(args, cli.json, &cwd),
         Commands::Info(args) => commands::info::cmd_info(args, cli.json, &config, &cwd),
 {% else -%}
         Commands::Info(args) => commands::info::cmd_info(args, cli.json),
