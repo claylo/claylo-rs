@@ -98,12 +98,11 @@ bootstrap:
     echo "✅ Bootstrap complete!"
     echo ""
     echo "Next steps:"
-    echo "  just check     - Run full test suite"
+    echo "  just check     - Run all the things (fmt, clippy, deny, test, doc-test)"
     echo "  just test      - Run tests only"
-{% if has_config %}
-    echo "  cp config/{{ project_name }}.toml.example ~/.config/{{ project_name }}/config.toml"
-{% endif %}
-    echo "  {{ project_name }} --help"
+    echo ""
+    echo "Try it out:"
+    echo "  target/debug/{{ project_name }} --help"
 
 fmt:
   cargo fmt --all

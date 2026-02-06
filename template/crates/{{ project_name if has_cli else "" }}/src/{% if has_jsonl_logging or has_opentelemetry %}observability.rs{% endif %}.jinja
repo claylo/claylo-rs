@@ -25,12 +25,12 @@ use tracing_subscriber::registry::LookupSpan;
 use tracing_subscriber::util::SubscriberInitExt;
 
 {% if has_opentelemetry -%}
-const ENV_APP_ENV: &str = "APP_ENV";
+const ENV_APP_ENV: &str = "{{ project_name | upper | replace('-', '_') }}_ENV";
 const ENV_OTEL_ENDPOINT: &str = "OTEL_EXPORTER_OTLP_ENDPOINT";
 const ENV_OTEL_PROTOCOL: &str = "OTEL_EXPORTER_OTLP_PROTOCOL";
 {% endif -%}
-const ENV_LOG_PATH: &str = "APP_LOG_PATH";
-const ENV_LOG_DIR: &str = "APP_LOG_DIR";
+const ENV_LOG_PATH: &str = "{{ project_name | upper | replace('-', '_') }}_LOG_PATH";
+const ENV_LOG_DIR: &str = "{{ project_name | upper | replace('-', '_') }}_LOG_DIR";
 const DEFAULT_LOG_DIR_UNIX: &str = "/var/log";
 const LOG_FILE_SUFFIX: &str = ".jsonl";
 
@@ -468,11 +468,11 @@ fn log_target_from_dir(dir: PathBuf, service: &str) -> Result<LogTarget, String>
 fn log_target_from_path(path: PathBuf) -> Result<LogTarget, String> {
     let file_name = path
         .file_name()
-        .ok_or_else(|| "APP_LOG_PATH must include a file name".to_string())
+        .ok_or_else(|| format!("{ENV_LOG_PATH} must include a file name"))
         .and_then(|name| {
             name.to_str()
                 .map(|value| value.to_string())
-                .ok_or_else(|| "APP_LOG_PATH must be valid UTF-8".to_string())
+                .ok_or_else(|| format!("{ENV_LOG_PATH} must be valid UTF-8"))
         })?;
 
     let dir = path.parent().unwrap_or_else(|| Path::new("."));

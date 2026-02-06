@@ -107,6 +107,8 @@ declare -A ALIAS_MAP=(
   [releases]=has_releases
   [coda]=has_coda
   [roadmap_votes]=has_roadmap_votes
+  [inquire]=has_inquire
+  [indicatif]=has_indicatif
 )
 
 # Sorted alias names for display
@@ -147,7 +149,7 @@ Feature flags (prefix with + to enable, - to disable):
   yamlfmt, yamllint, editorconfig, env, agents_md, just,
   gitattributes, github, security_md, issues, prs, md, md_strict,
   skill_markdown, skill_decisions, skill_git,
-  releases, coda, roadmap_votes
+  releases, coda, roadmap_votes, inquire, indicatif
 
 Examples:
   claylo-rs new ./my-app --owner myorg --copyright "My Name"
@@ -644,6 +646,8 @@ main() {
     [[ -n "$vcs_ref" ]] && cmd+=(--vcs-ref "$vcs_ref")
     # we always want the .rej files option
     cmd+=(--conflict rej)
+    # copier won't "just know" about the custom answers
+    cmd+=(--answers-file "$dest/.repo.yml")
 
     # For update, only pass overrides — no preset/project_name defaults
     if [[ "$preset_set" == true ]]; then

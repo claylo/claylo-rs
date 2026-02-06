@@ -114,8 +114,12 @@ setup() {
     rm -rf "$log_dir"
     mkdir -p "$log_dir"
 
+    # Env var prefix matches template: {{ project_name | upper | replace('-', '_') }}
+    local env_var
+    env_var="$(echo "preset-standard-otel" | tr '[:lower:]-' '[:upper:]_')_LOG_DIR"
+
     # Run with both OTEL and JSONL logging
-    APP_LOG_DIR="$log_dir" \
+    env "${env_var}=${log_dir}" \
         ./target/debug/preset-standard-otel -v info > /dev/null 2>&1
 
     # Verify JSONL log was created

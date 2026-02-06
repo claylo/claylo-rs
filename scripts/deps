@@ -71,7 +71,7 @@ CRATES=(
     "serde_json"
     "owo-colors"
     "camino"
-    "dirs"
+    "directories"
     "figment"
     "tokio"
     "opentelemetry"
@@ -87,6 +87,9 @@ CRATES=(
     "divan"
     "gungraun"
     "kdl"
+    "indicatif"
+    "inquire"
+    "serde-saphyr"
 )
 
 # ============================================================================
