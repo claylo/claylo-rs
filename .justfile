@@ -1,7 +1,7 @@
 # claylo-rs template development justfile
 # Run `just` to see available recipes
-
 # Bats with agents formatter (reduced output for LLM context windows)
+
 bats := "./test/bats/bin/bats -F $(pwd)/test/formatters/agents.bash"
 
 # Default recipe: show help
@@ -51,6 +51,20 @@ generate output_dir:
 # Generate using a data file
 generate-from-file data_file output_dir:
     copier copy --trust --data-file {{ data_file }} . {{ output_dir }}
+
+# Generate a test with the given preset
+generate-preset preset project_name:
+    copier copy --data "project_name={{ project_name }}" \
+      --data "owner=test-owner" \
+      --data "copyright_name=Test Copyright" \
+      --data "conduct_email=conduct@test.org" \
+      --defaults --data-file "scripts/presets/{{ preset }}.yml" \
+      --vcs-ref HEAD . ../generate-runs/{{ project_name }}
+
+regenerate-preset preset project_name:
+    copier recopy --skip-answered --answers-file .repo.yml --overwrite --defaults \
+      --data-file "scripts/presets/{{ preset }}.yml" \
+      --vcs-ref HEAD ../generate-runs/{{ project_name }}
 
 # Lint copier.yaml (using Python yamllint; yamllint-rs has sequence indent bug)
 lint:

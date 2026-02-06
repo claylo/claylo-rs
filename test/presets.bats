@@ -85,8 +85,13 @@ load 'test_helper'
     local log_dir="${output_dir}/test-logs"
     mkdir -p "$log_dir"
 
+    # Env var prefix matches template: {{ project_name | upper | replace('-', '_') }}
+    # preset-standard → PRESET_STANDARD_LOG_DIR
+    local env_var
+    env_var="$(echo "preset-standard" | tr '[:lower:]-' '[:upper:]_')_LOG_DIR"
+
     # Run with -v to enable debug logging
-    APP_LOG_DIR="$log_dir" "$output_dir/target/debug/preset-standard" -v info > /dev/null 2>&1
+    env "${env_var}=${log_dir}" "$output_dir/target/debug/preset-standard" -v info > /dev/null 2>&1
 
     # Find the log file (rotation creates dated files)
     local log_file
@@ -140,8 +145,10 @@ EOF
     mkdir -p "$log_dir"
 
     # Run from config directory (binary uses cwd for config discovery)
+    local env_var
+    env_var="$(echo "preset-standard" | tr '[:lower:]-' '[:upper:]_')_LOG_DIR"
     cd "$config_dir"
-    APP_LOG_DIR="$log_dir" "$output_dir/target/debug/preset-standard" info > /dev/null 2>&1 || true
+    env "${env_var}=${log_dir}" "$output_dir/target/debug/preset-standard" info > /dev/null 2>&1 || true
 
     # Config discovery is best-effort, don't fail test
 }

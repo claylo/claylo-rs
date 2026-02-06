@@ -35,10 +35,13 @@ fn main() -> anyhow::Result<()> {
     let cwd = std::env::current_dir().context("failed to determine current directory")?;
     let cwd = camino::Utf8PathBuf::try_from(cwd)
         .map_err(|e| anyhow::anyhow!("current directory is not valid UTF-8: {}", e.into_path_buf().display()))?;
-    let config = ConfigLoader::new()
-        .with_project_search(&cwd)
-        .load()
-        .context("failed to load configuration")?;
+    let mut loader = ConfigLoader::new().with_project_search(&cwd);
+    if let Some(ref config_path) = cli.config {
+        let config_path = camino::Utf8PathBuf::try_from(config_path.clone())
+            .map_err(|e| anyhow::anyhow!("config path is not valid UTF-8: {}", e.into_path_buf().display()))?;
+        loader = loader.with_file(&config_path);
+    }
+    let config = loader.load().context("failed to load configuration")?;
 {% endif %}
 {% if has_jsonl_logging or has_opentelemetry %}
     let obs_config = observability::ObservabilityConfig::from_env_with_overrides(

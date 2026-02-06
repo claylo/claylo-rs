@@ -72,12 +72,12 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 owo-colors = { version = "4.2", features = ["supports-colors"] }
 {% if has_indicatif -%}
-indicatif = "0.17"
+indicatif = "0.18"
 {% endif -%}
 {% if has_inquire -%}
-inquire = "0.7"
+inquire = "0.9"
 {% if has_config -%}
-serde-saphyr = "0.0.17"
+serde-saphyr = "0.0"
 {% endif -%}
 {% endif -%}
 {% if has_config -%}

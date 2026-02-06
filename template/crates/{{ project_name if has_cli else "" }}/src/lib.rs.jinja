@@ -50,16 +50,44 @@ impl ColorChoice {
     }
 }
 
+{% if has_jsonl_logging or has_opentelemetry -%}
+{% if has_opentelemetry -%}
+const ENV_HELP: &str = "\
+ENVIRONMENT VARIABLES:
+    RUST_LOG                            Log filter (e.g., debug, {{ project_name }}=trace)
+    {{ project_name | upper | replace('-', '_') }}_LOG_PATH                 Explicit log file path
+    {{ project_name | upper | replace('-', '_') }}_LOG_DIR                  Log directory
+    {{ project_name | upper | replace('-', '_') }}_ENV                      Environment (dev, staging, prod)
+    OTEL_EXPORTER_OTLP_ENDPOINT         OTLP endpoint (enables tracing)
+    OTEL_EXPORTER_OTLP_PROTOCOL         Protocol: grpc (default), http/json
+";
+{% else -%}
+const ENV_HELP: &str = "\
+ENVIRONMENT VARIABLES:
+    RUST_LOG                Log filter (e.g., debug, {{ project_name }}=trace)
+    {{ project_name | upper | replace('-', '_') }}_LOG_PATH     Explicit log file path
+    {{ project_name | upper | replace('-', '_') }}_LOG_DIR      Log directory
+";
+{% endif -%}
+{% endif -%}
+
 /// Command-line interface definition for {{ project_name }}.
 #[derive(Parser)]
 #[command(name = "{{ project_name }}")]
 #[command(about = "{{ project_description }}", long_about = None)]
 #[command(version)]
+{% if has_jsonl_logging or has_opentelemetry -%}
+#[command(after_long_help = ENV_HELP)]
+{% endif -%}
 pub struct Cli {
     /// The subcommand to execute.
     #[command(subcommand)]
     pub command: Commands,
-
+{% if has_config %}
+    /// Path to configuration file (overrides discovery)
+    #[arg(short, long, global = true, value_name = "FILE")]
+    pub config: Option<PathBuf>,
+{% endif %}
     /// Run as if started in DIR
     #[arg(short = 'C', long, global = true)]
     pub chdir: Option<PathBuf>,
