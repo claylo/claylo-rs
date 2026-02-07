@@ -465,6 +465,38 @@ load 'test_helper'
 }
 
 # =============================================================================
+# Workspace Resolver
+# =============================================================================
+
+@test "edition=2024 sets resolver to 3" {
+    local output_dir
+    output_dir=$(generate_project_with_data "cond-resolver-3" "minimal.yml" \
+        "edition=2024" \
+        "has_github=false" \
+        "has_claude=false" \
+        "has_just=false" \
+        "has_agents_md=false" \
+        "has_gitattributes=false" \
+        "has_md=false")
+
+    assert_file_contains "$output_dir" "Cargo.toml" 'resolver = "3"'
+}
+
+@test "edition=2021 sets resolver to 2" {
+    local output_dir
+    output_dir=$(generate_project_with_data "cond-resolver-2" "minimal.yml" \
+        "edition=2021" \
+        "has_github=false" \
+        "has_claude=false" \
+        "has_just=false" \
+        "has_agents_md=false" \
+        "has_gitattributes=false" \
+        "has_md=false")
+
+    assert_file_contains "$output_dir" "Cargo.toml" 'resolver = "2"'
+}
+
+# =============================================================================
 # Template Sanity Checks
 # =============================================================================
 
