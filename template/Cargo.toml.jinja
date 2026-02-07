@@ -1,7 +1,7 @@
 [workspace]
 members = [{% if has_xtask %}"xtask", {% endif %}"crates/*"]
 default-members = ["crates/*"]
-resolver = "2"
+resolver = "{{ 3 if edition | int >= 2024 else 2 }}"
 
 [workspace.package]
 edition = "{{ edition }}"
