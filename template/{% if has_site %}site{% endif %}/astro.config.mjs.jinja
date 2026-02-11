@@ -1,0 +1,41 @@
+// @ts-check
+import { defineConfig } from "astro/config";
+import starlight from "@astrojs/starlight";
+import starlightContextualMenu from "starlight-contextual-menu";
+import starlightGithubAlerts from "starlight-github-alerts";
+
+// https://astro.build/config
+export default defineConfig({
+{% if site_deploy_github_pages %}
+  site: "https://{{ owner }}.github.io",
+  base: "/{{ project_name }}",
+{% else %}
+  site: "https://{{ project_name }}.pages.dev",
+{% endif %}
+  integrations: [
+    starlight({
+      title: "{{ project_name }}",
+      social: [
+        {
+          icon: "github",
+          label: "GitHub",
+          href: "https://github.com/{{ owner }}/{{ project_name }}",
+        },
+      ],
+      plugins: [
+        starlightContextualMenu({ actions: ["copy", "view", "chatgpt", "claude"] }),
+        starlightGithubAlerts(),
+      ],
+      sidebar: [
+        {
+          label: "Guides",
+          autogenerate: { directory: "guides" },
+        },
+        {
+          label: "Reference",
+          autogenerate: { directory: "reference" },
+        },
+      ],
+    }),
+  ],
+});

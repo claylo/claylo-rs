@@ -13,6 +13,7 @@ has_mcp_server: true
 has_benchmarks: false
 has_gungraun: false
 has_site: false
+site_deploy: github_pages
 has_xtask: true
 has_community_files: false
 # Dotfiles (minimal)
@@ -41,8 +42,8 @@ has_skill_markdown_authoring: false
 has_skill_capturing_decisions: false
 has_skill_using_git: false
 # Release automation
-has_releases: false
-has_attestations: false
+has_releases: true
+has_attestations: true
 # Repository tooling
 has_coda: false
 has_roadmap_votes: false

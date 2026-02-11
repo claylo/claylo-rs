@@ -1,7 +1,7 @@
 # Standard preset feature flags (project-specific values like project_name
 # and crate_name are set by the wrapper script, not in preset files)
 preset: standard
-lint_level: standard
+lint_level: strict
 hook_system: none
 has_cli: true
 has_core_library: true
@@ -10,7 +10,8 @@ has_jsonl_logging: true
 has_opentelemetry: false
 has_mcp_server: false
 has_benchmarks: false
-has_site: false
+has_site: true
+site_deploy: github_pages
 has_xtask: true
 has_community_files: false
 # Dotfiles (standard = off)
@@ -38,8 +39,8 @@ has_claude_commands: true
 has_skill_markdown_authoring: true
 has_skill_capturing_decisions: true
 has_skill_using_git: true
-# Release automation (standard = off, but attestations default on when releases enabled)
-has_releases: false
+# Release automation
+has_releases: true
 has_attestations: true
 # Repository tooling
 has_coda: true

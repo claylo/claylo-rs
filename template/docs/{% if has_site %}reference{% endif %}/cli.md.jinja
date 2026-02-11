@@ -1,0 +1,45 @@
+---
+title: CLI Reference
+description: Command-line interface reference for {{ project_name }}
+---
+
+## Global options
+
+| Option | Description |
+|--------|-------------|
+| `--verbose` | Enable verbose output |
+| `--json` | Output in JSON format |
+| `--version` | Print version information |
+| `--help` | Print help |
+
+## Commands
+
+### `info`
+
+Display version, build, and environment information.
+
+```bash
+{{ project_name }} info
+{{ project_name }} info --json
+```
+
+### `completions`
+
+Generate shell completions.
+
+```bash
+{{ project_name }} completions bash
+{{ project_name }} completions zsh
+{{ project_name }} completions fish
+{{ project_name }} completions powershell
+```
+{% if has_config %}
+
+### `doctor`
+
+Check configuration and environment health.
+
+```bash
+{{ project_name }} doctor
+```
+{%- endif %}

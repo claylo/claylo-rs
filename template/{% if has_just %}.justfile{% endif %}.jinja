@@ -200,6 +200,23 @@ bench-gungraun:
 bench-cli:
   ./scripts/bench-cli.sh
 {% endif %}
+{% if has_site %}
+# Install site dependencies
+site-install:
+  cd site && npm install
+
+# Start site dev server
+site-dev:
+  cd site && npm run dev
+
+# Build site for production
+site-build:
+  cd site && npm run build
+
+# Preview production build
+site-preview:
+  cd site && npm run preview
+{% endif %}
 # Pre-release validation
 release-check:
     #!/usr/bin/env zsh
@@ -253,12 +270,12 @@ update:
 
 # Upgrade Cargo.toml to latest compatible versions
 upgrade:
-    cargo upgrade --workspace
+    cargo upgrade
     cargo update --workspace
 
 # The nuclear option: upgrade to latest incompatible versions (breaking changes)
 upgrade-breaking:
-    cargo upgrade --workspace --incompatible
+    cargo upgrade --incompatible
     cargo update --workspace
 
 # See what WOULD update without doing it

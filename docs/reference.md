@@ -68,7 +68,8 @@ Override preset defaults with these flags.
 | `has_indicatif` | `indicatif` | false | Progress bars and spinners |
 | `has_benchmarks` | `bench` | full only | Benchmark infrastructure |
 | `has_gungraun` | `gungraun` | false | Gungraun benchmark generator |
-| `has_site` | `site` | full only | Site directory placeholder |
+| `has_site` | `site` | standard/full | Astro Starlight documentation site |
+| `site_deploy` | — | `github_pages` | Deploy target: `github_pages`, `cloudflare_github_actions`, `cloudflare` |
 | `has_community_files` | `community` | false | CODE_OF_CONDUCT.md, CONTRIBUTING.md |
 
 
@@ -97,7 +98,7 @@ Override any setting with feature flags.
 | Preset | Core Library | Config | Logging | Benchmarks | Site |
 |--------|--------------|--------|---------|------------|------|
 | `minimal` | ✗ | ✗ | ✗ | ✗ | ✗ |
-| `standard` | ✓ | ✓ | ✓ | ✗ | ✗ |
+| `standard` | ✓ | ✓ | ✓ | ✗ | ✓ |
 | `full` | ✓ | ✓ | ✓ | ✓ | ✓ |
 
 See [presets.md](presets.md) for detailed breakdowns.
