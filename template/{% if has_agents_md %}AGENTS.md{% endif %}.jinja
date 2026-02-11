@@ -1,7 +1,75 @@
-# Repository Guidelines
+# {{ project_name }}
 
-## Additional Notes
-- Consider the project a monorepo containing multiple crates unless explicitly told otherwise.
-- Follow the existing crate/workspace layout. If creating a new workspace, prefer a simple, discoverable structure (e.g. crates under `crates/`).
-- Treat `target/` as build output only; do not commit artifacts.
-- Capture architectural decisions in Markdown ADRs under `docs/decisions/`.
+## Workspace Layout
+
+This is a Cargo workspace. All crates live under `crates/`:
+
+| Crate | Purpose |
+|-------|---------|
+| `{{ project_name }}` | CLI binary{% if has_core_library %} |
+| `{{ project_name }}-core` | Shared library (config, types, logic){% endif %}{% if has_xtask %} |
+| `xtask` | Dev automation (completions, man pages){% endif %} |
+
+{% if has_config -%}
+Configuration files live in `config/` with `.toml.example` and `.yaml.example` templates.
+{% endif -%}
+
+## Commands
+{% if has_just %}
+Use `just` for all dev tasks:
+
+```
+just check          # fmt + clippy + deny + test + doc-test (run before pushing)
+just test           # cargo nextest run
+just clippy         # lint with pinned toolchain
+just fmt            # cargo fmt --all
+just deny           # security/license audit
+just fix            # auto-fix clippy warnings{% if has_benchmarks -%}
+just bench          # run all benchmarks{% endif -%}
+just release-check  # pre-release validation
+just outdated       # check for outdated dependencies
+just upgrade        # update deps in Cargo.toml and Cargo.lock
+```
+{% else %}
+```
+cargo fmt --all
+cargo clippy --all-targets --all-features -- -D warnings
+cargo nextest run
+cargo deny check
+```
+{% endif %}
+
+**Tests use `cargo nextest run`**, not `cargo test`. Doc tests are separate: `cargo test --doc`.
+
+## Rust Conventions
+
+- **Edition {{ edition }}**, MSRV **{{ msrv }}**, toolchain pinned in `rust-toolchain.toml`
+- `unsafe_code = "deny"` — no unsafe unless explicitly allowed with a `// SAFETY:` comment
+- Clippy `all` = warn{% if lint_level == 'strict' %}, `nursery` = warn{% endif %} — treat warnings as errors in CI
+- Use `anyhow::Result` in the binary, `thiserror` for library error types
+{% if has_core_library -%}
+- Shared logic belongs in `{{ project_name }}-core`; the CLI crate handles argument parsing and I/O
+{% endif %}
+
+{% if has_core_library -%}
+**IMPORTANT — THIN CLI, FAT CORE.** Feature logic and new dependencies belong in `{{ project_name }}-core`, not `{{ project_name }}`. The CLI crate is a thin shell: argument parsing, I/O, and wiring. This keeps the core testable without subprocess gymnastics and leaves the door open for other frontends (WASM, Tauri, etc).
+{% endif -%}
+
+## Adding CLI Commands
+
+1. Create `crates/{{ project_name }}/src/commands/your_cmd.rs`
+2. Add the variant to `Commands` enum in `crates/{{ project_name }}/src/lib.rs`
+3. Wire it up in `match cli.command` in `main.rs`
+{% if has_cli -%}
+4. Add integration tests in `crates/{{ project_name }}/tests/`
+{% endif %}
+
+## Do Not
+
+- Commit anything in `target/`
+- Add dependencies without checking `deny.toml` license policy (`just deny`)
+- Skip `--all-targets --all-features` when running clippy
+- Use `cargo test` instead of `cargo nextest run`
+{% if has_just -%}
+- Run raw cargo commands when a `just` recipe exists
+{% endif %}

@@ -1,7 +1,7 @@
 # Minimal preset feature flags (project-specific values like project_name
 # and crate_name are set by the wrapper script, not in preset files)
 preset: minimal
-lint_level: standard
+lint_level: strict
 hook_system: none
 has_cli: true
 has_core_library: false
@@ -11,6 +11,7 @@ has_opentelemetry: false
 has_mcp_server: false
 has_benchmarks: false
 has_site: false
+site_deploy: github_pages
 has_xtask: false
 has_community_files: false
 # Dotfiles (minimal = off)
@@ -39,7 +40,7 @@ has_skill_capturing_decisions: true
 has_skill_using_git: true
 # Release automation (minimal = off)
 has_releases: false
-has_attestations: false
+has_attestations: true
 # Repository tooling
 has_coda: true
 has_roadmap_votes: false

@@ -67,6 +67,21 @@ For reduced output (saves context window tokens), use the agents formatter:
 
 **CRITICAL:** Use `$(pwd)` not `$PWD` — the variable expansion differs in subshell contexts and will cause "Formatter not readable" errors if you use `$PWD`.
 
+### Checking Test Progress
+
+The agents formatter is **silent on stdout** for passing tests — it only prints failures and a final summary. Do NOT assume the process is hung because there's no output. Do NOT pipe through `tail` — it buffers everything and you'll see nothing until the run finishes.
+
+Progress is written to sidecar files in `target/template-tests/`:
+
+```bash
+tail -5 target/template-tests/.bats-progress-conditional_files
+tail -5 target/template-tests/.bats-progress-presets
+```
+
+Each line: `[completed/total] STATUS  test name`. The file resets at the start of each run.
+
+When running tests in the background, check progress via these sidecar files — not by reading stdout.
+
 ### Test Types
 
 - **Conditional file tests** (`test/conditional_files.bats`): Fast — verify modular flags include/exclude files without cargo builds.
@@ -106,6 +121,7 @@ Key Copier variables (see `copier.yaml` for full list):
 - `has_cli`, `has_core_library`, `has_config`
 - `has_jsonl_logging`, `has_opentelemetry`, `has_mcp_server`
 - `has_benchmarks`, `has_gungraun`, `has_xtask`, `has_site`
+- `site_deploy` — `github_pages` (default), `cloudflare_github_actions`, `cloudflare` (only when `has_site`)
 - `has_community_files`, `has_github`, `has_security_md`, `has_issue_templates`, `has_pr_templates`
 
 **Dotfiles and tooling:**
@@ -120,6 +136,7 @@ Key Copier variables (see `copier.yaml` for full list):
 **Computed (not user-facing):**
 - `needs_tokio` — true when `has_opentelemetry` or `has_mcp_server`
 - `has_pre_commit`, `has_lefthook` — derived from `hook_system`
+- `site_deploy_github_pages`, `site_deploy_cloudflare` — derived from `site_deploy`
 
 **IMPORTANT:** Always run `just fmt` and `just lint` and correct any issues in `copier.yaml` before presenting a change to user.
 

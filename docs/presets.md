@@ -72,6 +72,8 @@ my-tool/
 ├── crates/
 │   ├── my-tool/          # CLI binary
 │   └── my-tool-core/     # Library crate
+├── docs/                 # Starlight content source
+├── site/                 # Astro Starlight site
 ├── xtask/                # Build automation
 ├── .claude/              # AI agent config
 ├── Cargo.toml
@@ -89,6 +91,7 @@ my-tool/
 | JSONL logging | ✓ |
 | xtask | ✓ |
 | Benchmarks | ✗ |
+| Documentation site | ✓ |
 | GitHub workflows | ✓ |
 | Markdown linting | ✓ |
 
@@ -118,7 +121,7 @@ my-tool/
 │   └── my-tool-core/
 ├── benches/              # Divan benchmarks
 ├── xtask/
-├── site/                 # Documentation site placeholder
+├── site/                 # Astro Starlight documentation site
 ├── .claude/
 ├── .editorconfig
 ├── .yamlfmt
@@ -140,7 +143,7 @@ my-tool/
 | JSONL logging | ✓ |
 | xtask | ✓ |
 | Benchmarks | ✓ |
-| Site placeholder | ✓ |
+| Documentation site | ✓ |
 | Editor configs | ✓ |
 | Environment files | ✓ |
 
@@ -151,11 +154,13 @@ my-tool/
 | Feature | Full | Minimal | Standard |
 |---------|----------|----------|----------|
 | `has_agents_md` | ✓ | ✓ | ✓ |
+| `has_attestations` | ✓ | ✓ | ✓ |
 | `has_benchmarks` | ✓ | ✗ | ✗ |
 | `has_claude` | ✓ | ✓ | ✓ |
 | `has_claude_commands` | ✓ | ✓ | ✓ |
 | `has_claude_skills` | ✓ | ✓ | ✓ |
 | `has_cli` | ✓ | ✓ | ✓ |
+| `has_coda` | ✓ | ✓ | ✓ |
 | `has_community_files` | ✓ | ✗ | ✗ |
 | `has_config` | ✓ | ✗ | ✓ |
 | `has_core_library` | ✓ | ✗ | ✓ |
@@ -172,14 +177,17 @@ my-tool/
 | `has_md_strict` | ✗ | ✗ | ✗ |
 | `has_opentelemetry` | ✓ | ✗ | ✗ |
 | `has_pr_templates` | ✓ | ✓ | ✓ |
+| `has_releases` | ✓ | ✗ | ✓ |
+| `has_roadmap_votes` | ✗ | ✗ | ✗ |
 | `has_security_md` | ✓ | ✓ | ✓ |
-| `has_site` | ✓ | ✗ | ✗ |
+| `has_site` | ✓ | ✗ | ✓ |
 | `has_skill_capturing_decisions` | ✓ | ✓ | ✓ |
 | `has_skill_markdown_authoring` | ✓ | ✗ | ✓ |
 | `has_skill_using_git` | ✓ | ✓ | ✓ |
 | `has_xtask` | ✓ | ✗ | ✓ |
 | `has_yamlfmt` | ✓ | ✗ | ✗ |
 | `has_yamllint` | ✓ | ✗ | ✗ |
+| `site_deploy` | ✗ | ✗ | ✗ |
 <!-- END GENERATED: preset-comparison -->
 
 ### OpenTelemetry

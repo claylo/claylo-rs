@@ -39,15 +39,15 @@ dist/share/completions/*
 bench-reports/*
 !bench-reports/.gitkeep
 
+# site
+site/node_modules/
+
 # agent handoffs/pickups
-.handoffs/
+#.handoffs/
 
 # commit message draft
 .commit.md
 commit.txt
-
-# agent instructions that won't be committed
-INTERNAL-PLAN.md
 
 # scratch script and scratch directory
 # for little tests, scripts or notes

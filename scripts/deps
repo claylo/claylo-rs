@@ -45,6 +45,9 @@ declare -A ACTIONS=(
     ["actions/github-script"]=""
     ["actions/setup-node"]=""
     ["actions/attest-build-provenance"]=""
+    ["actions/configure-pages"]=""
+    ["actions/upload-pages-artifact"]=""
+    ["actions/deploy-pages"]=""
     ["dtolnay/rust-toolchain"]=""
     ["EmbarkStudios/cargo-deny-action"]=""
     ["Swatinem/rust-cache"]=""
@@ -53,6 +56,7 @@ declare -A ACTIONS=(
     ["amannn/action-semantic-pull-request"]=""
     ["mislav/bump-homebrew-formula-action"]=""
     ["astral-sh/setup-uv"]=""
+    ["cloudflare/wrangler-action"]=""
 )
 
 # ============================================================================
@@ -93,6 +97,20 @@ CRATES=(
 )
 
 # ============================================================================
+# npm packages we track (for site/)
+# ============================================================================
+SITE_PACKAGES=(
+    "astro"
+    "@astrojs/starlight"
+    "sharp"
+    "starlight-contextual-menu"
+    "starlight-github-alerts"
+)
+
+# Site package.json location (Jinja conditional path)
+SITE_PACKAGE_JSON="$TEMPLATE_DIR/{% if has_site %}site{% endif %}/package.json.jinja"
+
+# ============================================================================
 # Helpers
 # ============================================================================
 
@@ -122,11 +140,14 @@ Commands:
   actions update      Update GitHub Actions in workflow files
   crates outdated     Show outdated crates
   crates update       Update crates in Cargo.toml.jinja files
+  site outdated       Show outdated site npm packages
+  site update         Update npm packages in package.json.jinja
   report              Generate JSON report of all dependencies
 
 Examples:
   deps actions outdated
   deps crates update
+  deps site outdated
 EOF
     exit 1
 }
@@ -608,6 +629,152 @@ crates_update() {
 }
 
 # ============================================================================
+# npm packages (site/)
+# ============================================================================
+
+# Fetch latest version from npm registry
+fetch_npm_version() {
+    local package="$1"
+    local encoded
+    encoded=$(printf '%s' "$package" | sed 's/@/%40/g; s/\//%2F/g')
+    curl -sf "https://registry.npmjs.org/${encoded}/latest" \
+        -H "User-Agent: claylo-rs-deps (https://github.com/claylo/claylo-rs)" \
+        | jq -r '.version // "unknown"' 2>/dev/null || echo "unknown"
+}
+
+# Fetch a single npm package and output "package:version" (for parallel use)
+_fetch_npm_for_parallel() {
+    local package="$1"
+    local version
+    version=$(fetch_npm_version "$package")
+    echo "${package}:${version}"
+}
+export -f _fetch_npm_for_parallel fetch_npm_version
+
+# Batch fetch all npm package versions in parallel
+fetch_all_npm_versions() {
+    local -n result_map=$1
+    shift
+    local packages=("$@")
+    local parallelism=5
+
+    local output
+    output=$(printf '%s\n' "${packages[@]}" | xargs -P "$parallelism" -I {} bash -c '_fetch_npm_for_parallel "$@"' _ {})
+
+    while IFS=: read -r package version; do
+        [[ -n "$package" ]] && result_map["$package"]="$version"
+    done <<< "$output"
+}
+
+# Extract current npm package version from package.json.jinja
+get_current_npm_version() {
+    local package="$1"
+    local file="$SITE_PACKAGE_JSON"
+
+    [[ -f "$file" ]] || return
+
+    # Match: "package": "^1.2.3" or "package": "1.2.3"
+    local version
+    version=$(grep -E "\"${package//\//\\/}\"" "$file" 2>/dev/null | head -1 | sed -E 's/.*"\^?([0-9.]+)".*/\1/' || true)
+
+    if [[ -n "$version" && "$version" =~ ^[0-9] ]]; then
+        echo "$version"
+    fi
+}
+
+site_outdated() {
+    echo -e "${BLUE}Fetching latest npm package versions...${NC}"
+
+    declare -A NPM_VERSIONS
+    fetch_all_npm_versions NPM_VERSIONS "${SITE_PACKAGES[@]}"
+
+    echo ""
+    printf "%-35s %-12s %-12s %s\n" "PACKAGE" "CURRENT" "LATEST" "STATUS"
+    printf "%-35s %-12s %-12s %s\n" "-------" "-------" "------" "------"
+
+    local has_outdated=false
+
+    for package in "${SITE_PACKAGES[@]}"; do
+        local latest="${NPM_VERSIONS[$package]:-unknown}"
+        local current
+        current=$(get_current_npm_version "$package")
+
+        if [[ -z "$current" ]]; then
+            continue
+        fi
+
+        local status=""
+        local current_parts latest_parts
+        IFS='.' read -ra current_parts <<< "$current"
+        IFS='.' read -ra latest_parts <<< "$latest"
+
+        if [[ "${current_parts[0]:-0}" == "${latest_parts[0]:-0}" ]] && \
+           [[ "${current_parts[1]:-0}" == "${latest_parts[1]:-0}" ]]; then
+            status="${GREEN}current${NC}"
+        else
+            status="${YELLOW}outdated${NC}"
+            has_outdated=true
+        fi
+
+        printf "%-35s %-12s %-12s %b\n" "$package" "$current" "$latest" "$status"
+    done
+
+    echo ""
+    if [[ "$has_outdated" == "true" ]]; then
+        echo -e "Run ${BLUE}deps site update${NC} to update outdated packages."
+    else
+        echo -e "${GREEN}All site packages are up to date.${NC}"
+    fi
+}
+
+site_update() {
+    echo -e "${BLUE}Fetching latest npm package versions...${NC}"
+
+    declare -A NPM_VERSIONS
+    fetch_all_npm_versions NPM_VERSIONS "${SITE_PACKAGES[@]}"
+
+    echo -e "${YELLOW}Updating package.json.jinja...${NC}"
+    echo ""
+
+    local file="$SITE_PACKAGE_JSON"
+    if [[ ! -f "$file" ]]; then
+        echo -e "${RED}Site package.json.jinja not found${NC}"
+        return 1
+    fi
+
+    local updated_count=0
+
+    for package in "${SITE_PACKAGES[@]}"; do
+        local latest="${NPM_VERSIONS[$package]:-unknown}"
+        [[ "$latest" == "unknown" ]] && continue
+
+        local escaped_package="${package//\//\\/}"
+
+        if grep -qE "\"${escaped_package}\"[[:space:]]*:" "$file" 2>/dev/null; then
+            PKG="$package" VER="$latest" \
+            perl -i.bak -pe '
+                my $p = quotemeta($ENV{PKG});
+                s/("$p"\s*:\s*")\^?[\d.]+(")/\1^$ENV{VER}$2/
+            ' "$file"
+
+            if ! diff -q "$file" "$file.bak" &>/dev/null; then
+                echo -e "  ${GREEN}✓${NC} $package → ^$latest"
+                updated_count=$((updated_count + 1))
+            fi
+            rm -f "$file.bak"
+        fi
+    done
+
+    echo ""
+    if [[ $updated_count -gt 0 ]]; then
+        echo -e "${GREEN}Updated $updated_count package(s).${NC}"
+        echo -e "Review changes with: ${BLUE}git diff${NC}"
+    else
+        echo -e "${GREEN}All site packages already up to date.${NC}"
+    fi
+}
+
+# ============================================================================
 # Report generation
 # ============================================================================
 
@@ -646,13 +813,28 @@ generate_report() {
     done
     crates_json+='}'
 
+    # Fetch site packages
+    declare -A NPM_VERSIONS
+    fetch_all_npm_versions NPM_VERSIONS "${SITE_PACKAGES[@]}"
+
+    local site_json='{'
+    first=true
+    for package in "${SITE_PACKAGES[@]}"; do
+        local version="${NPM_VERSIONS[$package]:-unknown}"
+        [[ "$first" == "true" ]] && first=false || site_json+=','
+        site_json+="\"$package\":\"$version\""
+    done
+    site_json+='}'
+
     jq -n \
         --argjson actions "$actions_json" \
         --argjson crates "$crates_json" \
+        --argjson site "$site_json" \
         '{
             "generated_at": now | strftime("%Y-%m-%dT%H:%M:%SZ"),
             "actions": $actions,
-            "crates": $crates
+            "crates": $crates,
+            "site": $site
         }' > "$report_file"
 
     echo -e "${GREEN}Report saved to: $report_file${NC}"
@@ -680,6 +862,13 @@ main() {
             case "$subcmd" in
                 outdated) crates_outdated ;;
                 update) crates_update ;;
+                *) usage ;;
+            esac
+            ;;
+        site)
+            case "$subcmd" in
+                outdated) site_outdated ;;
+                update) site_update ;;
                 *) usage ;;
             esac
             ;;

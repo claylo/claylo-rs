@@ -1,0 +1,29 @@
+---
+title: Installation
+description: How to install {{ project_name }}
+---
+
+## From crates.io
+
+```bash
+cargo install {{ project_name }}
+```
+
+## From source
+
+```bash
+git clone https://github.com/{{ owner }}/{{ project_name }}.git
+cd {{ project_name }}
+cargo install --path crates/{{ project_name }}
+```
+
+## Pre-built binaries
+
+Download the latest release for your platform from the
+[releases page](https://github.com/{{ owner }}/{{ project_name }}/releases).
+
+## Verify installation
+
+```bash
+{{ project_name }} --version
+```

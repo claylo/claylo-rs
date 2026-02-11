@@ -4,7 +4,7 @@ Production-ready Rust CLI scaffolding.
 Opinionated defaults.
 Updates that don't abandon you.
 
-![Choose your adventure flowchart](docs/images/choose-your-adventure.svg)
+[![Should I use this template flowchart](docs/diagrams/should-i-2x.png)](docs/diagrams/should-i-3x.png)
 
 ## Install
 
@@ -12,7 +12,7 @@ Updates that don't abandon you.
 brew install claylo/brew/claylo-rs
 ```
 
-Requires [copier](https://copier.readthedocs.io/) (`uv tool install copier` or `pipx install copier`).
+Homebrew will install [copier](https://copier.readthedocs.io/) alongside the `claylo-rs` wrapper, or you can `uv tool install copier` or `pipx install copier`.
 If you're not a Python fan, don't worry — it stays out of your generated project.
 
 

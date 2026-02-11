@@ -259,7 +259,7 @@ cleanup_orphaned_files() {
         rm -rf "${project_dir}/crates/${project_name}-core/benches" 2>/dev/null
         rm -rf "${project_dir}/bench-reports" 2>/dev/null
         rm -f "${project_dir}/scripts/bench-cli.sh" 2>/dev/null
-        rm -f "${project_dir}/docs/benchmarks-howto.md" 2>/dev/null
+        rm -f "${project_dir}/.github/docs/benchmarks-howto.md" 2>/dev/null
     fi
 
     # Cleanup for has_xtask=false
@@ -270,6 +270,10 @@ cleanup_orphaned_files() {
     # Cleanup for has_site=false
     if is_disabled "has_site"; then
         rm -rf "${project_dir}/site" 2>/dev/null
+        rm -f "${project_dir}/.github/workflows/deploy-site.yml" 2>/dev/null
+        rm -rf "${project_dir}/docs/guides" 2>/dev/null
+        rm -rf "${project_dir}/docs/reference" 2>/dev/null
+        rm -f "${project_dir}/docs/index.md" 2>/dev/null
     fi
 
     # Cleanup for has_mcp_server=false
@@ -294,7 +298,7 @@ cleanup_orphaned_files() {
     # Cleanup for has_releases=false
     if is_disabled "has_releases"; then
         rm -f "${project_dir}/cliff.toml" 2>/dev/null
-        rm -f "${project_dir}/docs/releases.md" 2>/dev/null
+        rm -f "${project_dir}/.github/docs/releases.md" 2>/dev/null
     fi
 
     # Cleanup for has_community_files=false

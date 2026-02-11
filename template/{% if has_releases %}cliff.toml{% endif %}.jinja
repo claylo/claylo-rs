@@ -27,9 +27,9 @@ body = """
         - {% if commit.scope %}*({{ commit.scope }})* {% endif %}\
             {% if commit.breaking %}[**breaking**] {% endif %}\
             {{ commit.message | upper_first }}\
-            {% if commit.github.username %} by @{{ commit.github.username }}{%- endif -%}
-            {% if commit.github.pr_number %} in \
-              [#{{ commit.github.pr_number }}]({{ self::remote_url() }}/pull/{{ commit.github.pr_number }}) \
+            {% if commit.remote.username %} by @{{ commit.remote.username }}{%- endif -%}
+            {% if commit.remote.pr_number %} in \
+              [#{{ commit.remote.pr_number }}]({{ self::remote_url() }}/pull/{{ commit.remote.pr_number }}) \
             {%- endif -%}
     {% endfor %}
 {% endfor %}
@@ -58,6 +58,14 @@ body = """
 trim = true
 # Changelog footer
 footer = ""
+
+# Rust 0.x.x versioning conventions:
+# - features bump patch (not minor) while major is 0
+# - breaking changes bump minor (not major) while major is 0
+[bump]
+initial_tag = "0.1.0"
+features_always_bump_minor = false
+breaking_always_bump_major = false
 
 [git]
 # Parse conventional commits

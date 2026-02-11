@@ -1,30 +1,48 @@
-# {{ project_name }} Site
+# {{ project_name }} Documentation Site
 
-This directory contains the project website/documentation site.
+Built with [Astro Starlight](https://starlight.astro.build/).
 
-## Getting Started
+Content is sourced from the `docs/` directory at the project root.
 
-Add your Tailwind-based site content here. Suggested structure:
-
-```
-site/
-├── index.html
-├── src/
-│   └── styles/
-│       └── main.css
-├── package.json
-└── tailwind.config.js
-```
-
-## Build Commands
+## Development
 
 ```bash
 # Install dependencies
 npm install
 
-# Development server
+# Start dev server (http://localhost:4321)
 npm run dev
 
-# Production build
+# Build for production
 npm run build
+
+# Preview production build
+npm run preview
 ```
+{% if site_deploy_github_pages %}
+## Deployment
+
+This site deploys to **GitHub Pages** automatically via the `deploy-site.yml` workflow on push to `main`.
+
+The site is available at: `https://{{ owner }}.github.io/{{ project_name }}/`
+{% elif site_deploy == 'cloudflare_github_actions' %}
+## Deployment
+
+This site deploys to **Cloudflare Pages** automatically via the `deploy-site.yml` workflow on push to `main`.
+
+### Required secrets
+
+- `CLOUDFLARE_API_TOKEN` - Cloudflare API token with Pages permissions
+- `CLOUDFLARE_ACCOUNT_ID` - Your Cloudflare account ID
+{% else %}
+## Deployment
+
+This site deploys to **Cloudflare Pages** via git integration.
+
+Connect this repository in the [Cloudflare dashboard](https://dash.cloudflare.com/):
+
+1. Go to **Workers & Pages** > **Create** > **Pages**
+2. Connect your GitHub repository
+3. Set build command: `cd site && npm run build`
+4. Set build output directory: `site/dist`
+{% endif %}

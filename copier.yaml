@@ -233,8 +233,17 @@ has_gungraun:
   help: "Include gungraun instruction-count benchmarks (requires Valgrind - Linux/Intel Mac only)"
 has_site:
   type: bool
-  default: "{{ preset == 'full' }}"
-  help: "Include site directory (placeholder)"
+  default: "{{ preset != 'minimal' }}"
+  help: "Include Astro Starlight documentation site"
+site_deploy:
+  type: str
+  choices:
+    "GitHub Pages": "github_pages"
+    "Cloudflare Pages (GitHub Actions)": "cloudflare_github_actions"
+    "Cloudflare Pages (git integration)": "cloudflare"
+  default: "github_pages"
+  when: "{{ has_site }}"
+  help: "Deployment target for documentation site"
 has_community_files:
   type: bool
   default: false
@@ -294,6 +303,14 @@ has_pre_commit:
 has_lefthook:
   type: bool
   default: "{{ hook_system == 'lefthook' }}"
+  when: false # Don't prompt, just compute
+site_deploy_github_pages:
+  type: bool
+  default: "{{ site_deploy == 'github_pages' }}"
+  when: false # Don't prompt, just compute
+site_deploy_cloudflare:
+  type: bool
+  default: "{{ site_deploy == 'cloudflare' or site_deploy == 'cloudflare_github_actions' }}"
   when: false # Don't prompt, just compute
 # =============================================================================
 # Dotfiles (Optional in most presets, default only in 'full')

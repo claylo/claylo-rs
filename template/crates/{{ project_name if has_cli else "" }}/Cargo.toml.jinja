@@ -25,8 +25,7 @@ exclude = [
 {% endif %}{% if has_benchmarks %}
     "/bench-reports/",
     "/scripts/",
-{% endif %}
-    "/docs/",
+{% endif %}    "/docs/",
     "/deny.toml",
 ]
 
@@ -35,14 +34,17 @@ name = "{{ project_name }}"
 path = "src/main.rs"
 
 [package.metadata.binstall]
-pkg-url = "{ repo }/releases/download/v{ version }/{ name }-{ target }.{ archive-format }"
-bin-dir = "{ bin }{ binary-ext }"
+pkg-url = "{ repo }/releases/download/v{ version }/{ name }-{ version }-{ target }.tar.gz"
+bin-dir = "bin/{ bin }{ binary-ext }"
 pkg-fmt = "tgz"
 
 [package.metadata.binstall.overrides.x86_64-pc-windows-msvc]
-pkg-url = "{ repo }/releases/download/v{ version }/{ name }-v{ version }-{ target }.zip"
+pkg-url = "{ repo }/releases/download/v{ version }/{ name }-{ version }-{ target }.zip"
 pkg-fmt = "zip"
-bin-dir = "{ bin }{ binary-ext }"
+
+[package.metadata.binstall.overrides.aarch64-pc-windows-msvc]
+pkg-url = "{ repo }/releases/download/v{ version }/{ name }-{ version }-{ target }.zip"
+pkg-fmt = "zip"
 
 [dependencies]
 {% if has_core_library -%}
@@ -65,7 +67,7 @@ tracing-opentelemetry = "0.32"
 tokio = { version = "1.49", features = ["rt-multi-thread", "macros"] }
 {% endif -%}
 {% if has_mcp_server -%}
-rmcp = { version = "0.14", features = ["server", "transport-io", "macros"] }
+rmcp = { version = "0.15", features = ["server", "transport-io", "macros"] }
 schemars = "1.2"
 {% endif -%}
 serde = { version = "1.0", features = ["derive"] }
@@ -95,7 +97,7 @@ thiserror = "2.0"
 assert_cmd = "2.1"
 predicates = "3.1"
 {% if has_config -%}
-tempfile = "3.24"
+tempfile = "3.25"
 {% endif -%}
 
 [lints]
