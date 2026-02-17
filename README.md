@@ -72,8 +72,6 @@ See [docs/reference.md](docs/reference.md) for the full flag list.
 
 ## What You Get
 
-![What you get - annotated project structure](docs/images/what-you-get.svg)
-
 ```
 my-tool/
 ├── crates/
