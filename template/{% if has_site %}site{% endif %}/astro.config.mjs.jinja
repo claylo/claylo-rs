@@ -1,8 +1,10 @@
 // @ts-check
 import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
-import starlightContextualMenu from "starlight-contextual-menu";
-import starlightGithubAlerts from "starlight-github-alerts";
+import starlightContextualMenu from "./src/integrations/contextual-menu/index.js";
+import githubAlerts from "./src/integrations/github-alerts/index.js";
+import rehypeGithubEmoji from 'rehype-github-emoji';
+import rehypeBasePath from "./src/plugins/rehype-base-path.js";
 
 // https://astro.build/config
 export default defineConfig({
@@ -12,10 +14,21 @@ export default defineConfig({
 {% else %}
   site: "https://{{ project_name }}.pages.dev",
 {% endif %}
+  prefetch: {
+    defaultStrategy: 'viewport'
+  },
+  markdown: {
+    rehypePlugins: [rehypeGithubEmoji, [rehypeBasePath, "/{{ project_name }}"]],
+  },
   integrations: [
     starlight({
       title: "{{ project_name }}",
       social: [
+        {
+          icon: "document",
+          label: "LLMs.txt",
+          href: "/{{ project_name }}/llms.txt"
+        },
         {
           icon: "github",
           label: "GitHub",
@@ -24,7 +37,7 @@ export default defineConfig({
       ],
       plugins: [
         starlightContextualMenu({ actions: ["copy", "view", "chatgpt", "claude"] }),
-        starlightGithubAlerts(),
+        githubAlerts(),
       ],
       sidebar: [
         {

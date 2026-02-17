@@ -92,6 +92,11 @@ scan-updates root:
 apply-updates root:
     ./scripts/update-projects.sh -u {{ root }}
 
+outdated:
+    ./scripts/deps actions outdated | grep --invert-match -E 'current|channel'
+    ./scripts/deps crates outdated | grep --invert-match 'current'
+    ./scripts/deps site outdated | grep --invert-match 'current'
+
 # =============================================================================
 # Docker-based testing infrastructure
 # =============================================================================
