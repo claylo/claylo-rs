@@ -16,9 +16,9 @@ test:
 test-wrapper:
     {{ bats }} test/wrapper.bats
 
-# Run fast conditional file tests only
+# Run fast conditional file tests only (parallel)
 test-fast:
-    {{ bats }} test/conditional_files.bats
+    {{ bats }} --jobs 4 test/conditional_files.bats
 
 # Run slow preset build tests only
 test-presets:

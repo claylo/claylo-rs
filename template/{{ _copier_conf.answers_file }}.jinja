@@ -1,2 +1,2 @@
 # Changes here will be overwritten by Copier
-{{ _copier_conf.data | combine({'_src_path': _copier_answers._src_path, 'copyright_year': copyright_year | default('%Y' | strftime)}) | to_nice_yaml -}}
+{{ dict(_copier_answers, copyright_year=copyright_year | default('%Y' | strftime)) | to_nice_yaml -}}

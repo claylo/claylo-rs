@@ -36,17 +36,11 @@ jobs:
         uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
 {% endif %}
 
-      - name: Setup Node.js
-        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
-        with:
-          node-version: 22
-
-      - name: Install dependencies
-        run: npm ci
-        working-directory: site
+      - name: Setup site dependencies
+        uses: ./.github/actions/setup-site-deps
 
       - name: Build site
-        run: npm run build
+        run: {{ npm }} run build
         working-directory: site
 {% if site_deploy_github_pages %}
 
@@ -76,17 +70,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.1
 
-      - name: Setup Node.js
-        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
-        with:
-          node-version: 22
-
-      - name: Install dependencies
-        run: npm ci
-        working-directory: site
+      - name: Setup site dependencies
+        uses: ./.github/actions/setup-site-deps
 
       - name: Build site
-        run: npm run build
+        run: {{ npm }} run build
         working-directory: site
 
       - name: Deploy to Cloudflare Pages

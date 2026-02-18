@@ -14,6 +14,7 @@ has_benchmarks: true
 has_gungraun: false
 has_site: true
 site_deploy: github_pages
+site_package_manager: npm
 has_xtask: true
 has_community_files: true
 # Dotfiles (full = on)

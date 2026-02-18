@@ -12,6 +12,7 @@ has_mcp_server: false
 has_benchmarks: false
 has_site: true
 site_deploy: github_pages
+site_package_manager: npm
 has_xtask: true
 has_community_files: false
 # Dotfiles (standard = off)
