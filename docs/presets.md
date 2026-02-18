@@ -188,6 +188,7 @@ my-tool/
 | `has_yamlfmt` | ✓ | ✗ | ✗ |
 | `has_yamllint` | ✓ | ✗ | ✗ |
 | `site_deploy` | ✗ | ✗ | ✗ |
+| `site_package_manager` | ✗ | ✗ | ✗ |
 <!-- END GENERATED: preset-comparison -->
 
 ### OpenTelemetry

@@ -335,6 +335,7 @@ get_preset_flags() {
       out+=(--data "has_gungraun=false")
       out+=(--data "has_site=true")
       out+=(--data "site_deploy=github_pages")
+      out+=(--data "site_package_manager=npm")
       out+=(--data "has_xtask=true")
       out+=(--data "has_community_files=true")
       out+=(--data "has_yamlfmt=true")
@@ -372,6 +373,7 @@ get_preset_flags() {
       out+=(--data "has_benchmarks=false")
       out+=(--data "has_site=false")
       out+=(--data "site_deploy=github_pages")
+      out+=(--data "site_package_manager=npm")
       out+=(--data "has_xtask=false")
       out+=(--data "has_community_files=false")
       out+=(--data "has_yamlfmt=false")
@@ -408,6 +410,7 @@ get_preset_flags() {
       out+=(--data "has_benchmarks=false")
       out+=(--data "has_site=true")
       out+=(--data "site_deploy=github_pages")
+      out+=(--data "site_package_manager=npm")
       out+=(--data "has_xtask=true")
       out+=(--data "has_community_files=false")
       out+=(--data "has_yamlfmt=false")
@@ -655,7 +658,8 @@ main() {
     # we always want the .rej files option
     cmd+=(--conflict rej)
     # copier won't "just know" about the custom answers
-    cmd+=(--answers-file "$dest/.repo.yml")
+    # (must be a relative path — copier resolves it relative to dest)
+    cmd+=(--answers-file .repo.yml)
 
     # For update, only pass overrides — no preset/project_name defaults
     if [[ "$preset_set" == true ]]; then

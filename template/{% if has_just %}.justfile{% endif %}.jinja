@@ -82,6 +82,12 @@ bootstrap:
     cargo xtask man
     echo ""
 {% endif %}
+{% if has_site %}
+    # Install site dependencies
+    echo "📦 Installing site dependencies ({{ npm }})..."
+    (cd site && {{ npm }} install)
+    echo ""
+{% endif %}
 {% if has_coda %}
     # Configure repository settings via gh-coda
     if command -v gh &>/dev/null && gh extension list 2>/dev/null | grep -q coda; then
@@ -203,19 +209,19 @@ bench-cli:
 {% if has_site %}
 # Install site dependencies
 site-install:
-  cd site && npm install
+  cd site && {{ npm }} install
 
 # Start site dev server
 site-dev:
-  cd site && npm run dev
+  cd site && {{ npm }} run dev
 
 # Build site for production
 site-build:
-  cd site && npm run build
+  cd site && {{ npm }} run build
 
 # Preview production build
 site-preview:
-  cd site && npm run preview
+  cd site && {{ npm }} run preview
 {% endif %}
 # Pre-release validation
 release-check:

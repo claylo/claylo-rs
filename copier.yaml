@@ -244,6 +244,16 @@ site_deploy:
   default: "github_pages"
   when: "{{ has_site }}"
   help: "Deployment target for documentation site"
+site_package_manager:
+  type: str
+  choices:
+    "npm": "npm"
+    "pnpm": "pnpm"
+    "bun": "bun"
+    "yarn": "yarn"
+  default: "npm"
+  when: "{{ has_site }}"
+  help: "Package manager for the documentation site"
 has_community_files:
   type: bool
   default: false
@@ -311,6 +321,10 @@ site_deploy_github_pages:
 site_deploy_cloudflare:
   type: bool
   default: "{{ site_deploy == 'cloudflare' or site_deploy == 'cloudflare_github_actions' }}"
+  when: false # Don't prompt, just compute
+npm:
+  type: str
+  default: "{{ site_package_manager }}"
   when: false # Don't prompt, just compute
 # =============================================================================
 # Dotfiles (Optional in most presets, default only in 'full')

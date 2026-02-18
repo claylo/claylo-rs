@@ -70,6 +70,7 @@ Override preset defaults with these flags.
 | `has_gungraun` | `gungraun` | false | Gungraun benchmark generator |
 | `has_site` | `site` | standard/full | Astro Starlight documentation site |
 | `site_deploy` | — | `github_pages` | Deploy target: `github_pages`, `cloudflare_github_actions`, `cloudflare` |
+| `site_package_manager` | — | `npm` | Package manager: `npm`, `pnpm`, `bun`, `yarn` |
 | `has_community_files` | `community` | false | CODE_OF_CONDUCT.md, CONTRIBUTING.md |
 
 
