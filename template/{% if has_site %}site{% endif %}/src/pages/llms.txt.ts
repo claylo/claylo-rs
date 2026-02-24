@@ -5,9 +5,9 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const repoRoot = join(__dirname, "..", "..", "..");
+const siteRoot = join(__dirname, "..", "..");
 
-const pkg = JSON.parse(readFileSync(join(repoRoot, "package.json"), "utf-8"));
+const pkg = JSON.parse(readFileSync(join(siteRoot, "package.json"), "utf-8"));
 const repoUrl = (pkg.repository?.url ?? pkg.repository ?? "")
   .replace(/^git\+/, "")
   .replace(/\.git$/, "");

@@ -472,9 +472,9 @@ load 'test_helper'
     assert_file_in_project "$output_dir" "site/src/content.config.ts"
     assert_file_in_project "$output_dir" "site/.gitignore"
     assert_file_in_project "$output_dir" "site/README.md"
-    assert_file_in_project "$output_dir" "docs/index.md"
-    assert_file_in_project "$output_dir" "docs/guides/installation.md"
-    assert_file_in_project "$output_dir" "docs/reference/cli.md"
+    assert_file_in_project "$output_dir" "site/src/content/docs/index.mdx"
+    assert_file_in_project "$output_dir" "site/src/content/docs/guides/installation.md"
+    assert_file_in_project "$output_dir" "site/src/content/docs/reference/cli.md"
     assert_no_file_in_project "$output_dir" "docs/README.md"
 }
 

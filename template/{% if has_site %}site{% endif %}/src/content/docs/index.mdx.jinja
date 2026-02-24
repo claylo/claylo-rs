@@ -1,0 +1,14 @@
+---
+title: {{ project_name }}
+description: {{ project_description }}
+template: splash
+hero:
+  tagline: {{ project_description }}
+  actions:
+    - text: Get Started
+      link: /{% if site_deploy_github_pages %}{{ project_name }}/{% endif %}guides/installation/
+      icon: right-arrow
+    - text: CLI Reference
+      link: /{% if site_deploy_github_pages %}{{ project_name }}/{% endif %}reference/cli/
+      variant: minimal
+---
