@@ -8,14 +8,12 @@ has_core_library: true
 has_config: true
 has_jsonl_logging: true
 has_opentelemetry: true
-needs_tokio: true
 has_mcp_server: false
 has_benchmarks: true
 has_gungraun: false
 has_site: true
 site_deploy: github_pages
 site_package_manager: npm
-has_xtask: true
 has_community_files: true
 # Dotfiles (full = on)
 has_yamlfmt: true

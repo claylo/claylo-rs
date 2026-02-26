@@ -8,13 +8,10 @@ has_core_library: true
 has_config: true
 has_jsonl_logging: true
 has_opentelemetry: false
-needs_tokio: true
 has_mcp_server: true
 has_benchmarks: false
 has_gungraun: false
 has_site: false
-site_deploy: github_pages
-has_xtask: true
 has_community_files: false
 # Dotfiles (minimal)
 has_yamlfmt: false

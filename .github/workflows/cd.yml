@@ -55,12 +55,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
+      - name: Stamp version in wrapper
+        run: |
+          sed -i 's/^VERSION="devel"/VERSION="${{ needs.generate-changelog.outputs.version }}"/' bin/claylo-rs
+
       - name: Create release
         if: needs.generate-changelog.outputs.is_prerelease == 'false'
         uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.7.0
         with:
           name: "Release v${{ needs.generate-changelog.outputs.version }}"
           body: "${{ needs.generate-changelog.outputs.release_body }}"
+          files: bin/claylo-rs
           draft: false
           prerelease: false
 
@@ -70,6 +75,7 @@ jobs:
         with:
           name: "Pre-release v${{ needs.generate-changelog.outputs.version }}"
           body: "${{ needs.generate-changelog.outputs.release_body }}"
+          files: bin/claylo-rs
           draft: false
           prerelease: true
 
