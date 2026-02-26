@@ -184,11 +184,8 @@ my-tool/
 | `has_skill_capturing_decisions` | ✓ | ✓ | ✓ |
 | `has_skill_markdown_authoring` | ✓ | ✗ | ✓ |
 | `has_skill_using_git` | ✓ | ✓ | ✓ |
-| `has_xtask` | ✓ | ✗ | ✓ |
 | `has_yamlfmt` | ✓ | ✗ | ✗ |
 | `has_yamllint` | ✓ | ✗ | ✗ |
-| `site_deploy` | ✗ | ✗ | ✗ |
-| `site_package_manager` | ✗ | ✗ | ✗ |
 <!-- END GENERATED: preset-comparison -->
 
 ### OpenTelemetry
@@ -209,4 +206,4 @@ Enable it when you need a Model Context Protocol server:
 claylo-rs new ./my-tool --preset standard +mcp
 ```
 
-This adds `has_opentelemetry` implicitly (MCP servers need async runtime).
+This adds the tokio async runtime implicitly (MCP servers need it for stdio transport).

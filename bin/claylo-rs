@@ -361,64 +361,66 @@ check_recommended_tools() {
 # to copier defaults or user data-file.
 # Redundant vars (same across all presets) are left to copier defaults.
 # ---------------------------------------------------------------------------
+# BEGIN GENERATED: load_preset_flags
 load_preset_flags() {
   local preset="$1"
   local -n _pmap=$2
 
   case "$preset" in
     full)
-      _pmap[has_core_library]=true
-      _pmap[has_config]=true
-      _pmap[has_jsonl_logging]=true
-      _pmap[has_opentelemetry]=true
       _pmap[has_benchmarks]=true
-      _pmap[has_gungraun]=false
-      _pmap[has_site]=true
       _pmap[has_community_files]=true
-      _pmap[has_yamlfmt]=true
-      _pmap[has_yamllint]=true
+      _pmap[has_config]=true
+      _pmap[has_core_library]=true
       _pmap[has_editorconfig]=true
       _pmap[has_env_files]=true
+      _pmap[has_gungraun]=false
+      _pmap[has_jsonl_logging]=true
       _pmap[has_md]=true
       _pmap[has_md_strict]=false
-      _pmap[has_skill_markdown_authoring]=true
+      _pmap[has_opentelemetry]=true
       _pmap[has_releases]=true
+      _pmap[has_site]=true
+      _pmap[has_skill_markdown_authoring]=true
+      _pmap[has_yamlfmt]=true
+      _pmap[has_yamllint]=true
       ;;
     minimal)
-      _pmap[has_core_library]=false
-      _pmap[has_config]=false
-      _pmap[has_jsonl_logging]=false
-      _pmap[has_opentelemetry]=false
       _pmap[has_benchmarks]=false
-      _pmap[has_site]=false
       _pmap[has_community_files]=false
-      _pmap[has_yamlfmt]=false
-      _pmap[has_yamllint]=false
+      _pmap[has_config]=false
+      _pmap[has_core_library]=false
       _pmap[has_editorconfig]=false
       _pmap[has_env_files]=false
+      _pmap[has_jsonl_logging]=false
       _pmap[has_md]=false
-      _pmap[has_skill_markdown_authoring]=false
+      _pmap[has_opentelemetry]=false
       _pmap[has_releases]=false
+      _pmap[has_site]=false
+      _pmap[has_skill_markdown_authoring]=false
+      _pmap[has_yamlfmt]=false
+      _pmap[has_yamllint]=false
       ;;
     standard)
-      _pmap[has_core_library]=true
-      _pmap[has_config]=true
-      _pmap[has_jsonl_logging]=true
-      _pmap[has_opentelemetry]=false
       _pmap[has_benchmarks]=false
-      _pmap[has_site]=true
       _pmap[has_community_files]=false
-      _pmap[has_yamlfmt]=false
-      _pmap[has_yamllint]=false
+      _pmap[has_config]=true
+      _pmap[has_core_library]=true
       _pmap[has_editorconfig]=false
       _pmap[has_env_files]=false
+      _pmap[has_jsonl_logging]=true
       _pmap[has_md]=true
       _pmap[has_md_strict]=false
-      _pmap[has_skill_markdown_authoring]=true
+      _pmap[has_opentelemetry]=false
       _pmap[has_releases]=true
+      _pmap[has_site]=true
+      _pmap[has_skill_markdown_authoring]=true
+      _pmap[has_yamlfmt]=false
+      _pmap[has_yamllint]=false
       ;;
   esac
 }
+# END GENERATED: load_preset_flags
 
 # ---------------------------------------------------------------------------
 # Main

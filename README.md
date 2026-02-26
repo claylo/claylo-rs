@@ -82,6 +82,8 @@ my-tool/
 │   │   └── tests/
 │   └── my-tool-core/      # Library crate (your actual logic)
 ├── xtask/                 # Build automation (man pages, completions)
+├── docs/                  # Starlight content source
+├── site/                  # Astro Starlight documentation site
 ├── .claude/               # Claude Code skills, rules, commands
 ├── .justfile              # Task runner recipes
 ├── Cargo.toml             # Workspace manifest
