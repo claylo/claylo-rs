@@ -104,22 +104,32 @@ Template files use Jinja2. Key patterns:
 When file contents have no Jinja, use conditional filename only:
 
 ```
-commands/{{"serve.rs" if has_mcp_server else "__skip_serve__.rs"}}
+{% if has_mcp_server %}serve.rs{% endif %}
 ```
 
-When file contents use Jinja, add `.jinja` suffix:
+When file contents use Jinja, add `.jinja` suffix **outside** the condition:
 
 ```
-src/{{"server.rs" if has_mcp_server else "__skip_server__.rs"}}.jinja
+{% if has_mcp_server %}server.rs{% endif %}.jinja
 ```
+
+When the condition is false, the filename evaluates to empty (or just `.jinja`) and copier skips it.
 
 ### Conditional Directories
 
+For static directory names:
+
 ```
-template/crates/{{project_name if has_cli else "__skip_cli__"}}/
+{% if has_github %}.github{% endif %}
 ```
 
-Names starting with `__skip_` are excluded via `_exclude` in copier.yaml.
+For dynamic directory names, use a ternary:
+
+```
+{{ project_name if has_cli else "" }}
+```
+
+When the condition is false, the name evaluates to empty and copier skips the directory.
 
 ### Escaping for GitHub Actions
 

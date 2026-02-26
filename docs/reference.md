@@ -35,13 +35,18 @@ claylo-rs <command> [options] [+feature-flags]
 | Option | Description |
 |--------|-------------|
 | `--preset <name>` | `minimal`, `standard`, or `full` |
-| `--lint <level>` | `strict` or `standard` |
+| `--lint <level>` | `strict`, `standard`, or `relaxed` |
 | `--hook <system>` | `pre-commit`, `lefthook`, or `none` |
 | `--owner <name>` | GitHub org or username |
 | `--copyright <name>` | Copyright holder name |
 | `--desc <text>` | Project description |
 | `--data key=value` | Pass arbitrary data (repeatable) |
+| `--data-file <path>` | YAML file with default values |
 | `--dry-run` | Preview without writing files |
+| `--local` | Use local template directory (development) |
+| `--vcs-ref <ref>` | Template git ref to use |
+| `-y`, `--yes` | Skip confirmation prompts |
+| `-V`, `--version` | Print version and exit |
 
 ### Feature Flag Syntax
 

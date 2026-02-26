@@ -6,7 +6,7 @@ This template includes optional release automation using [git-cliff](https://git
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `has_releases` | `true` (full preset only) | Enable release automation |
+| `has_releases` | `true` (standard and full presets) | Enable release automation |
 
 Enable with the wrapper:
 

@@ -44,7 +44,12 @@ echo "  All: ${all_presets[*]}"
 echo ""
 
 # ---------------------------------------------------------------------------
-# Get all unique feature keys from preset files
+# Meta and choice keys skipped from generation (not boolean feature flags)
+# ---------------------------------------------------------------------------
+SKIP_KEYS="preset lint_level hook_system needs_tokio site_deploy site_package_manager"
+
+# ---------------------------------------------------------------------------
+# Get all unique boolean feature keys from preset files
 # Uses yq to extract keys efficiently
 # ---------------------------------------------------------------------------
 get_feature_keys() {
@@ -52,9 +57,11 @@ get_feature_keys() {
     for preset in "${primary_presets[@]}"; do
         while IFS= read -r key; do
             # Skip non-feature keys
-            case "$key" in
-                preset|lint_level|hook_system|needs_tokio) continue ;;
-            esac
+            local skip=false
+            for sk in $SKIP_KEYS; do
+                [[ "$key" == "$sk" ]] && { skip=true; break; }
+            done
+            $skip && continue
             keys+=("$key")
         done < <(yq -r 'keys | .[]' "$PRESETS_DIR/${preset}.yml")
     done
@@ -70,12 +77,44 @@ done < <(get_feature_keys)
 echo "Found ${#feature_keys[@]} feature keys"
 
 # ---------------------------------------------------------------------------
-# Generate get_preset_flags() function for bin/claylo-rs
+# Detect keys that are identical across all primary presets (redundant)
+# These are left to copier.yaml defaults and not emitted in the wrapper.
 # ---------------------------------------------------------------------------
-generate_get_preset_flags() {
-    echo "get_preset_flags() {"
+get_differing_keys() {
+    for key in "${feature_keys[@]}"; do
+        local first_value=""
+        local differs=false
+        for preset in "${primary_presets[@]}"; do
+            local value
+            value=$(yq -r ".${key}" "$PRESETS_DIR/${preset}.yml")
+            if [[ -z "$first_value" ]]; then
+                first_value="$value"
+            elif [[ "$value" != "$first_value" ]]; then
+                differs=true
+                break
+            fi
+        done
+        $differs && echo "$key"
+    done
+}
+
+differing_keys=()
+while IFS= read -r key; do
+    differing_keys+=("$key")
+done < <(get_differing_keys)
+
+echo "Found ${#differing_keys[@]} keys that differ between presets"
+
+# ---------------------------------------------------------------------------
+# Generate load_preset_flags() function for bin/claylo-rs
+#
+# Only emits variables that DIFFER between presets (category 4).
+# Computed vars, choice vars, and redundant vars are omitted.
+# ---------------------------------------------------------------------------
+generate_load_preset_flags() {
+    echo "load_preset_flags() {"
     echo "  local preset=\"\$1\""
-    echo "  local -n out=\$2"
+    echo "  local -n _pmap=\$2"
     echo ""
     echo "  case \"\$preset\" in"
 
@@ -83,15 +122,13 @@ generate_get_preset_flags() {
         local preset_file="$PRESETS_DIR/${preset}.yml"
         echo "    ${preset})"
 
-        # Use yq to get all key-value pairs at once
-        yq -r 'to_entries | .[] | select(.key != "preset" and .key != "lint_level" and .key != "hook_system" and .key != "needs_tokio") | "      out+=(--data \"" + .key + "=" + (.value | tostring) + "\")"' "$preset_file"
-
-        # Add lint_level if not standard
-        local lint_level
-        lint_level=$(yq -r '.lint_level // "standard"' "$preset_file")
-        if [[ "$lint_level" != "standard" ]]; then
-            echo "      out+=(--data \"lint_level=${lint_level}\")"
-        fi
+        for key in "${differing_keys[@]}"; do
+            local value
+            value=$(yq -r ".${key}" "$preset_file")
+            # Skip keys not present in this preset (yq outputs "null")
+            [[ "$value" == "null" ]] && continue
+            echo "      _pmap[${key}]=${value}"
+        done
 
         echo "      ;;"
     done
@@ -219,10 +256,10 @@ update_file() {
 echo "Generating code from presets..."
 echo ""
 
-# Generate get_preset_flags()
+# Generate load_preset_flags()
 wrapper_script="$PROJECT_ROOT/bin/claylo-rs"
-flags_content=$(generate_get_preset_flags)
-update_file "$wrapper_script" "get_preset_flags" "$flags_content" "bash"
+flags_content=$(generate_load_preset_flags)
+update_file "$wrapper_script" "load_preset_flags" "$flags_content" "bash"
 
 # Generate comparison table
 presets_doc="$PROJECT_ROOT/docs/presets.md"
