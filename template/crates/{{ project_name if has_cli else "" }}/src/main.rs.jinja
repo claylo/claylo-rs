@@ -3,27 +3,26 @@
 
 use anyhow::Context;
 use clap::Parser;
-{% if has_jsonl_logging or has_opentelemetry -%}
-use tracing::debug;
-{% endif -%}
 use {{ crate_name }}::{Cli, Commands, commands};
-{% if has_config -%}
-{% if has_core_library -%}
+{%- if has_config %}
+{%- if has_core_library %}
 use {{ crate_name }}_core::config::ConfigLoader;
-{% else -%}
+{%- else %}
 use crate::config::ConfigLoader;
-{% endif -%}
-{% endif %}
-{% if has_jsonl_logging or has_opentelemetry %}
-mod observability;
-{% endif %}
+{%- endif %}
+{%- endif %}
+{%- if has_jsonl_logging or has_opentelemetry %}
+use tracing::debug;
 
-{% if needs_tokio -%}
+mod observability;
+{%- endif -%}
+
+{% if needs_tokio %}
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-{% else -%}
+{%- else %}
 fn main() -> anyhow::Result<()> {
-{% endif -%}
+{%- endif %}
     let cli = Cli::parse();
     cli.color.apply();
 
@@ -41,39 +40,49 @@ fn main() -> anyhow::Result<()> {
         std::env::set_current_dir(dir)
             .with_context(|| format!("failed to change directory to {}", dir.display()))?;
     }
-{% if has_config %}
+{%- if has_config %}
+
     let cwd = std::env::current_dir().context("failed to determine current directory")?;
-    let cwd = camino::Utf8PathBuf::try_from(cwd)
-        .map_err(|e| anyhow::anyhow!("current directory is not valid UTF-8: {}", e.into_path_buf().display()))?;
+    let cwd = camino::Utf8PathBuf::try_from(cwd).map_err(|e| {
+        anyhow::anyhow!(
+            "current directory is not valid UTF-8: {}",
+            e.into_path_buf().display()
+        )
+    })?;
     let mut loader = ConfigLoader::new().with_project_search(&cwd);
     if let Some(ref config_path) = cli.config {
-        let config_path = camino::Utf8PathBuf::try_from(config_path.clone())
-            .map_err(|e| anyhow::anyhow!("config path is not valid UTF-8: {}", e.into_path_buf().display()))?;
+        let config_path = camino::Utf8PathBuf::try_from(config_path.clone()).map_err(|e| {
+            anyhow::anyhow!(
+                "config path is not valid UTF-8: {}",
+                e.into_path_buf().display()
+            )
+        })?;
         loader = loader.with_file(&config_path);
     }
     let config = loader.load().context("failed to load configuration")?;
-{% endif %}
-{% if has_jsonl_logging or has_opentelemetry %}
+{%- endif %}
+{%- if has_jsonl_logging or has_opentelemetry %}
+
     let obs_config = observability::ObservabilityConfig::from_env_with_overrides(
-{% if has_opentelemetry and has_config -%}
+{%- if has_opentelemetry and has_config %}
         config.otel_endpoint.clone(),
-{% elif has_opentelemetry -%}
+{%- elif has_opentelemetry %}
         None,
-{% endif -%}
-{% if has_config -%}
+{%- endif %}
+{%- if has_config %}
         config
             .log_dir
             .as_ref()
             .map(|dir| dir.as_std_path().to_path_buf()),
-{% else -%}
+{%- else %}
         None,
-{% endif -%}
+{%- endif %}
     );
-{% if has_config -%}
+{%- if has_config %}
     let env_filter = observability::env_filter(cli.quiet, cli.verbose, config.log_level.as_str());
-{% else -%}
+{%- else %}
     let env_filter = observability::env_filter(cli.quiet, cli.verbose, "info");
-{% endif -%}
+{%- endif %}
     let _guard = observability::init_observability(&obs_config, env_filter)
         .context("failed to initialize logging/tracing")?;
 
@@ -88,32 +97,33 @@ fn main() -> anyhow::Result<()> {
 
     // Execute command
     let result = match command {
-{% if has_config -%}
+{%- if has_config %}
         Commands::Doctor(args) => commands::doctor::cmd_doctor(args, cli.json, &cwd),
         Commands::Info(args) => commands::info::cmd_info(args, cli.json, &config, &cwd),
-{% else -%}
+{%- else %}
         Commands::Info(args) => commands::info::cmd_info(args, cli.json),
-{% endif -%}
-{% if has_mcp_server %}
+{%- endif %}
+{%- if has_mcp_server %}
         Commands::Serve(args) => commands::serve::cmd_serve(args).await,
-{% endif %}
+{%- endif %}
     };
     if let Err(ref err) = result {
         tracing::error!(error = %err, "fatal error");
     }
     result
-{% else %}
+{%- else %}
+
     // Execute command
     match command {
-{% if has_config -%}
+{%- if has_config %}
         Commands::Doctor(args) => commands::doctor::cmd_doctor(args, cli.json, &cwd),
         Commands::Info(args) => commands::info::cmd_info(args, cli.json, &config, &cwd),
-{% else -%}
+{%- else %}
         Commands::Info(args) => commands::info::cmd_info(args, cli.json),
-{% endif -%}
-{% if has_mcp_server %}
+{%- endif %}
+{%- if has_mcp_server %}
         Commands::Serve(args) => commands::serve::cmd_serve(args).await,
-{% endif %}
+{%- endif %}
     }
-{% endif %}
+{%- endif %}
 }

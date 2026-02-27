@@ -1,9 +1,11 @@
 //! Command implementations
+{%- if has_config %}
 
-{% if has_config %}
 pub mod doctor;
-{% endif %}
+{%- endif %}
+
 pub mod info;
-{% if has_mcp_server %}
+{%- if has_mcp_server %}
+
 pub mod serve;
-{% endif %}
+{%- endif %}

@@ -2,20 +2,20 @@
 //! Doctor command — diagnose configuration and environment.
 
 use clap::Args;
+{%- if has_core_library %}
+use {{ crate_name }}_core::config;
+{%- else %}
+use crate::config;
+{%- endif %}
+{%- if has_indicatif %}
+use indicatif::{ProgressBar, ProgressStyle};
+{%- endif %}
+{%- if has_inquire %}
+use inquire::Confirm;
+{%- endif %}
 use owo_colors::OwoColorize;
 use serde::Serialize;
 use tracing::{debug, instrument};
-{% if has_core_library -%}
-use {{ crate_name }}_core::config;
-{% else -%}
-use crate::config;
-{% endif -%}
-{% if has_indicatif -%}
-use indicatif::{ProgressBar, ProgressStyle};
-{% endif -%}
-{% if has_inquire -%}
-use inquire::Confirm;
-{% endif -%}
 
 /// Arguments for the `doctor` subcommand.
 #[derive(Args, Debug, Default)]
@@ -99,13 +99,13 @@ impl DoctorReport {
                         value: std::env::var("RUST_LOG").ok(),
                         description: "Log filter directive",
                     },
-{% if has_opentelemetry %}
+{%- if has_opentelemetry %}
                     EnvVar {
                         name: "OTEL_EXPORTER_OTLP_ENDPOINT",
                         value: std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").ok(),
                         description: "OpenTelemetry collector endpoint",
                     },
-{% endif %}
+{%- endif %}
                 ],
             },
         }
@@ -118,27 +118,28 @@ impl DoctorReport {
 /// * `global_json` - Global `--json` flag from CLI
 /// * `cwd` - Current working directory
 #[instrument(name = "cmd_doctor", skip_all, fields(json_output))]
-pub fn cmd_doctor(_args: DoctorArgs, global_json: bool, cwd: &camino::Utf8Path) -> anyhow::Result<()> {
-    debug!(
-        json_output = global_json,
-        "executing doctor command"
-    );
+pub fn cmd_doctor(
+    _args: DoctorArgs,
+    global_json: bool,
+    cwd: &camino::Utf8Path,
+) -> anyhow::Result<()> {
+    debug!(json_output = global_json, "executing doctor command");
 
-{% if has_indicatif -%}
+{%- if has_indicatif %}
     let spinner = ProgressBar::new_spinner();
     spinner.set_style(
         ProgressStyle::default_spinner()
             .template("{spinner:.cyan} {msg}")
-            .expect("valid template")
+            .expect("valid template"),
     );
     spinner.set_message("Gathering diagnostics...");
     spinner.enable_steady_tick(std::time::Duration::from_millis(80));
 
     let report = DoctorReport::gather(cwd);
     spinner.finish_and_clear();
-{% else -%}
+{%- else %}
     let report = DoctorReport::gather(cwd);
-{% endif -%}
+{%- endif %}
 
     if global_json {
         println!("{}", serde_json::to_string_pretty(&report)?);
@@ -146,12 +147,16 @@ pub fn cmd_doctor(_args: DoctorArgs, global_json: bool, cwd: &camino::Utf8Path) 
         // Config status
         println!("{}", "Configuration".bold().underline());
         if report.config.found {
-            println!("  {} Config file: {}", "✓".green(), report.config.file.as_deref().unwrap_or("").cyan());
+            println!(
+                "  {} Config file: {}",
+                "✓".green(),
+                report.config.file.as_deref().unwrap_or("").cyan()
+            );
         } else {
             println!("  {} No config file found", "○".yellow());
-{% if has_inquire -%}
+{%- if has_inquire %}
             offer_config_creation()?;
-{% endif -%}
+{%- endif %}
         }
         println!();
 
@@ -167,7 +172,10 @@ pub fn cmd_doctor(_args: DoctorArgs, global_json: bool, cwd: &camino::Utf8Path) 
         println!("{}", "Environment".bold().underline());
         println!("  {}: {}", "Working directory".dimmed(), cwd.cyan());
 
-        let set_vars: Vec<_> = report.environment.env_vars.iter()
+        let set_vars: Vec<_> = report
+            .environment
+            .env_vars
+            .iter()
             .filter(|v| v.value.is_some())
             .collect();
 
@@ -175,7 +183,11 @@ pub fn cmd_doctor(_args: DoctorArgs, global_json: bool, cwd: &camino::Utf8Path) 
             println!("  {} No XDG/logging overrides set", "○".dimmed());
         } else {
             for var in set_vars {
-                println!("  {}: {}", var.name.dimmed(), var.value.as_deref().unwrap_or("").cyan());
+                println!(
+                    "  {}: {}",
+                    var.name.dimmed(),
+                    var.value.as_deref().unwrap_or("").cyan()
+                );
             }
         }
     }
@@ -191,7 +203,8 @@ fn print_dir(label: &str, path: &Option<String>) {
     }
 }
 
-{% if has_inquire -%}
+{%- if has_inquire %}
+
 /// Offer to create a default config file when none exists.
 fn offer_config_creation() -> anyhow::Result<()> {
     let Some(config_dir) = config::user_config_dir() else {
@@ -218,11 +231,11 @@ fn offer_config_creation() -> anyhow::Result<()> {
             }
 
             // Write default config as YAML
-{% if has_core_library -%}
+{%- if has_core_library %}
             let default_config = {{ crate_name }}_core::config::Config::default();
-{% else -%}
+{%- else %}
             let default_config = crate::config::Config::default();
-{% endif -%}
+{%- endif %}
             let yaml = serde_saphyr::to_string(&default_config)?;
             std::fs::write(&config_path, yaml)?;
 
@@ -238,8 +251,8 @@ fn offer_config_creation() -> anyhow::Result<()> {
 
     Ok(())
 }
+{%- endif %}
 
-{% endif -%}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -265,4 +278,4 @@ mod tests {
         assert!(report.directories.config.is_some() || report.directories.cache.is_some());
     }
 }
-{% endif %}
+{%- endif %}

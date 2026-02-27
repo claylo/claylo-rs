@@ -1,16 +1,16 @@
 //! Info command implementation
 
 use clap::Args;
+{%- if has_config %}
+{%- if has_core_library %}
+use {{ crate_name }}_core::config::{self, Config};
+{%- else %}
+use crate::config::{self, Config};
+{%- endif %}
+{%- endif %}
 use owo_colors::OwoColorize;
 use serde::Serialize;
 use tracing::{debug, instrument};
-{% if has_config %}
-{% if has_core_library -%}
-use {{ crate_name }}_core::config::{self, Config};
-{% else -%}
-use crate::config::{self, Config};
-{% endif -%}
-{% endif %}
 
 /// Arguments for the `info` subcommand.
 #[derive(Args, Debug, Default)]
@@ -44,7 +44,7 @@ impl PackageInfo {
         }
     }
 }
-{% if has_config %}
+{%- if has_config %}
 
 #[derive(Serialize)]
 struct ConfigInfo {
@@ -53,10 +53,10 @@ struct ConfigInfo {
     log_level: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     log_dir: Option<String>,
-{% if has_opentelemetry %}
+{%- if has_opentelemetry %}
     #[serde(skip_serializing_if = "Option::is_none")]
     otel_endpoint: Option<String>,
-{% endif %}
+{%- endif %}
 }
 
 impl ConfigInfo {
@@ -65,9 +65,9 @@ impl ConfigInfo {
             config_file: config::find_project_config(cwd).map(|p| p.to_string()),
             log_level: config.log_level.as_str().to_string(),
             log_dir: config.log_dir.as_ref().map(|p| p.to_string()),
-{% if has_opentelemetry %}
+{%- if has_opentelemetry %}
             otel_endpoint: config.otel_endpoint.clone(),
-{% endif %}
+{%- endif %}
         }
     }
 }
@@ -78,29 +78,32 @@ struct FullInfo {
     package: PackageInfo,
     config: ConfigInfo,
 }
-{% endif %}
+{%- endif %}
 
 /// Print package information
 ///
 /// # Arguments
 /// * `global_json` - Global `--json` flag from CLI
-{% if has_config -%}
+{%- if has_config %}
 /// * `config` - Loaded configuration
 /// * `cwd` - Current working directory for config discovery
-{% endif -%}
+{%- endif %}
 #[instrument(name = "cmd_info", skip_all, fields(json_output))]
-{% if has_config -%}
-pub fn cmd_info(_args: InfoArgs, global_json: bool, config: &Config, cwd: &camino::Utf8Path) -> anyhow::Result<()> {
-{% else -%}
+{%- if has_config %}
+pub fn cmd_info(
+    _args: InfoArgs,
+    global_json: bool,
+    config: &Config,
+    cwd: &camino::Utf8Path,
+) -> anyhow::Result<()> {
+{%- else %}
 pub fn cmd_info(_args: InfoArgs, global_json: bool) -> anyhow::Result<()> {
-{% endif -%}
+{%- endif %}
     let info = PackageInfo::new();
 
-    debug!(
-        json_output = global_json,
-        "executing info command"
-    );
-{% if has_config %}
+    debug!(json_output = global_json, "executing info command");
+{%- if has_config %}
+
     let config_info = ConfigInfo::from_config(config, cwd);
     let full_info = FullInfo {
         package: info,
@@ -110,7 +113,11 @@ pub fn cmd_info(_args: InfoArgs, global_json: bool) -> anyhow::Result<()> {
     if global_json {
         println!("{}", serde_json::to_string_pretty(&full_info)?);
     } else {
-        println!("{} {}", full_info.package.name.bold(), full_info.package.version.green());
+        println!(
+            "{} {}",
+            full_info.package.name.bold(),
+            full_info.package.version.green()
+        );
         if !full_info.package.description.is_empty() {
             println!("{}", full_info.package.description);
         }
@@ -118,10 +125,18 @@ pub fn cmd_info(_args: InfoArgs, global_json: bool) -> anyhow::Result<()> {
             println!("{}: {}", "License".dimmed(), full_info.package.license);
         }
         if !full_info.package.repository.is_empty() {
-            println!("{}: {}", "Repository".dimmed(), full_info.package.repository.cyan());
+            println!(
+                "{}: {}",
+                "Repository".dimmed(),
+                full_info.package.repository.cyan()
+            );
         }
         if !full_info.package.homepage.is_empty() {
-            println!("{}: {}", "Homepage".dimmed(), full_info.package.homepage.cyan());
+            println!(
+                "{}: {}",
+                "Homepage".dimmed(),
+                full_info.package.homepage.cyan()
+            );
         }
 
         // Configuration section
@@ -136,13 +151,13 @@ pub fn cmd_info(_args: InfoArgs, global_json: bool) -> anyhow::Result<()> {
         if let Some(ref dir) = full_info.config.log_dir {
             println!("{}: {}", "Log directory".dimmed(), dir);
         }
-{% if has_opentelemetry %}
+{%- if has_opentelemetry %}
         if let Some(ref endpoint) = full_info.config.otel_endpoint {
             println!("{}: {}", "OTEL endpoint".dimmed(), endpoint);
         }
-{% endif %}
+{%- endif %}
     }
-{% else %}
+{%- else %}
     if global_json {
         println!("{}", serde_json::to_string_pretty(&info)?);
     } else {
@@ -160,7 +175,7 @@ pub fn cmd_info(_args: InfoArgs, global_json: bool) -> anyhow::Result<()> {
             println!("{}: {}", "Homepage".dimmed(), info.homepage.cyan());
         }
     }
-{% endif %}
+{%- endif %}
 
     Ok(())
 }
@@ -168,7 +183,7 @@ pub fn cmd_info(_args: InfoArgs, global_json: bool) -> anyhow::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-{% if has_config %}
+{%- if has_config %}
 
     fn test_config() -> Config {
         Config::default()
@@ -196,7 +211,7 @@ mod tests {
         assert!(info.config_file.is_none());
         assert_eq!(info.log_level, "info");
     }
-{% else %}
+{%- else %}
 
     #[test]
     fn test_cmd_info_text_succeeds() {
@@ -207,5 +222,5 @@ mod tests {
     fn test_cmd_info_json_via_global() {
         assert!(cmd_info(InfoArgs::default(), true).is_ok());
     }
-{% endif %}
+{%- endif %}
 }

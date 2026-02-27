@@ -51,10 +51,10 @@ pub struct Config {
     pub log_level: LogLevel,
     /// Directory for JSONL log files (falls back to platform defaults if unset).
     pub log_dir: Option<Utf8PathBuf>,
-{% if has_opentelemetry -%}
+{%- if has_opentelemetry %}
     /// OpenTelemetry OTLP endpoint; when set, enables trace export.
     pub otel_endpoint: Option<String>,
-{% endif -%}
+{%- endif %}
 }
 
 /// Log level configuration.
@@ -186,7 +186,10 @@ impl ConfigLoader {
         let config: Config = figment
             .extract()
             .map_err(|e| ConfigError::Deserialize(Box::new(e)))?;
-        tracing::info!(log_level = config.log_level.as_str(), "configuration loaded");
+        tracing::info!(
+            log_level = config.log_level.as_str(),
+            "configuration loaded"
+        );
         Ok(config)
     }
 
@@ -212,15 +215,6 @@ impl ConfigLoader {
         let mut current = Some(start.to_path_buf());
 
         while let Some(dir) = current {
-            // Check for boundary marker
-            if let Some(ref marker) = self.boundary_marker {
-                let marker_path = dir.join(marker);
-                if marker_path.exists() && dir != start {
-                    // Found boundary in a parent dir, stop searching
-                    break;
-                }
-            }
-
             // Check for config files in this directory (try each extension)
             for ext in CONFIG_EXTENSIONS {
                 // Try dotfile first (.{{ project_name }}.toml)
@@ -233,6 +227,14 @@ impl ConfigLoader {
                 let regular = dir.join(format!("{APP_NAME}.{ext}"));
                 if regular.is_file() {
                     return Some(regular);
+                }
+            }
+
+            // Check for boundary marker AFTER checking config files,
+            // so a config in the same directory as the marker is found.
+            if let Some(ref marker) = self.boundary_marker {
+                if dir.join(marker).exists() && dir != start {
+                    break;
                 }
             }
 
@@ -272,10 +274,11 @@ impl ConfigLoader {
 /// Find the project config file path without loading it.
 ///
 /// Useful for commands that need to know where config is located.
+/// Uses the same `.git` boundary marker as [`ConfigLoader::load()`] so that
+/// diagnostics and actual config loading agree on which file is active.
 pub fn find_project_config<P: AsRef<Utf8Path>>(start: P) -> Option<Utf8PathBuf> {
     ConfigLoader::new()
         .with_project_search(start.as_ref())
-        .without_boundary_marker()
         .find_project_config(start.as_ref())
 }
 
@@ -333,9 +336,9 @@ mod tests {
         let config = Config::default();
         assert_eq!(config.log_level, LogLevel::Info);
         assert!(config.log_dir.is_none());
-{% if has_opentelemetry -%}
+{%- if has_opentelemetry %}
         assert!(config.otel_endpoint.is_none());
-{% endif -%}
+{%- endif %}
     }
 
     #[test]
@@ -355,16 +358,16 @@ mod tests {
         let config_path = tmp.path().join("config.toml");
         fs::write(
             &config_path,
-{% if has_opentelemetry -%}
+{%- if has_opentelemetry %}
             r#"log_level = "debug"
 log_dir = "/tmp/{{ project_name }}"
 otel_endpoint = "http://localhost:4317"
 "#,
-{% else -%}
+{%- else %}
             r#"log_level = "debug"
 log_dir = "/tmp/{{ project_name }}"
 "#,
-{% endif -%}
+{%- endif %}
         )
         .unwrap();
 
@@ -382,12 +385,12 @@ log_dir = "/tmp/{{ project_name }}"
             config.log_dir.as_ref().map(|dir| dir.as_str()),
             Some("/tmp/{{ project_name }}")
         );
-{% if has_opentelemetry -%}
+{%- if has_opentelemetry %}
         assert_eq!(
             config.otel_endpoint.as_deref(),
             Some("http://localhost:4317")
         );
-{% endif -%}
+{%- endif %}
     }
 
     #[test]
@@ -536,4 +539,4 @@ log_dir = "/tmp/{{ project_name }}"
         }
     }
 }
-{% endif %}
+{%- endif %}
