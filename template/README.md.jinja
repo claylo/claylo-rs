@@ -133,7 +133,7 @@ Default log path (first writable wins):
 
 Overrides:
 
-- `{{ project_name | upper | replace('-', '_') }}_LOG_PATH` — full file path
+- `{{ project_name | upper | replace('-', '_') }}_LOG_PATH` — log file path (daily rotation appends `.YYYY-MM-DD`)
 - `{{ project_name | upper | replace('-', '_') }}_LOG_DIR` — directory (file name defaults to `{{ project_name }}.jsonl`)
 - `{{ project_name | upper | replace('-', '_') }}_ENV` — environment tag (default: `dev`)
 {%- if has_config %}

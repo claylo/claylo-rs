@@ -59,7 +59,7 @@ fn main() -> anyhow::Result<()> {
         })?;
         loader = loader.with_file(&config_path);
     }
-    let config = loader.load().context("failed to load configuration")?;
+    let (config, config_sources) = loader.load().context("failed to load configuration")?;
 {%- endif %}
 {%- if has_jsonl_logging or has_opentelemetry %}
 
@@ -98,8 +98,12 @@ fn main() -> anyhow::Result<()> {
     // Execute command
     let result = match command {
 {%- if has_config %}
-        Commands::Doctor(args) => commands::doctor::cmd_doctor(args, cli.json, &cwd),
-        Commands::Info(args) => commands::info::cmd_info(args, cli.json, &config, &cwd),
+        Commands::Doctor(args) => {
+            commands::doctor::cmd_doctor(args, cli.json, &config_sources, &cwd)
+        }
+        Commands::Info(args) => {
+            commands::info::cmd_info(args, cli.json, &config, &config_sources)
+        }
 {%- else %}
         Commands::Info(args) => commands::info::cmd_info(args, cli.json),
 {%- endif %}
@@ -116,8 +120,12 @@ fn main() -> anyhow::Result<()> {
     // Execute command
     match command {
 {%- if has_config %}
-        Commands::Doctor(args) => commands::doctor::cmd_doctor(args, cli.json, &cwd),
-        Commands::Info(args) => commands::info::cmd_info(args, cli.json, &config, &cwd),
+        Commands::Doctor(args) => {
+            commands::doctor::cmd_doctor(args, cli.json, &config_sources, &cwd)
+        }
+        Commands::Info(args) => {
+            commands::info::cmd_info(args, cli.json, &config, &config_sources)
+        }
 {%- else %}
         Commands::Info(args) => commands::info::cmd_info(args, cli.json),
 {%- endif %}
