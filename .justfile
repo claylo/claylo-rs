@@ -20,6 +20,10 @@ test-wrapper:
 test-fast:
     {{ bats }} --jobs 4 test/conditional_files.bats
 
+# Run add-crate functional tests (requires cargo)
+test-add-crate:
+    {{ bats }} test/add_crate.bats
+
 # Run slow preset build tests only
 test-presets:
     {{ bats }} test/presets.bats
