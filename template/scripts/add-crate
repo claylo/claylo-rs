@@ -33,7 +33,7 @@ CRATE_DESC=""
 PROC_MACRO=false
 
 usage() {
-    sed -n '/^# Usage:/,/^[^#]/{ /^#/s/^# \?//p }' "$0"
+    sed -n '/^# Usage:/,/^[^#]/{ /^#/s/^# *//p }' "$0"
     exit 0
 }
 
@@ -65,6 +65,12 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# Validate --derive is only used with internal type
+if [[ "$PROC_MACRO" == true ]] && [[ -n "$CRATE_TYPE" ]] && [[ "$CRATE_TYPE" != "internal" ]]; then
+    echo -e "${RED}Error: --derive is only valid with internal crate type${NC}" >&2
+    exit 1
+fi
 
 # ============================================================================
 # Workspace discovery
@@ -120,8 +126,8 @@ fi
 EDITION=""
 MSRV=""
 if [[ "$HAS_WORKSPACE_PACKAGE" == true ]]; then
-    EDITION=$(grep '^edition' "$WORKSPACE_ROOT/Cargo.toml" | head -1 | sed 's/.*= *"\?\([^"]*\)"\?/\1/')
-    MSRV=$(grep '^rust-version' "$WORKSPACE_ROOT/Cargo.toml" | head -1 | sed 's/.*= *"\?\([^"]*\)"\?/\1/')
+    EDITION=$(grep '^edition' "$WORKSPACE_ROOT/Cargo.toml" | head -1 | sed 's/.*= *"//;s/".*//')
+    MSRV=$(grep '^rust-version' "$WORKSPACE_ROOT/Cargo.toml" | head -1 | sed 's/.*= *"//;s/".*//')
 fi
 
 # Collect existing workspace member names for collision detection
@@ -442,7 +448,7 @@ fi
 # Validate with cargo check
 echo ""
 echo -e "${DIM}Running cargo check -p $CRATE_NAME...${NC}"
-if cargo check -p "$CRATE_NAME" 2>&1; then
+if cargo check -p "$CRATE_NAME" --quiet 2>&1; then
     echo -e "  ${GREEN}✓${NC} cargo check passed"
 else
     echo -e "  ${YELLOW}⚠${NC}  cargo check failed — review generated files"
