@@ -15,7 +15,7 @@ Configuration files live in `config/` with `.toml.example` and `.yaml.example` t
 {% endif -%}
 
 ## Commands
-{% if has_just %}
+
 Use `just` for all dev tasks:
 
 ```
@@ -30,14 +30,7 @@ just release-check  # pre-release validation
 just outdated       # check for outdated dependencies
 just upgrade        # update deps in Cargo.toml and Cargo.lock
 ```
-{% else %}
-```
-cargo fmt --all
-cargo clippy --all-targets --all-features -- -D warnings
-cargo nextest run
-cargo deny check
-```
-{% endif %}
+
 
 **Tests use `cargo nextest run`**, not `cargo test`. Doc tests are separate: `cargo test --doc`.
 
@@ -70,6 +63,5 @@ cargo deny check
 - Add dependencies without checking `deny.toml` license policy (`just deny`)
 - Skip `--all-targets --all-features` when running clippy
 - Use `cargo test` instead of `cargo nextest run`
-{% if has_just -%}
 - Run raw cargo commands when a `just` recipe exists
-{% endif %}
+

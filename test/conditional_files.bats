@@ -14,7 +14,6 @@ load 'test_helper'
         "has_github=false" \
         "has_security_md=false" \
         "has_claude=false" \
-        "has_just=false" \
         "has_agents_md=false" \
         "has_gitattributes=false" \
         "has_md=false")
@@ -33,7 +32,6 @@ load 'test_helper'
         "has_pr_templates=false" \
         "has_security_md=true" \
         "has_claude=false" \
-        "has_just=false" \
         "has_agents_md=false" \
         "has_gitattributes=false" \
         "has_md=false")
@@ -58,7 +56,6 @@ load 'test_helper'
         "has_env_files=true" \
         "has_github=false" \
         "has_claude=false" \
-        "has_just=false" \
         "has_agents_md=false" \
         "has_gitattributes=false" \
         "has_md=false")
@@ -79,7 +76,6 @@ load 'test_helper'
         "has_env_files=false" \
         "has_github=false" \
         "has_claude=false" \
-        "has_just=false" \
         "has_agents_md=false" \
         "has_gitattributes=false" \
         "has_md=false")
@@ -101,7 +97,6 @@ load 'test_helper'
     output_dir=$(generate_project_with_data "cond-no-claude" "minimal.yml" \
         "has_claude=false" \
         "has_github=false" \
-        "has_just=false" \
         "has_agents_md=false" \
         "has_gitattributes=false" \
         "has_md=false")
@@ -121,7 +116,6 @@ load 'test_helper'
         "has_claude_skills=false" \
         "has_claude_commands=true" \
         "has_github=false" \
-        "has_just=false" \
         "has_agents_md=false" \
         "has_gitattributes=false" \
         "has_md=false")
@@ -142,7 +136,6 @@ load 'test_helper'
         "has_skill_capturing_decisions=true" \
         "has_skill_using_git=false" \
         "has_github=false" \
-        "has_just=false" \
         "has_agents_md=false" \
         "has_gitattributes=false" \
         "has_md=false")
@@ -164,7 +157,6 @@ load 'test_helper'
         "has_md_strict=false" \
         "has_github=false" \
         "has_claude=false" \
-        "has_just=true" \
         "has_agents_md=false" \
         "has_gitattributes=false")
 
@@ -178,7 +170,6 @@ load 'test_helper'
         "has_md=false" \
         "has_github=false" \
         "has_claude=false" \
-        "has_just=true" \
         "has_agents_md=false" \
         "has_gitattributes=false")
 
@@ -190,19 +181,18 @@ load 'test_helper'
 # Core Files
 # =============================================================================
 
-@test "core files disabled excludes AGENTS.md, .justfile, .gitattributes" {
+@test "core files disabled excludes AGENTS.md and .gitattributes" {
     local output_dir
     output_dir=$(generate_project_with_data "cond-core-off" "minimal.yml" \
         "has_agents_md=false" \
-        "has_just=false" \
         "has_gitattributes=false" \
         "has_github=false" \
         "has_claude=false" \
         "has_md=false")
 
     assert_file_in_project "$output_dir" "Cargo.toml"
+    assert_file_in_project "$output_dir" ".justfile"
     assert_no_file_in_project "$output_dir" "AGENTS.md"
-    assert_no_file_in_project "$output_dir" ".justfile"
     assert_no_file_in_project "$output_dir" ".gitattributes"
 }
 
@@ -216,7 +206,6 @@ load 'test_helper'
         "hook_system=none" \
         "has_github=false" \
         "has_claude=false" \
-        "has_just=false" \
         "has_agents_md=false" \
         "has_gitattributes=false" \
         "has_md=false")
@@ -236,7 +225,6 @@ load 'test_helper'
         "lint_level=strict" \
         "has_github=false" \
         "has_claude=false" \
-        "has_just=false" \
         "has_agents_md=false" \
         "has_gitattributes=false" \
         "has_md=false")
@@ -251,7 +239,6 @@ load 'test_helper'
         "lint_level=standard" \
         "has_github=false" \
         "has_claude=false" \
-        "has_just=false" \
         "has_agents_md=false" \
         "has_gitattributes=false" \
         "has_md=false")
@@ -266,7 +253,6 @@ load 'test_helper'
         "lint_level=relaxed" \
         "has_github=false" \
         "has_claude=false" \
-        "has_just=false" \
         "has_agents_md=false" \
         "has_gitattributes=false" \
         "has_md=false")
@@ -534,11 +520,10 @@ load 'test_helper'
     assert_file_in_project "$output_dir" ".github/docs/template-updates.md"
 }
 
-@test "site justfile recipes present when has_site and has_just" {
+@test "site justfile recipes present when has_site" {
     local output_dir
     output_dir=$(generate_project_with_data "cond-site-just" "standard.yml" \
-        "has_site=true" \
-        "has_just=true")
+        "has_site=true")
 
     assert_file_contains "$output_dir" ".justfile" "site-dev"
     assert_file_contains "$output_dir" ".justfile" "site-build"
@@ -549,8 +534,7 @@ load 'test_helper'
 @test "site justfile recipes absent when has_site=false" {
     local output_dir
     output_dir=$(generate_project_with_data "cond-site-no-just" "minimal.yml" \
-        "has_site=false" \
-        "has_just=true")
+        "has_site=false")
 
     assert_file_not_contains "$output_dir" ".justfile" "site-dev"
 }
@@ -565,7 +549,6 @@ load 'test_helper'
         "edition=2024" \
         "has_github=false" \
         "has_claude=false" \
-        "has_just=false" \
         "has_agents_md=false" \
         "has_gitattributes=false" \
         "has_md=false")
@@ -579,7 +562,6 @@ load 'test_helper'
         "edition=2021" \
         "has_github=false" \
         "has_claude=false" \
-        "has_just=false" \
         "has_agents_md=false" \
         "has_gitattributes=false" \
         "has_md=false")

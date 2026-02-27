@@ -127,7 +127,7 @@ Key Copier variables (see `copier.yaml` for full list):
 
 **Dotfiles and tooling:**
 - `has_yamlfmt`, `has_yamllint`, `has_editorconfig`, `has_env_files`
-- `has_agents_md`, `has_just`, `has_gitattributes`
+- `has_agents_md`, `has_gitattributes`
 - `has_md`, `has_md_strict`
 
 **Claude Code config:**

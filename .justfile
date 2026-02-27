@@ -66,13 +66,13 @@ regenerate-preset preset project_name:
       --data-file "scripts/presets/{{ preset }}.yml" \
       --vcs-ref HEAD ../generate-runs/{{ project_name }}
 
-# Lint copier.yaml (using Python yamllint; yamllint-rs has sequence indent bug)
+# Lint copier.yaml
 lint:
-    yamllint -c .yamllint copier.yaml
+    npx prettier --parser yaml --check copier.yaml
 
 # Format copier.yaml
 fmt:
-    yamlfmt -no_global_conf -conf .yamlfmt -quiet copier.yaml
+    npx prettier --parser yaml --write copier.yaml
 
 # Validate template syntax (dry run)
 validate:

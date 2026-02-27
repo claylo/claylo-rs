@@ -150,7 +150,6 @@ These files are included in `full` preset by default.
 | Flag | Alias | Default | Description |
 |------|-------|---------|-------------|
 | `has_agents_md` | `agents_md` | true | AGENTS.md for AI agent instructions |
-| `has_just` | `just` | true | `.justfile` task runner |
 | `has_gitattributes` | `gitattributes` | true | `.gitattributes` |
 
 

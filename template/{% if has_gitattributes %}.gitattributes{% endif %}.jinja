@@ -46,8 +46,8 @@ LICENSE* text eol=lf
 {% endif %}{% if has_agents_md %}AGENTS.md export-ignore
 {% endif %}{% if has_md or has_md_strict %}.markdownlint.yaml export-ignore
 {% endif %}{% if has_yamllint %}.yamllint export-ignore
-{% endif %}{% if has_just %}.justfile export-ignore
-{% endif %}{% if has_editorconfig %}.editorconfig export-ignore
+{% endif %}.justfile export-ignore
+{% if has_editorconfig %}.editorconfig export-ignore
 {% endif %}{% if has_env_files %}.envrc export-ignore
 .env export-ignore
 .env.rust export-ignore
