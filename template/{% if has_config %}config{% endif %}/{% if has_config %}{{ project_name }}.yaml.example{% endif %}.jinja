@@ -27,7 +27,7 @@ log_level: info
 # - /var/log/{{project_name}}.jsonl (Unix, if writable)
 # - ~/.local/share/{{project_name}}/logs/{{project_name}}.jsonl (fallback)
 # Override with environment variables:
-# - {{ project_name | upper | replace('-', '_') }}_LOG_PATH=/path/to/{{project_name}}.jsonl
+# - {{ project_name | upper | replace('-', '_') }}_LOG_PATH=/path/to/{{project_name}}.jsonl  (rotated daily)
 # - {{ project_name | upper | replace('-', '_') }}_LOG_DIR=/path/to/log/dir
 # - {{ project_name | upper | replace('-', '_') }}_ENV=dev
 # Config options:

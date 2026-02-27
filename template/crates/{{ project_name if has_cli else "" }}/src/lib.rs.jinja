@@ -55,7 +55,7 @@ impl ColorChoice {
 const ENV_HELP: &str = "\
 ENVIRONMENT VARIABLES:
     RUST_LOG                            Log filter (e.g., debug, {{ project_name }}=trace)
-    {{ project_name | upper | replace('-', '_') }}_LOG_PATH                 Explicit log file path
+    {{ project_name | upper | replace('-', '_') }}_LOG_PATH                 Log file path (rotated daily)
     {{ project_name | upper | replace('-', '_') }}_LOG_DIR                  Log directory
     {{ project_name | upper | replace('-', '_') }}_ENV                      Environment (dev, staging, prod)
     OTEL_EXPORTER_OTLP_ENDPOINT         OTLP endpoint (enables tracing)
@@ -65,7 +65,7 @@ ENVIRONMENT VARIABLES:
 const ENV_HELP: &str = "\
 ENVIRONMENT VARIABLES:
     RUST_LOG                Log filter (e.g., debug, {{ project_name }}=trace)
-    {{ project_name | upper | replace('-', '_') }}_LOG_PATH     Explicit log file path
+    {{ project_name | upper | replace('-', '_') }}_LOG_PATH     Log file path (rotated daily)
     {{ project_name | upper | replace('-', '_') }}_LOG_DIR      Log directory
 ";
 {% endif -%}
