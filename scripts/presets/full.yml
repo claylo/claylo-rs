@@ -22,7 +22,6 @@ has_editorconfig: true
 has_env_files: true
 # Core files
 has_agents_md: true
-has_just: true
 has_gitattributes: true
 # GitHub
 has_github: true

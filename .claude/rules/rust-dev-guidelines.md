@@ -107,6 +107,12 @@ unsafe fn foo(ptr: *const u8) {
 
 ---
 
+## Bash Gotchas (for scripts and test helpers)
+
+`((i++))` returns exit code 1 when `i` starts at 0 (because the expression evaluates to 0, which is falsy). Under `set -e`, this kills the script. Use `((++i))` or `i=$((i + 1))` instead.
+
+---
+
 ## When Uncertain
 
 Ask me rather than guessing. Do not invent APIs.

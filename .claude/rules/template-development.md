@@ -132,7 +132,7 @@ Use `just` commands — they invoke the vendored bats automatically:
 For reduced output (saves context window tokens), use the agents formatter:
 
 ```bash
-./test/bats/bin/bats -F "$PWD/test/formatters/agents.bash" test/*.bats
+./test/bats/bin/bats -F "$(pwd)/test/formatters/agents.bash" test/*.bats
 ```
 
 ### Test types
@@ -143,6 +143,51 @@ For reduced output (saves context window tokens), use the agents formatter:
 When adding a new modular flag, add conditional file tests to verify the flag works without a full cargo build cycle.
 
 If you need to test OTEL, Grafana, or other integrations, the test harness goes in `scripts/` and uses environment variables or test data files. It does NOT become a copier.yaml variable.
+
+## Testing Conventions
+
+### Always use test helpers
+
+**Never run raw copier commands in tests.** Always use `generate_project_with_data()` from `test/test_helper.bash` — it handles all required variables (`project_name`, `owner`, `copyright_name`, `conduct_email`, plus computed ones like `crate_name`).
+
+### Conditional file tests must stay fast
+
+Conditional file tests (`test/conditional_files.bats`) must **never** call `cargo_clippy()` or any cargo command. They verify file inclusion/exclusion only — no compilation. Use `assert_file_in_project`, `assert_no_file_in_project`, `assert_file_contains`, `assert_file_not_contains`.
+
+Cargo builds belong in preset tests (`test/presets.bats`) only.
+
+### Test project naming
+
+Test project names must **not** contain dependency crate names as substrings. A project named `serde-test` would cause `use serde_test::...` to be ambiguous between the project crate and the `serde_test` dependency.
+
+Use distinctive prefixes: `cond-feature-on`, `cond-mcp-off`, etc.
+
+### Preset file naming
+
+- Public presets: `scripts/presets/minimal.yml`, `standard.yml`, `full.yml`
+- Hidden/variant presets: underscore prefix — `_standard-otel.yml`, `_mcp-server.yml`
+
+### Cargo output in CI/agent contexts
+
+Use `--quiet` on cargo commands when running in test helpers or agent contexts to avoid dumping hundreds of lines of compiler output into the context window. The `cargo_clippy()` helper already does this.
+
+## Jinja Escaping in Templates
+
+### Just/shell `{{ }}` syntax
+
+When template files need Just's own `{{variable}}` syntax, wrap in raw blocks:
+
+```jinja
+{% raw %}{{variable}}{% endraw %}
+```
+
+### GitHub Actions `${{ }}` syntax
+
+For workflows that mix Jinja template variables with GitHub Actions expressions, use workflow-level `env:` to avoid conflicts. See `.claude/rules/copier-gotchas.md` for details.
+
+### `{% raw %}` cannot be nested
+
+If a file already contains `{% raw %}...{% endraw %}` blocks, do NOT wrap additional content in another `{% raw %}`. The inner `{% endraw %}` will terminate the outer block.
 
 ## The "Would This Surprise Someone" Test
 

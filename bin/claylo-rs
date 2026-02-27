@@ -130,7 +130,6 @@ declare -A ALIAS_MAP=(
   [editorconfig]=has_editorconfig
   [env]=has_env_files
   [agents_md]=has_agents_md
-  [just]=has_just
   [gitattributes]=has_gitattributes
   [github]=has_github
   [security_md]=has_security_md

@@ -115,7 +115,6 @@ setup() {
         --data "has_core_library=false" \
         --data "has_github=false" \
         --data "has_claude=false" \
-        --data "has_just=false" \
         --data "has_agents_md=false" \
         --data "has_gitattributes=false" \
         --data "has_md=false" \

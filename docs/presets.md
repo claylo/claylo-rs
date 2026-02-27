@@ -171,7 +171,6 @@ my-tool/
 | `has_gungraun` | ✗ | ✗ | ✗ |
 | `has_issue_templates` | ✓ | ✓ | ✓ |
 | `has_jsonl_logging` | ✓ | ✗ | ✓ |
-| `has_just` | ✓ | ✓ | ✓ |
 | `has_mcp_server` | ✗ | ✗ | ✗ |
 | `has_md` | ✓ | ✗ | ✓ |
 | `has_md_strict` | ✗ | ✗ | ✗ |

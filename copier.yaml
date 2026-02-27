@@ -13,7 +13,6 @@
 # Without --trust, you can run these steps manually or use `just bootstrap`.
 #
 # =============================================================================
-
 # This allows users to run: copier copy gh:claylo/claylo-rs my-project
 _subdirectory: template
 
@@ -35,21 +34,15 @@ _message_after_copy: |
   Get started:
 
     cd {{ project_name }}
-  {%- if has_just %}
     just bootstrap
-  {%- else %}
-    cargo build --workspace
-  {%- endif %}
 
 _message_after_update: |
 
   Project "{{ project_name }}" updated.
+
   Review changes and run:
-  {%- if has_just %}
+
     just check
-  {%- else %}
-    cargo clippy --all-targets --all-features -- -D warnings && cargo nextest run
-  {%- endif %}
 
 # =============================================================================
 # User-Prompted Variables
@@ -352,10 +345,6 @@ has_agents_md:
   type: bool
   default: true
   help: "Include AGENTS.md for AI agent instructions"
-has_just:
-  type: bool
-  default: true
-  help: "Include .justfile for task automation"
 has_gitattributes:
   type: bool
   default: true
