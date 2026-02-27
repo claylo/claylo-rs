@@ -117,6 +117,10 @@ fn main() -> anyhow::Result<()> {
     result
 {%- else %}
 
+    // TODO: --quiet and --verbose are parsed but not wired up without a logging
+    // feature (has_jsonl_logging or has_opentelemetry). Enable one to activate them.
+    let _ = (cli.quiet, cli.verbose);
+
     // Execute command
     match command {
 {%- if has_config %}
