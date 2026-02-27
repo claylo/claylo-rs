@@ -29,14 +29,13 @@ struct Xtask {
 
 #[derive(Subcommand, Debug)]
 enum Task {
-{% if has_benchmarks -%}
+{%- if has_benchmarks %}
     /// Generate benchmark harnesses from benches/benchmarks.kdl.
     GenBenchmarks,
 
     /// Run benchmarks (divan, gungraun, hyperfine).
     Bench(commands::bench::BenchArgs),
-
-{% endif -%}
+{%- endif %}
     /// Generate shell completions for the {{ project_name }} CLI.
     Completions(commands::completions::CompletionsArgs),
 
@@ -50,10 +49,10 @@ enum Task {
 fn main() -> Result<(), String> {
     let task = Xtask::parse();
     match task.command {
-{% if has_benchmarks -%}
+{%- if has_benchmarks %}
         Task::GenBenchmarks => commands::gen_benchmarks::cmd_gen_benchmarks(),
         Task::Bench(args) => commands::bench::cmd_bench(args),
-{% endif -%}
+{%- endif %}
         Task::Completions(args) => commands::completions::cmd_completions(args),
         Task::Man(args) => commands::man::cmd_man(args),
         Task::Install(args) => commands::install::cmd_install(args),
