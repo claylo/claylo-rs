@@ -227,6 +227,10 @@ site-build:
 site-preview:
   cd site && {{ npm }} run preview
 {% endif %}
+# Add a new crate to the workspace
+add-crate *ARGS:
+    scripts/add-crate {% raw %}{{ARGS}}{% endraw %}
+
 # Pre-release validation
 release-check:
     #!/usr/bin/env zsh

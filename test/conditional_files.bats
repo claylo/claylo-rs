@@ -570,6 +570,26 @@ load 'test_helper'
 }
 
 # =============================================================================
+# Add-Crate Script
+# =============================================================================
+
+@test "add-crate script is always present and executable" {
+    local output_dir
+    output_dir=$(generate_project_with_data "cond-add-crate-minimal" "minimal.yml")
+
+    assert_file_in_project "$output_dir" "scripts/add-crate"
+    [[ -x "$output_dir/scripts/add-crate" ]]
+}
+
+@test "add-crate script present in all primary presets" {
+    for preset in minimal standard full; do
+        local output_dir
+        output_dir=$(generate_project_with_data "cond-add-crate-$preset" "$preset.yml")
+        assert_file_in_project "$output_dir" "scripts/add-crate"
+    done
+}
+
+# =============================================================================
 # Template Sanity Checks
 # =============================================================================
 
