@@ -266,6 +266,20 @@ presets_doc="$PROJECT_ROOT/docs/presets.md"
 table_content=$(generate_comparison_table)
 update_file "$presets_doc" "preset-comparison" "$table_content" "html"
 
+# Generate show_about() function from llms.md
+llms_file="$PROJECT_ROOT/llms.md"
+if [[ -f "$llms_file" ]]; then
+    llms_body=$(<"$llms_file")
+    llms_content="show_about() {
+  cat <<'LLMS_EOF'
+${llms_body}
+LLMS_EOF
+}"
+    update_file "$wrapper_script" "llms_content" "$llms_content" "bash"
+else
+    echo "⚠ Skipping llms.md embed: $llms_file not found"
+fi
+
 echo ""
 if [[ "$CHECK_MODE" == true ]]; then
     if [[ $changes -gt 0 ]]; then
