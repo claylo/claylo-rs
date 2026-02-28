@@ -176,3 +176,26 @@ test-publish:
     @curl -s --connect-timeout 2 http://localhost:8888/api/v1/summary > /dev/null || (echo "Registry not running. See: https://github.com/claylo/crates-io-local" && exit 1)
     @echo "Running publish tests..."
     {{ bats }} test/publish.bats
+
+# create a release
+release version:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    version="{{ version }}"
+    if [[ ! "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
+        echo "❌ Invalid version format: $version"
+        echo "   Expected: v1.2.3 or v1.2.3-beta.1"
+        exit 1
+    fi
+    echo ""
+    echo "📝 Updating changelog..."
+    git cliff --with-commit "chore(release): prepare $version" --tag "$version" --output CHANGELOG.md
+    echo "🏷️  Creating release commit and tag..."
+    git add -A
+    git commit -m "chore(release): prepare $version"
+    git tag -a "$version" -m "Release $version"
+    echo ""
+    echo "✅ Release $version prepared!"
+    echo ""
+    echo "To publish:"
+    echo "  git push && git push --tags"
