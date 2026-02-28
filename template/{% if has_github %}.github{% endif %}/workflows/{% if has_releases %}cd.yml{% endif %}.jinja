@@ -196,7 +196,7 @@ jobs:
 {% endraw %}{% if has_attestations %}
 {% raw %}
       - name: Generate artifact attestation
-        uses: actions/attest-build-provenance@e4d4f7c39adfa4c260fb5c147f0622000aa14b99 # v4.0.0
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
         with:
           subject-path: ${{ env.PROJECT_NAME }}-${{ needs.generate-changelog.outputs.version }}-${{ matrix.build.target }}*
 {% endraw %}{% endif %}{% raw %}
@@ -204,7 +204,7 @@ jobs:
   publish-crates-io:
     name: Publish to crates.io
     if: ${{ !contains(github.ref, '-') && vars.CRATES_IO_ENABLED == 'true' }}
-    needs: generate-changelog
+    needs: [generate-changelog, publish-binaries]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -236,6 +236,12 @@ jobs:
             --dir checksums \
             --repo "${{ github.repository }}"
 
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          sparse-checkout: .github/formula.rb.tmpl
+          sparse-checkout-cone-mode: false
+
       - name: Generate formula
         run: |
           get_sha() {
@@ -243,54 +249,17 @@ jobs:
             awk '{print $1}' "checksums/${PROJECT_NAME}-${VERSION}-${target}.tar.gz.sha256"
           }
 
-          SHA_DARWIN_ARM64=$(get_sha "aarch64-apple-darwin")
-          SHA_DARWIN_X64=$(get_sha "x86_64-apple-darwin")
-          SHA_LINUX_ARM64=$(get_sha "aarch64-unknown-linux-gnu")
-          SHA_LINUX_X64=$(get_sha "x86_64-unknown-linux-gnu")
+          RELEASE_URL="https://github.com/${{ github.repository }}/releases/download/v${VERSION}"
 
-          cat > formula.rb <<RUBY
-{% endraw %}# typed: true
-# frozen_string_literal: true
-
-class {{ project_name | replace('-', ' ') | title | replace(' ', '') }} < Formula
-  desc "{{ project_description }}"
-  homepage "https://github.com/{% raw %}${{ github.repository }}{% endraw %}"
-  version "{% raw %}${VERSION}{% endraw %}"
-  license "{% if license | length > 1 %}{{ license | join(' OR ') }}{% else %}{{ license | first }}{% endif %}"
-
-  on_macos do
-    if Hardware::CPU.arm?
-      url "https://github.com/{% raw %}${{ github.repository }}{% endraw %}/releases/download/v#{version}/{% raw %}${PROJECT_NAME}{% endraw %}-#{version}-aarch64-apple-darwin.tar.gz"
-      sha256 "{% raw %}${SHA_DARWIN_ARM64}{% endraw %}"
-    else
-      url "https://github.com/{% raw %}${{ github.repository }}{% endraw %}/releases/download/v#{version}/{% raw %}${PROJECT_NAME}{% endraw %}-#{version}-x86_64-apple-darwin.tar.gz"
-      sha256 "{% raw %}${SHA_DARWIN_X64}{% endraw %}"
-    end
-  end
-
-  on_linux do
-    if Hardware::CPU.arm?
-      url "https://github.com/{% raw %}${{ github.repository }}{% endraw %}/releases/download/v#{version}/{% raw %}${PROJECT_NAME}{% endraw %}-#{version}-aarch64-unknown-linux-gnu.tar.gz"
-      sha256 "{% raw %}${SHA_LINUX_ARM64}{% endraw %}"
-    else
-      url "https://github.com/{% raw %}${{ github.repository }}{% endraw %}/releases/download/v#{version}/{% raw %}${PROJECT_NAME}{% endraw %}-#{version}-x86_64-unknown-linux-gnu.tar.gz"
-      sha256 "{% raw %}${SHA_LINUX_X64}{% endraw %}"
-    end
-  end
-
-  def install
-    bin.install "bin/{% raw %}${PROJECT_NAME}{% endraw %}"
-    man1.install Dir["share/man/man1/*.1"]
-    bash_completion.install "share/completions/{% raw %}${PROJECT_NAME}{% endraw %}.bash" => "{% raw %}${PROJECT_NAME}{% endraw %}"
-    zsh_completion.install "share/completions/_{% raw %}${PROJECT_NAME}{% endraw %}"
-    fish_completion.install "share/completions/{% raw %}${PROJECT_NAME}{% endraw %}.fish"
-  end
-
-  test do
-    assert_match version.to_s, shell_output("\#{bin}/{% raw %}${PROJECT_NAME}{% endraw %} --version-only")
-  end
-end
-{% raw %}RUBY
+          sed \
+            -e "s|__HOMEPAGE__|https://github.com/${{ github.repository }}|" \
+            -e "s|__VERSION__|${VERSION}|" \
+            -e "s|__RELEASE_URL__|${RELEASE_URL}|g" \
+            -e "s|__SHA_DARWIN_ARM64__|$(get_sha aarch64-apple-darwin)|" \
+            -e "s|__SHA_DARWIN_X64__|$(get_sha x86_64-apple-darwin)|" \
+            -e "s|__SHA_LINUX_ARM64__|$(get_sha aarch64-unknown-linux-gnu)|" \
+            -e "s|__SHA_LINUX_X64__|$(get_sha x86_64-unknown-linux-gnu)|" \
+            .github/formula.rb.tmpl > formula.rb
 
           echo "Generated formula:"
           cat formula.rb
@@ -321,7 +290,7 @@ end
   publish-deb:
     name: Publish Debian package
     if: vars.DEB_ENABLED == 'true'
-    needs: generate-changelog
+    needs: [generate-changelog, publish-binaries]
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
@@ -381,7 +350,7 @@ end
   publish-rpm:
     name: Publish RPM package
     if: vars.RPM_ENABLED == 'true'
-    needs: generate-changelog
+    needs: [generate-changelog, publish-binaries]
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
