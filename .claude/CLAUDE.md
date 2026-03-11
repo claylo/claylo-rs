@@ -109,11 +109,11 @@ Key Copier variables (see `copier.yaml` for full list):
 
 **Project identity:**
 - `project_name`, `owner`, `copyright_name`, `project_description`
-- `edition` (default: 2024), `msrv` (default: 1.88.0), `pinned_dev_toolchain` (default: 1.93.0)
+- `edition` (default: 2024), `msrv` (default: 1.89.0), `pinned_dev_toolchain` (default: 1.94.0)
 - `license`, `categories`
 
 **Presets and levels:**
-- `preset` - minimal, standard, full (sets defaults for feature flags)
+- `preset` - minimal, library, standard, full (sets defaults for feature flags)
 - `lint_level` - strict (all + nursery), standard (all only)
 - `hook_system` - pre-commit, lefthook, none
 
@@ -131,10 +131,10 @@ Key Copier variables (see `copier.yaml` for full list):
 - `has_md`, `has_md_strict`
 
 **Claude Code config:**
-- `has_claude`, `has_claude_skills`, `has_claude_commands`
-- `has_skill_markdown_authoring`, `has_skill_capturing_decisions`, `has_skill_using_git`
+- `has_claude` — generates `.claude/settings.json` with agent permissions
 
 **Computed (not user-facing):**
+- `has_binary_dist` — true when `has_cli` and `has_releases` (gates npm, Homebrew, CD workflow)
 - `needs_tokio` — true when `has_opentelemetry` or `has_mcp_server`
 - `has_pre_commit`, `has_lefthook` — derived from `hook_system`
 - `site_deploy_github_pages`, `site_deploy_cloudflare` — derived from `site_deploy`

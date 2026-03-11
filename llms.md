@@ -41,11 +41,12 @@ For full option details, run `claylo-rs --help`.
 
 ### Presets
 
-Three presets configure coherent defaults:
+Four presets configure coherent defaults:
 
 | Preset | What you get |
 |--------|-------------|
 | `minimal` | CLI binary only. No runtime deps beyond clap. |
+| `library` | Core library + benchmarks + doc site + release automation. No CLI binary or binary distribution. |
 | `standard` | CLI + core library + config + JSONL logging + documentation site + release automation |
 | `full` | Everything in standard + benchmarks + OpenTelemetry + community files + editor configs + env files |
 
@@ -61,7 +62,7 @@ my-tool/
 ├── xtask/                    # Build automation (completions, man pages)
 ├── config/                   # Example config files (TOML, YAML)   [+config]
 ├── site/                     # Astro Starlight documentation site   [+site]
-├── npm/                      # NPM binary distribution packages    [+releases]
+├── npm/                      # NPM binary distribution packages    [+cli +releases]
 ├── bench-reports/            # Benchmark output storage             [+bench]
 ├── dist/share/               # Generated completions and man pages
 ├── .github/                  # CI/CD workflows, actions, templates  [+github]
@@ -265,7 +266,7 @@ Publishing targets are controlled by **GitHub repo variables**, not template fla
 | Setting | Value |
 |---------|-------|
 | Rust edition | 2024 (also supports 2021) |
-| MSRV | 1.88.0 |
+| MSRV | 1.89.0 |
 | `unsafe_code` | `deny` |
 | Clippy (`--lint strict`) | `all` + `nursery` = warn |
 | Clippy (`--lint standard`) | `all` = warn |
@@ -283,24 +284,7 @@ Publishing targets are controlled by **GitHub repo variables**, not template fla
 
 ## Claude Code Integration (when `+claude`)
 
-### Skills (when `+claude_skills`)
-
-| Skill | What it teaches the agent |
-|-------|--------------------------|
-| `adding-commands` | How to add CLI subcommands following project conventions |
-| `capturing-decisions` | MADR-format Architecture Decision Records in `docs/decisions/` |
-| `markdown-authoring` | SEMBR markdown style guide |
-| `using-git` | Git command conventions (avoid interactive pager, etc.) |
-
-### Commands (when `+claude_commands`)
-
-| Command | What it does |
-|---------|-------------|
-| `/clippy` | Quick lint check |
-| `/handoff` | Document work for session handoff |
-| `/pickup` | Retrieve previous context |
-| `/pr` | Create a pull request |
-| `/report` | Summarize changes |
+Generates `.claude/settings.json` with pre-configured permissions for common development tools (cargo, git, just, gh) and security-conscious deny rules (no force-push, no rm -rf, no reading secrets).
 
 ## Feature Flags
 
@@ -344,7 +328,7 @@ All flags toggle with `+flag` / `-flag` on the `claylo-rs` command line.
 | `+github` | .github/ directory with CI/CD workflows |
 | `+issues` | Bug report + feature request issue templates |
 | `+prs` | PR templates (bugfix, docs, feature) |
-| `+releases` | git-cliff changelogs + CD workflow |
+| `+releases` | git-cliff changelogs + release workflow (+ binary distribution when `+cli`) |
 | `+attestations` | Sigstore artifact attestations |
 | `+coda` | gh-coda repo settings automation |
 | `+roadmap_votes` | Roadmap voting workflow |
@@ -367,12 +351,7 @@ Set with `--hook <system>`: `none` (default), `pre-commit`, `lefthook`.
 
 | Flag | Description |
 |------|-------------|
-| `+claude` | .claude/ directory with agent config |
-| `+claude_skills` | .claude/skills/ |
-| `+claude_commands` | .claude/commands/ |
-| `+skill_markdown` | Markdown authoring skill |
-| `+skill_decisions` | ADR capture skill |
-| `+skill_git` | Git conventions skill |
+| `+claude` | .claude/settings.json with agent permissions |
 
 ### Lint Level
 

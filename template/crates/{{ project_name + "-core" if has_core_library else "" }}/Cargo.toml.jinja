@@ -33,16 +33,30 @@ exclude = [
 [dependencies]
 {% if has_config -%}
 camino = { version = "1.2", features = ["serde1"] }
-directories = "6.0"
 figment = { version = "0.10", features = ["toml", "yaml", "json"] }
 serde = { version = "1.0", features = ["derive"] }
 {% endif -%}
+{% if has_config or has_jsonl_logging or has_opentelemetry -%}
+directories = "6.0"
+{% endif -%}
 thiserror = "2.0"
 tracing = "0.1"
+{% if has_jsonl_logging or has_opentelemetry -%}
+anyhow = "1.0"
+serde_json = "1.0"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-appender = "0.2"
+{% endif -%}
+{% if has_opentelemetry -%}
+opentelemetry = { version = "0.31", features = ["trace"] }
+opentelemetry_sdk = { version = "0.31", features = ["trace", "rt-tokio"] }
+opentelemetry-otlp = { version = "0.31", features = ["grpc-tonic", "http-json", "reqwest-blocking-client"] }
+tracing-opentelemetry = "0.32"
+{% endif -%}
 
 [dev-dependencies]
 {% if has_config -%}
-tempfile = "3.26"
+tempfile = "3.27"
 {% endif -%}
 {% if has_benchmarks -%}
 divan = "0.1"

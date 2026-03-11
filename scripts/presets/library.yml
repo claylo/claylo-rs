@@ -1,19 +1,20 @@
-# Standard + OpenTelemetry preset feature flags
-preset: standard
-lint_level: standard
+# Library preset feature flags (project-specific values like project_name
+# and crate_name are set by the wrapper script, not in preset files)
+preset: library
+lint_level: strict
 hook_system: none
-has_cli: true
+has_cli: false
 has_core_library: true
-has_config: true
-has_jsonl_logging: true
-has_opentelemetry: true
+has_config: false
+has_jsonl_logging: false
+has_opentelemetry: false
 has_mcp_server: false
-has_benchmarks: false
+has_benchmarks: true
 has_site: true
 site_deploy: github_pages
 site_package_manager: npm
 has_community_files: false
-# Dotfiles (standard = off)
+# Dotfiles (library = off)
 has_yamlfmt: false
 has_yamllint: false
 has_editorconfig: false
@@ -31,9 +32,9 @@ has_md: true
 has_md_strict: false
 # Claude
 has_claude: true
-# Release automation
+# Release automation (library = releases but no binary dist)
 has_releases: true
-has_attestations: true
+has_attestations: false
 # Repository tooling
 has_coda: true
 has_roadmap_votes: false

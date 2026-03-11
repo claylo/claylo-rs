@@ -301,6 +301,16 @@ cleanup_orphaned_files() {
         rm -f "${project_dir}/.github/docs/releases.md" 2>/dev/null
     fi
 
+    # Cleanup for binary distribution (has_cli=false OR has_releases=false)
+    local has_cli has_releases
+    has_cli=$(yq -r '.has_cli // true' "$answers_file")
+    has_releases=$(yq -r '.has_releases // false' "$answers_file")
+    if [[ "$has_cli" == "false" ]] || [[ "$has_releases" == "false" ]]; then
+        rm -rf "${project_dir}/npm" 2>/dev/null
+        rm -f "${project_dir}/.github/formula.rb.tmpl" 2>/dev/null
+        rm -f "${project_dir}/.github/workflows/cd.yml" 2>/dev/null
+    fi
+
     # Cleanup for has_community_files=false
     if is_disabled "has_community_files"; then
         rm -f "${project_dir}/CODE_OF_CONDUCT.md" 2>/dev/null
@@ -310,6 +320,7 @@ cleanup_orphaned_files() {
     # Cleanup for observability (both jsonl and otel must be false)
     if is_disabled "has_jsonl_logging" && is_disabled "has_opentelemetry"; then
         rm -f "${project_dir}/crates/${project_name}/src/observability.rs" 2>/dev/null
+        rm -f "${project_dir}/crates/${project_name}-core/src/observability.rs" 2>/dev/null
     fi
 
     return 0

@@ -29,12 +29,6 @@ has_pr_templates: true
 has_md: false
 # Claude
 has_claude: true
-has_claude_skills: true
-has_claude_commands: true
-# Skills (need explicit values when has_claude_skills is true)
-has_skill_markdown_authoring: false
-has_skill_capturing_decisions: true
-has_skill_using_git: true
 # Release automation (minimal = off)
 has_releases: false
 has_attestations: true
