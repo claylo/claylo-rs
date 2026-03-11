@@ -114,21 +114,15 @@ impl ProjectServer {
 #[tool_handler]
 impl ServerHandler for ProjectServer {
     fn get_info(&self) -> ServerInfo {
-        ServerInfo {
-            protocol_version: Default::default(),
-            capabilities: ServerCapabilities::builder()
-                .enable_tools()
-                .build(),
-            server_info: Implementation {
-                name: env!("CARGO_PKG_NAME").to_string(),
-                version: env!("CARGO_PKG_VERSION").to_string(),
-                ..Default::default()
-            },
-            instructions: Some(format!(
+        ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
+            .with_server_info(Implementation::new(
+                env!("CARGO_PKG_NAME"),
+                env!("CARGO_PKG_VERSION"),
+            ))
+            .with_instructions(format!(
                 "{} MCP server. Use tools to interact with project functionality.",
                 env!("CARGO_PKG_NAME"),
-            )),
-        }
+            ))
     }
 }
 

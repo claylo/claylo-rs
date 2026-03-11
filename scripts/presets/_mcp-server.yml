@@ -31,12 +31,6 @@ has_md: false
 has_md_strict: false
 # Claude
 has_claude: false
-has_claude_skills: false
-has_claude_commands: false
-# Skills
-has_skill_markdown_authoring: false
-has_skill_capturing_decisions: false
-has_skill_using_git: false
 # Release automation
 has_releases: true
 has_attestations: true

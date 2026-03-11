@@ -22,6 +22,7 @@ _exclude:
   - copier.yaml
   - "*.DS_Store"
   - ".git"
+  - "**/.claude/settings.local.json"
 # Use .jinja suffix for template files
 _templates_suffix: .jinja
 
@@ -74,11 +75,11 @@ edition:
   help: "Rust edition for the workspace"
 msrv:
   type: str
-  default: "1.88.0"
+  default: "1.89.0"
   help: "Minimum Supported Rust Version"
 pinned_dev_toolchain:
   type: str
-  default: "1.93.1"
+  default: "1.94.0"
   help: "Pinned development Rust toolchain version"
 license:
   type: str
@@ -159,6 +160,7 @@ preset:
   type: str
   choices:
     "Minimal (CLI only)": "minimal"
+    "Library (core library + benchmarks + releases)": "library"
     "Standard (CLI + core library + config + JSONL logging)": "standard"
     "Full (everything including benchmarks and site)": "full"
   default: "standard"
@@ -258,17 +260,7 @@ conduct_email:
 has_claude:
   type: bool
   default: true
-  help: "Include .claude/ directory with agent configuration"
-has_claude_skills:
-  type: bool
-  default: true
-  when: "{{ has_claude }}"
-  help: "Include .claude/skills/ (skip if you have global skills)"
-has_claude_commands:
-  type: bool
-  default: true
-  when: "{{ has_claude }}"
-  help: "Include .claude/commands/ (skip if you have global commands)"
+  help: "Include .claude/settings.json with agent permissions"
 # =============================================================================
 # Git Hooks & Commit Tooling
 # =============================================================================
@@ -383,34 +375,20 @@ has_md_strict:
   when: "{{ has_md }}"
   help: "Use stricter markdown rules (limit blank lines, enforce dash lists)"
 # =============================================================================
-# Individual Skills (when has_claude_skills is true)
-# =============================================================================
-has_skill_markdown_authoring:
-  type: bool
-  default: "{{ has_claude_skills and (has_md or has_md_strict) }}"
-  when: "{{ has_claude_skills }}"
-  help: "Include markdown-authoring skill"
-has_skill_capturing_decisions:
-  type: bool
-  default: "{{ has_claude_skills }}"
-  when: "{{ has_claude_skills }}"
-  help: "Include capturing-decisions (ADR) skill"
-has_skill_using_git:
-  type: bool
-  default: "{{ has_claude_skills }}"
-  when: "{{ has_claude_skills }}"
-  help: "Include using-git skill"
-# =============================================================================
 # Release Automation
 # =============================================================================
 has_releases:
   type: bool
-  default: "{{ preset == 'full' }}"
-  help: "Include release automation (git-cliff changelogs, CD workflow)"
+  default: "{{ preset != 'minimal' }}"
+  help: "Include release automation (git-cliff changelogs, GitHub release workflow)"
+has_binary_dist:
+  type: bool
+  default: "{{ has_cli and has_releases }}"
+  when: false # Don't prompt, just compute
 has_attestations:
   type: bool
-  default: "{{ preset != 'minimal' }}"
-  when: "{{ has_releases }}"
+  default: "{{ has_binary_dist }}"
+  when: "{{ has_binary_dist }}"
   help: "Include artifact attestations (Sigstore-signed provenance, requires public repo or GH Enterprise)"
 # =============================================================================
 # Repository Tooling

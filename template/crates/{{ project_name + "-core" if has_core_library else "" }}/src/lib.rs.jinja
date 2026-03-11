@@ -29,6 +29,9 @@
 pub mod config;
 {% endif %}
 pub mod error;
+{% if has_jsonl_logging or has_opentelemetry %}
+pub mod observability;
+{% endif %}
 {% if has_config %}
 pub use config::{Config, ConfigLoader, LogLevel};
 {% endif %}

@@ -151,40 +151,35 @@ my-tool/
 ## Comparison Table
 
 <!-- BEGIN GENERATED: preset-comparison -->
-| Feature | Full | Minimal | Standard |
-|---------|----------|----------|----------|
-| `has_agents_md` | ✓ | ✓ | ✓ |
-| `has_attestations` | ✓ | ✓ | ✓ |
-| `has_benchmarks` | ✓ | ✗ | ✗ |
-| `has_claude` | ✓ | ✓ | ✓ |
-| `has_claude_commands` | ✓ | ✓ | ✓ |
-| `has_claude_skills` | ✓ | ✓ | ✓ |
-| `has_cli` | ✓ | ✓ | ✓ |
-| `has_coda` | ✓ | ✓ | ✓ |
-| `has_community_files` | ✓ | ✗ | ✗ |
-| `has_config` | ✓ | ✗ | ✓ |
-| `has_core_library` | ✓ | ✗ | ✓ |
-| `has_editorconfig` | ✓ | ✗ | ✗ |
-| `has_env_files` | ✓ | ✗ | ✗ |
-| `has_gitattributes` | ✓ | ✓ | ✓ |
-| `has_github` | ✓ | ✓ | ✓ |
-| `has_gungraun` | ✗ | ✗ | ✗ |
-| `has_issue_templates` | ✓ | ✓ | ✓ |
-| `has_jsonl_logging` | ✓ | ✗ | ✓ |
-| `has_mcp_server` | ✗ | ✗ | ✗ |
-| `has_md` | ✓ | ✗ | ✓ |
-| `has_md_strict` | ✗ | ✗ | ✗ |
-| `has_opentelemetry` | ✓ | ✗ | ✗ |
-| `has_pr_templates` | ✓ | ✓ | ✓ |
-| `has_releases` | ✓ | ✗ | ✓ |
-| `has_roadmap_votes` | ✗ | ✗ | ✗ |
-| `has_security_md` | ✓ | ✓ | ✓ |
-| `has_site` | ✓ | ✗ | ✓ |
-| `has_skill_capturing_decisions` | ✓ | ✓ | ✓ |
-| `has_skill_markdown_authoring` | ✓ | ✗ | ✓ |
-| `has_skill_using_git` | ✓ | ✓ | ✓ |
-| `has_yamlfmt` | ✓ | ✗ | ✗ |
-| `has_yamllint` | ✓ | ✗ | ✗ |
+| Feature | Full | Library | Minimal | Standard |
+|---------|----------|----------|----------|----------|
+| `has_agents_md` | ✓ | ✓ | ✓ | ✓ |
+| `has_attestations` | ✓ | ✗ | ✓ | ✓ |
+| `has_benchmarks` | ✓ | ✓ | ✗ | ✗ |
+| `has_claude` | ✓ | ✓ | ✓ | ✓ |
+| `has_cli` | ✓ | ✗ | ✓ | ✓ |
+| `has_coda` | ✓ | ✓ | ✓ | ✓ |
+| `has_community_files` | ✓ | ✗ | ✗ | ✗ |
+| `has_config` | ✓ | ✗ | ✗ | ✓ |
+| `has_core_library` | ✓ | ✓ | ✗ | ✓ |
+| `has_editorconfig` | ✓ | ✗ | ✗ | ✗ |
+| `has_env_files` | ✓ | ✗ | ✗ | ✗ |
+| `has_gitattributes` | ✓ | ✓ | ✓ | ✓ |
+| `has_github` | ✓ | ✓ | ✓ | ✓ |
+| `has_gungraun` | ✗ | ✗ | ✗ | ✗ |
+| `has_issue_templates` | ✓ | ✓ | ✓ | ✓ |
+| `has_jsonl_logging` | ✓ | ✗ | ✗ | ✓ |
+| `has_mcp_server` | ✗ | ✗ | ✗ | ✗ |
+| `has_md` | ✓ | ✓ | ✗ | ✓ |
+| `has_md_strict` | ✗ | ✗ | ✗ | ✗ |
+| `has_opentelemetry` | ✓ | ✗ | ✗ | ✗ |
+| `has_pr_templates` | ✓ | ✓ | ✓ | ✓ |
+| `has_releases` | ✓ | ✓ | ✗ | ✓ |
+| `has_roadmap_votes` | ✗ | ✗ | ✗ | ✗ |
+| `has_security_md` | ✓ | ✓ | ✓ | ✓ |
+| `has_site` | ✓ | ✓ | ✗ | ✓ |
+| `has_yamlfmt` | ✓ | ✗ | ✗ | ✗ |
+| `has_yamllint` | ✓ | ✗ | ✗ | ✗ |
 <!-- END GENERATED: preset-comparison -->
 
 ### OpenTelemetry

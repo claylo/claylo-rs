@@ -138,6 +138,15 @@ MOCK
     assert_output --partial "--data preset=full"
 }
 
+@test "wrapper: library preset sets has_cli=false" {
+    PATH="${MOCK_DIR}:${PATH}" run "$WRAPPER" new ./foo --preset library
+    assert_success
+    assert_output --partial "--data preset=library"
+    assert_output --partial "--data has_cli=false"
+    assert_output --partial "--data has_benchmarks=true"
+    assert_output --partial "--data has_releases=true"
+}
+
 @test "wrapper: new with --lint passes lint_level" {
     PATH="${MOCK_DIR}:${PATH}" run "$WRAPPER" new ./foo --lint strict
     assert_success
@@ -252,16 +261,15 @@ MOCK
 @test "wrapper: all feature aliases resolve correctly" {
     # Spot-check a selection of aliases across categories
     PATH="${MOCK_DIR}:${PATH}" run "$WRAPPER" new ./foo \
-        +core+config+jsonl+claude_skills+env+issues+md_strict+skill_git
+        +core+config+jsonl+claude+env+issues+md_strict
     assert_success
     assert_output --partial "--data has_core_library=true"
     assert_output --partial "--data has_config=true"
     assert_output --partial "--data has_jsonl_logging=true"
-    assert_output --partial "--data has_claude_skills=true"
+    assert_output --partial "--data has_claude=true"
     assert_output --partial "--data has_env_files=true"
     assert_output --partial "--data has_issue_templates=true"
     assert_output --partial "--data has_md_strict=true"
-    assert_output --partial "--data has_skill_using_git=true"
 }
 
 @test "wrapper: features work with update command" {

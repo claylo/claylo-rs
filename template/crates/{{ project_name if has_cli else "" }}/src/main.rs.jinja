@@ -13,8 +13,13 @@ use crate::config::ConfigLoader;
 {%- endif %}
 {%- if has_jsonl_logging or has_opentelemetry %}
 use tracing::debug;
+{%- if has_core_library %}
+
+use {{ crate_name }}_core::observability;
+{%- else %}
 
 mod observability;
+{%- endif %}
 {%- endif -%}
 
 {% if needs_tokio %}

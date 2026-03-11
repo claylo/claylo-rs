@@ -22,6 +22,9 @@ If you're not a Python fan, don't worry — it stays out of your generated proje
 # Sensible defaults: CLI + config + logging + workspace layout
 claylo-rs new ./my-tool --owner myorg --copyright "Your Name"
 
+# Library crate: benchmarks, doc site, crates.io releases
+claylo-rs new ./my-lib --preset library
+
 # Full send: benchmarks, OpenTelemetry, the works
 claylo-rs new ./my-tool --preset full +otel
 
@@ -53,12 +56,16 @@ Pick a starting point. Override anything with `+flag` or `-flag`.
 | Preset | The Vibe |
 |--------|----------|
 | **minimal** | Just the binary. No config, no logging, no training wheels. For when you know exactly what you're doing, or want to find out the hard way. |
+| **library** | Core library + benchmarks + doc site + release automation. No CLI binary, no binary distribution. For crates that other people `cargo add`. |
 | **standard** | The "you'll thank yourself later" tier. CLI + core library + config discovery + JSONL logging + xtask automation. Most projects land here. |
 | **full** | Everything. Benchmarks, editor configs, markdown linting, environment files. For projects that will outlive your current job. |
 
 ```bash
 # Standard with OpenTelemetry tracing
 claylo-rs new ./my-tool --preset standard +otel
+
+# Library crate with benchmarks and releases
+claylo-rs new ./my-lib --preset library
 
 # Full but skip the benchmarks
 claylo-rs new ./my-tool --preset full -bench
@@ -84,7 +91,7 @@ my-tool/
 ├── xtask/                 # Build automation (man pages, completions)
 ├── docs/                  # Starlight content source
 ├── site/                  # Astro Starlight documentation site
-├── .claude/               # Claude Code skills, rules, commands
+├── .claude/               # Claude Code agent permissions
 ├── .justfile              # Task runner recipes
 ├── Cargo.toml             # Workspace manifest
 └── deny.toml              # cargo-deny config
@@ -107,17 +114,11 @@ The structure follows [ADR-0001](docs/decisions/0001-workspace-structure-with-se
 
 ## Works with Claude Code
 
-The generated project includes `.claude/` with skills, and commands tuned for Rust development.
-
-"Add a new subcommand" → There's a skill for that.
-"Set up config file support" → Already documented.
-"Why is clippy yelling at me" → The rules explain the lint choices.
-
-You're not starting from scratch. Neither is your AI.
+The generated project includes `.claude/settings.json` with pre-configured permissions — common dev tools allowed, dangerous operations denied.
 
 ```bash
 # Skip if you have your own global Claude setup
-claylo-rs new ./my-tool -claude_skills -claude_rules
+claylo-rs new ./my-tool -claude
 ```
 
 

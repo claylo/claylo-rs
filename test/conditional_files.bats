@@ -92,6 +92,22 @@ load 'test_helper'
 # Claude Integration
 # =============================================================================
 
+@test "has_claude=true includes settings.json only" {
+    local output_dir
+    output_dir=$(generate_project_with_data "cond-claude-on" "minimal.yml" \
+        "has_claude=true" \
+        "has_github=false" \
+        "has_agents_md=false" \
+        "has_gitattributes=false" \
+        "has_md=false")
+
+    assert_file_in_project "$output_dir" ".claude/settings.json"
+    assert_no_file_in_project "$output_dir" ".claude/skills"
+    assert_no_file_in_project "$output_dir" ".claude/commands"
+    assert_no_file_in_project "$output_dir" ".claude/CLAUDE.md"
+    assert_no_file_in_project "$output_dir" ".claude/plans"
+}
+
 @test "has_claude=false excludes .claude directory" {
     local output_dir
     output_dir=$(generate_project_with_data "cond-no-claude" "minimal.yml" \
@@ -103,47 +119,6 @@ load 'test_helper'
 
     assert_file_in_project "$output_dir" "Cargo.toml"
     assert_no_file_in_project "$output_dir" ".claude"
-    assert_no_file_in_project "$output_dir" ".claude/CLAUDE.md"
-    assert_no_file_in_project "$output_dir" ".claude/skills"
-    assert_no_file_in_project "$output_dir" ".claude/commands"
-    assert_no_file_in_project "$output_dir" ".claude/rules"
-}
-
-@test "has_claude=true with skills disabled excludes skills dir" {
-    local output_dir
-    output_dir=$(generate_project_with_data "cond-claude-no-skills" "minimal.yml" \
-        "has_claude=true" \
-        "has_claude_skills=false" \
-        "has_claude_commands=true" \
-        "has_github=false" \
-        "has_agents_md=false" \
-        "has_gitattributes=false" \
-        "has_md=false")
-
-    assert_file_in_project "$output_dir" ".claude"
-    assert_file_in_project "$output_dir" ".claude/CLAUDE.md"
-    assert_file_in_project "$output_dir" ".claude/commands"
-    assert_no_file_in_project "$output_dir" ".claude/skills"
-}
-
-@test "selective skills includes only requested skills" {
-    local output_dir
-    output_dir=$(generate_project_with_data "cond-skills-selective" "minimal.yml" \
-        "has_claude=true" \
-        "has_claude_skills=true" \
-        "has_claude_commands=false" \
-        "has_skill_markdown_authoring=false" \
-        "has_skill_capturing_decisions=true" \
-        "has_skill_using_git=false" \
-        "has_github=false" \
-        "has_agents_md=false" \
-        "has_gitattributes=false" \
-        "has_md=false")
-
-    assert_file_in_project "$output_dir" ".claude/skills/capturing-decisions"
-    assert_no_file_in_project "$output_dir" ".claude/skills/markdown-authoring"
-    assert_no_file_in_project "$output_dir" ".claude/skills/using-git"
-    assert_no_file_in_project "$output_dir" ".claude/commands"
 }
 
 # =============================================================================
@@ -306,25 +281,42 @@ load 'test_helper'
 # Release Automation
 # =============================================================================
 
-@test "has_releases=true includes cliff.toml and release workflows" {
+@test "has_releases=true with has_cli=true includes full release + binary dist" {
     local output_dir
     output_dir=$(generate_project_with_data "cond-releases-on" "full.yml" \
         "has_releases=true")
 
+    # Release management
     assert_file_in_project "$output_dir" "cliff.toml"
-    assert_file_in_project "$output_dir" ".github/workflows/cd.yml"
     assert_file_in_project "$output_dir" ".github/workflows/release.yml"
     assert_file_in_project "$output_dir" ".github/docs/releases.md"
-    # npm scaffold
+    # Binary distribution (has_cli=true + has_releases=true)
+    assert_file_in_project "$output_dir" ".github/workflows/cd.yml"
     assert_file_in_project "$output_dir" "npm/cond-releases-on/package.json"
     assert_file_in_project "$output_dir" "npm/cond-releases-on/index.js"
     assert_file_in_project "$output_dir" "npm/cond-releases-on/cli.js"
     assert_file_in_project "$output_dir" "npm/cond-releases-on/install.js"
     assert_file_in_project "$output_dir" "npm/platforms/cond-releases-on-darwin-arm64/package.json"
     assert_file_in_project "$output_dir" "npm/platforms/cond-releases-on-linux-x64/package.json"
+    assert_file_in_project "$output_dir" ".github/formula.rb.tmpl"
 }
 
-@test "has_releases=false excludes cliff.toml and release workflows" {
+@test "has_releases=true with has_cli=false excludes binary dist" {
+    local output_dir
+    output_dir=$(generate_project_with_data "cond-releases-no-cli" "library.yml" \
+        "has_releases=true")
+
+    # Release management IS present
+    assert_file_in_project "$output_dir" "cliff.toml"
+    assert_file_in_project "$output_dir" ".github/workflows/release.yml"
+    assert_file_in_project "$output_dir" ".github/docs/releases.md"
+    # Binary distribution NOT present (has_cli=false)
+    assert_no_file_in_project "$output_dir" ".github/workflows/cd.yml"
+    assert_no_file_in_project "$output_dir" "npm"
+    assert_no_file_in_project "$output_dir" ".github/formula.rb.tmpl"
+}
+
+@test "has_releases=false excludes all release infrastructure" {
     local output_dir
     output_dir=$(generate_project_with_data "cond-releases-off" "standard.yml" \
         "has_releases=false")
@@ -582,11 +574,34 @@ load 'test_helper'
 }
 
 @test "add-crate script present in all primary presets" {
-    for preset in minimal standard full; do
+    for preset in minimal library standard full; do
         local output_dir
         output_dir=$(generate_project_with_data "cond-add-crate-$preset" "$preset.yml")
         assert_file_in_project "$output_dir" "scripts/add-crate"
     done
+}
+
+# =============================================================================
+# Library Preset
+# =============================================================================
+
+@test "library preset generates core crate without CLI" {
+    local output_dir
+    output_dir=$(generate_project_with_data "cond-library" "library.yml")
+
+    # Core crate present
+    assert_file_in_project "$output_dir" "crates/cond-library-core"
+    assert_file_in_project "$output_dir" "crates/cond-library-core/src/lib.rs"
+    # No CLI crate
+    assert_no_file_in_project "$output_dir" "crates/cond-library/src/main.rs"
+    # Has benchmarks
+    assert_file_in_project "$output_dir" "crates/cond-library-core/benches"
+    # Has releases but no binary dist
+    assert_file_in_project "$output_dir" "cliff.toml"
+    assert_file_in_project "$output_dir" ".github/workflows/release.yml"
+    assert_no_file_in_project "$output_dir" "npm"
+    assert_no_file_in_project "$output_dir" ".github/workflows/cd.yml"
+    assert_no_file_in_project "$output_dir" ".github/formula.rb.tmpl"
 }
 
 # =============================================================================
