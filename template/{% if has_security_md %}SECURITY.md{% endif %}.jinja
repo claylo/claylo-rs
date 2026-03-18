@@ -45,9 +45,14 @@ information or guidance.
 
 This security policy applies to:
 
+{%- if has_cli %}
 - The {{ project_name }} CLI tool
-{%- if has_core_library %}
-- The {{ project_name }}-core library{% endif %}
+{%- endif %}
+{%- if has_core_library and has_cli %}
+- The {{ project_name }}-core library
+{%- elif not has_cli %}
+- The {{ project_name }} library
+{%- endif %}
 - Official distribution channels (crates.io, GitHub releases)
 
 ## Security Best Practices

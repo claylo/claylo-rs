@@ -573,35 +573,49 @@ load 'test_helper'
     [[ -x "$output_dir/scripts/add-crate" ]]
 }
 
-@test "add-crate script present in all primary presets" {
-    for preset in minimal library standard full; do
+@test "add-crate script present in CLI presets" {
+    for preset in minimal standard full; do
         local output_dir
         output_dir=$(generate_project_with_data "cond-add-crate-$preset" "$preset.yml")
         assert_file_in_project "$output_dir" "scripts/add-crate"
     done
 }
 
+@test "add-crate script absent in library preset (flat crate)" {
+    local output_dir
+    output_dir=$(generate_project_with_data "cond-add-crate-library" "library.yml")
+    assert_no_file_in_project "$output_dir" "scripts/add-crate"
+    assert_no_file_in_project "$output_dir" "scripts"
+}
+
 # =============================================================================
 # Library Preset
 # =============================================================================
 
-@test "library preset generates core crate without CLI" {
+@test "library preset generates flat crate without CLI" {
     local output_dir
     output_dir=$(generate_project_with_data "cond-library" "library.yml")
 
-    # Core crate present
-    assert_file_in_project "$output_dir" "crates/cond-library-core"
-    assert_file_in_project "$output_dir" "crates/cond-library-core/src/lib.rs"
-    # No CLI crate
-    assert_no_file_in_project "$output_dir" "crates/cond-library/src/main.rs"
-    # Has benchmarks
-    assert_file_in_project "$output_dir" "crates/cond-library-core/benches"
+    # Flat library structure (no workspace)
+    assert_file_in_project "$output_dir" "src/lib.rs"
+    assert_file_in_project "$output_dir" "src/error.rs"
+    # No workspace crates directory
+    assert_no_file_in_project "$output_dir" "crates"
+    # No CLI artifacts
+    assert_no_file_in_project "$output_dir" "dist"
+    assert_no_file_in_project "$output_dir" "scripts"
+    # Has benchmarks at root
+    assert_file_in_project "$output_dir" "benches/divan_benchmarks.rs"
+    assert_file_in_project "$output_dir" "benches/benchmarks.kdl"
     # Has releases but no binary dist
     assert_file_in_project "$output_dir" "cliff.toml"
     assert_file_in_project "$output_dir" ".github/workflows/release.yml"
     assert_no_file_in_project "$output_dir" "npm"
     assert_no_file_in_project "$output_dir" ".github/workflows/cd.yml"
     assert_no_file_in_project "$output_dir" ".github/formula.rb.tmpl"
+    # Cargo.toml is a [package], not [workspace]
+    assert_file_contains "$output_dir" "Cargo.toml" '\[package\]'
+    assert_file_not_contains "$output_dir" "Cargo.toml" '\[workspace\]'
 }
 
 # =============================================================================

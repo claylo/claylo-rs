@@ -1,13 +1,12 @@
 # .cargo/config.toml
-#
-# Most workflows are handled by justfile recipes. This config focuses on
-# build performance and settings that cargo needs to know at invocation time.
+{% if has_xtask %}
 
 [alias]
 # xtask convenience (use: cargo xtask <command>)
 # Note: Uses dev profile to share artifacts with `cargo build`. Release
 # optimization doesn't help xtask commands (completions, man pages, etc).
 xtask = "run --package xtask --"
+{% endif %}
 
 [cargo-new]
 vcs = "git"
