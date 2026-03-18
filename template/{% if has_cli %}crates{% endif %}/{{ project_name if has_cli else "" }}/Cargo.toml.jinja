@@ -50,7 +50,7 @@ pkg-fmt = "zip"
 {% if has_core_library -%}
 {{ project_name }}-core = { version = "0.1", path = "../{{ project_name }}-core" }
 {% endif -%}
-clap = { version = "4.5", features = ["derive"] }
+clap = { version = "4.6", features = ["derive"] }
 anyhow = "1.0"
 tracing = "0.1"
 {% if not has_core_library and (has_jsonl_logging or has_opentelemetry) -%}
@@ -67,7 +67,7 @@ tracing-opentelemetry = "0.32"
 tokio = { version = "1.50", features = ["rt-multi-thread", "macros"] }
 {% endif -%}
 {% if has_mcp_server -%}
-rmcp = { version = "1.1", features = ["server", "transport-io", "macros"] }
+rmcp = { version = "1.2", features = ["server", "transport-io", "macros"] }
 schemars = "1.2"
 {% endif -%}
 serde = { version = "1.0", features = ["derive"] }

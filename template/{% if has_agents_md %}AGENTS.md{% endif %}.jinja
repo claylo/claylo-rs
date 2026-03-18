@@ -1,4 +1,5 @@
 # {{ project_name }}
+{% if has_cli %}
 
 ## Workspace Layout
 
@@ -9,7 +10,12 @@ This is a Cargo workspace. All crates live under `crates/`:
 | `{{ project_name }}` | CLI binary{% if has_core_library %} |
 | `{{ project_name }}-core` | Shared library (config, types, logic){% endif %}{% if has_xtask %} |
 | `xtask` | Dev automation (completions, man pages){% endif %} |
+{% else %}
 
+## Project Layout
+
+This is a single Rust library crate. Source lives in `src/`.
+{% endif %}
 {% if has_config -%}
 Configuration files live in `config/` with `.toml.example` and `.yaml.example` templates.
 {% endif -%}
@@ -24,8 +30,10 @@ just test           # cargo nextest run
 just clippy         # lint with pinned toolchain
 just fmt            # cargo fmt --all
 just deny           # security/license audit
-just fix            # auto-fix clippy warnings{% if has_benchmarks -%}
-just bench          # run all benchmarks{% endif -%}
+just fix            # auto-fix clippy warnings
+{%- if has_benchmarks %}
+just bench          # run {% if has_cli %}all {% endif %}benchmarks
+{%- endif %}
 just release-check  # pre-release validation
 just outdated       # check for outdated dependencies
 just upgrade        # update deps in Cargo.toml and Cargo.lock
@@ -39,24 +47,27 @@ just upgrade        # update deps in Cargo.toml and Cargo.lock
 - **Edition {{ edition }}**, MSRV **{{ msrv }}**, toolchain pinned in `rust-toolchain.toml`
 - `unsafe_code = "deny"` — no unsafe unless explicitly allowed with a `// SAFETY:` comment
 - Clippy `all` = warn{% if lint_level == 'strict' %}, `nursery` = warn{% endif %} — treat warnings as errors in CI
+{% if has_cli -%}
 - Use `anyhow::Result` in the binary, `thiserror` for library error types
-{% if has_core_library -%}
+{% else -%}
+- Use `thiserror` for error types
+{% endif -%}
+{% if has_core_library and has_cli -%}
 - Shared logic belongs in `{{ project_name }}-core`; the CLI crate handles argument parsing and I/O
 {% endif %}
 
-{% if has_core_library -%}
+{% if has_core_library and has_cli -%}
 **IMPORTANT — THIN CLI, FAT CORE.** Feature logic and new dependencies belong in `{{ project_name }}-core`, not `{{ project_name }}`. The CLI crate is a thin shell: argument parsing, I/O, and wiring. This keeps the core testable without subprocess gymnastics and leaves the door open for other frontends (WASM, Tauri, etc).
 {% endif -%}
-
+{% if has_cli -%}
 ## Adding CLI Commands
 
 1. Create `crates/{{ project_name }}/src/commands/your_cmd.rs`
 2. Add the variant to `Commands` enum in `crates/{{ project_name }}/src/lib.rs`
 3. Wire it up in `match cli.command` in `main.rs`
-{% if has_cli -%}
 4. Add integration tests in `crates/{{ project_name }}/tests/`
-{% endif %}
 
+{% endif -%}
 ## Do Not
 
 - Commit anything in `target/`
@@ -64,4 +75,3 @@ just upgrade        # update deps in Cargo.toml and Cargo.lock
 - Skip `--all-targets --all-features` when running clippy
 - Use `cargo test` instead of `cargo nextest run`
 - Run raw cargo commands when a `just` recipe exists
-

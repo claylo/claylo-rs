@@ -257,9 +257,17 @@ cleanup_orphaned_files() {
     # Cleanup for has_benchmarks=false
     if is_disabled "has_benchmarks"; then
         rm -rf "${project_dir}/crates/${project_name}-core/benches" 2>/dev/null
+        rm -rf "${project_dir}/benches" 2>/dev/null
         rm -rf "${project_dir}/bench-reports" 2>/dev/null
         rm -f "${project_dir}/scripts/bench-cli.sh" 2>/dev/null
         rm -f "${project_dir}/.github/docs/benchmarks-howto.md" 2>/dev/null
+    fi
+
+    # Cleanup for has_cli=false (flat library — remove workspace artifacts)
+    if [[ "$(yq -r '.has_cli // true' "$answers_file")" == "false" ]]; then
+        rm -rf "${project_dir}/crates" 2>/dev/null
+        rm -rf "${project_dir}/dist" 2>/dev/null
+        rm -rf "${project_dir}/scripts" 2>/dev/null
     fi
 
     # Cleanup for has_xtask=false

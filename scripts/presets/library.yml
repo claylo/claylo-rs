@@ -10,7 +10,7 @@ has_jsonl_logging: false
 has_opentelemetry: false
 has_mcp_server: false
 has_benchmarks: true
-has_site: true
+has_site: false
 site_deploy: github_pages
 site_package_manager: npm
 has_community_files: false

@@ -30,10 +30,14 @@ jobs:
 
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
-
+{% endraw %}
+{%- if has_xtask %}
+{% raw %}
       - name: Generate benchmark harnesses
         run: cargo xtask gen-benchmarks
-
+{% endraw %}
+{%- endif %}
+{% raw %}
       - name: Run Divan benchmarks
         run: |
           mkdir -p bench-reports
@@ -70,10 +74,14 @@ jobs:
         uses: ./.github/actions/setup-cargo-tools
         with:
           binstall-tools: gungraun-runner
-
+{% endraw %}
+{%- if has_xtask %}
+{% raw %}
       - name: Generate benchmark harnesses
         run: cargo xtask gen-benchmarks
-
+{% endraw %}
+{%- endif %}
+{% raw %}
       - name: Run Gungraun benchmarks
         run: |
           mkdir -p bench-reports
@@ -85,7 +93,9 @@ jobs:
           name: gungraun-results
           path: bench-reports/gungraun-ci.txt
           retention-days: 30
-
+{% endraw %}
+{%- if has_cli %}
+{% raw %}
   # CLI benchmarks with hyperfine
   cli:
     name: CLI (hyperfine)
@@ -116,12 +126,22 @@ jobs:
           name: cli-benchmark-results
           path: bench-reports/
           retention-days: 30
-
+{% endraw %}
+{%- endif %}
+{% raw %}
   # Summary job that collects all results
   summary:
     name: Benchmark Summary
     runs-on: ubuntu-latest
-    needs: [divan, gungraun, cli]
+{% endraw %}
+{%- if has_cli %}
+{% raw %}    needs: [divan, gungraun, cli]{% endraw %}
+
+{%- else %}
+{% raw %}    needs: [divan, gungraun]{% endraw %}
+
+{%- endif %}
+{% raw %}
     if: always()
 
     steps:
@@ -148,9 +168,12 @@ jobs:
             tail -50 all-results/gungraun-results/gungraun-ci.txt >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
           fi
-
+{% endraw %}
+{%- if has_cli %}
+{% raw %}
           if [ -f all-results/cli-benchmark-results/hyperfine-startup.md ]; then
             echo "### CLI (Hyperfine)" >> $GITHUB_STEP_SUMMARY
             cat all-results/cli-benchmark-results/hyperfine-startup.md >> $GITHUB_STEP_SUMMARY
           fi
 {% endraw %}
+{%- endif %}

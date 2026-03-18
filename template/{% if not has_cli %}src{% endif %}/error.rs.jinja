@@ -1,0 +1,14 @@
+//! Error types for {{ project_name }}
+
+use thiserror::Error;
+
+/// Errors that can occur in {{ project_name }}.
+#[derive(Error, Debug)]
+pub enum Error {
+    /// Placeholder variant (remove when adding real errors).
+    #[error("{0}")]
+    Other(String),
+}
+
+/// Result type alias using [`Error`].
+pub type Result<T> = std::result::Result<T, Error>;

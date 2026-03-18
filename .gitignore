@@ -60,3 +60,5 @@ scratch/
 
 # Node modules (anywhere in repo)
 node_modules/
+
+PRIVATE_MEMORY.md

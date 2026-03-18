@@ -192,7 +192,7 @@ Shell completions are included in the release archives. To install manually:
 {%- endif %}
 
 ## Development
-
+{% if has_cli %}
 This project uses a workspace layout with multiple crates:
 
 ```
@@ -204,6 +204,9 @@ crates/
 └── {{ project_name }}-core/  # Core library{% if has_config %} (config, errors){% endif %}
 {%- endif %}
 ```
+{%- else %}
+Single library crate — source lives in `src/`.
+{%- endif %}
 
 ### Prerequisites
 
@@ -256,23 +259,26 @@ cargo xtask completions --shell zsh
 {%- endif %}
 
 ## Architecture
-{% if has_cli or has_core_library %}
 
 ### Crate Organization
 {% if has_cli %}
-
 - **{{ project_name }}** - The CLI binary. Handles argument parsing, command dispatch, and user interaction.
-{%- endif %}
 {%- if has_core_library %}
 - **{{ project_name }}-core** - The core library. Contains {% if has_config %}configuration loading, error types, and shared functionality{% else %}error types and shared functionality{% endif %}.
 {%- endif %}
+{%- else %}
+- **{{ project_name }}** - {{ project_description }}
 {%- endif %}
 
 ### Error Handling
-
+{% if has_cli %}
 - Libraries use `thiserror` for structured error types
 - Binaries use `anyhow` for flexible error propagation
 - All errors include context for debugging
+{%- else %}
+- Uses `thiserror` for structured error types
+- All errors include context for debugging
+{%- endif %}
 {% if has_config %}
 
 ### Configuration System

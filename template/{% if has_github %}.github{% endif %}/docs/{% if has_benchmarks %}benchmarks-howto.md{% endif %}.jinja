@@ -1,5 +1,5 @@
 # Benchmarking Guide
-
+{% if has_cli %}
 This project includes a three-layer benchmarking strategy for comprehensive performance measurement.
 
 ## Overview
@@ -28,13 +28,20 @@ cargo bench --bench gungraun_benchmarks
 # Run only CLI benchmarks
 ./scripts/bench-cli.sh
 ```
+{% else %}
+## Quick Start
 
+```bash
+# Run divan benchmarks
+cargo bench --bench divan_benchmarks
+```
+{% endif %}
 ## Unified Benchmark Definitions (KDL)
 
 Benchmark definitions live in:
 
-`crates/{{ project_name }}-core/benches/benchmarks.kdl`
-
+`{% if has_cli %}crates/{{ project_name }}-core/{% endif %}benches/benchmarks.kdl`
+{% if has_cli %}
 Regenerate the harnesses after edits:
 
 ```bash
@@ -47,13 +54,13 @@ This generates:
 - `crates/{{ project_name }}-core/benches/gungraun_benchmarks.rs`
 
 Do not edit the generated benchmark files directly.
-
+{% endif %}
 ## Prerequisites
 
 ### Required
 
 - **Rust 1.80+** (for divan)
-
+{% if has_cli %}
 ### Optional (for full benchmark suite)
 
 - **Valgrind** (for gungraun):
@@ -74,17 +81,17 @@ Do not edit the generated benchmark files directly.
   # or
   cargo install hyperfine
   ```
-
+{% endif %}
 ## Layer 1: Divan (Wall-Clock Benchmarks)
 
 Divan provides fast, ergonomic wall-clock benchmarks for rapid development iteration.
 
 ### Location
 
-`crates/{{ project_name }}-core/benches/divan_benchmarks.rs`
-
+`{% if has_cli %}crates/{{ project_name }}-core/{% endif %}benches/divan_benchmarks.rs`
+{% if has_cli %}
 > Generated from `crates/{{ project_name }}-core/benches/benchmarks.kdl`.
-
+{% endif %}
 ### Running
 
 ```bash
@@ -158,10 +165,10 @@ Gungraun uses Valgrind to count CPU instructions, providing **deterministic** re
 
 ### Location
 
-`crates/{{ project_name }}-core/benches/gungraun_benchmarks.rs`
-
+`{% if has_cli %}crates/{{ project_name }}-core/{% endif %}benches/gungraun_benchmarks.rs`
+{% if has_cli %}
 > Generated from `crates/{{ project_name }}-core/benches/benchmarks.kdl`.
-
+{% endif %}
 ### Running
 
 ```bash
@@ -227,7 +234,7 @@ Wall-clock time varies based on:
 - System load
 
 Instruction counts are **deterministic** - the same code always executes the same number of instructions. This makes gungraun ideal for CI regression detection.
-
+{% if has_cli %}
 ## Layer 3: hyperfine (CLI Benchmarks)
 
 hyperfine measures real-world CLI performance including startup time, argument parsing, and I/O.
@@ -294,14 +301,16 @@ cargo xtask bench --quick
 # Filter benchmarks by name
 cargo xtask bench --filter config
 ```
-
+{% endif %}
 ## CI Integration
 
 Benchmarks run automatically on push and PR via `.github/workflows/benchmarks.yml`:
 
 - **Divan**: Runs on all PRs for quick feedback
 - **Gungraun**: Runs on Linux for deterministic regression detection
+{%- if has_cli %}
 - **hyperfine**: Runs in quick mode for end-to-end validation
+{%- endif %}
 
 Results are uploaded as artifacts and summarized in the GitHub Actions UI.
 
@@ -345,7 +354,7 @@ Wall-clock benchmarks are noisy. Gungraun provides stable, deterministic results
 
 ### 5. Close other applications for wall-clock benchmarks
 
-When running divan or hyperfine locally, close browsers, IDEs, and other applications for more consistent results.
+When running divan{% if has_cli %} or hyperfine{% endif %} locally, close browsers, IDEs, and other applications for more consistent results.
 
 ## Output Locations
 
@@ -353,7 +362,9 @@ When running divan or hyperfine locally, close browsers, IDEs, and other applica
 |-----------|-----------------|
 | Divan | Terminal (no file by default) |
 | Gungraun | Terminal + `target/gungraun/` |
+{%- if has_cli %}
 | hyperfine | `bench-reports/*.json`, `bench-reports/*.md` |
+{%- endif %}
 
 ## Troubleshooting
 
@@ -369,7 +380,7 @@ sudo apt install valgrind
 ```
 
 Note: Valgrind doesn't support macOS ARM. Run gungraun in CI instead.
-
+{% if has_cli %}
 ### "hyperfine: command not found"
 
 ```bash
@@ -377,11 +388,14 @@ brew install hyperfine
 # or
 cargo install hyperfine
 ```
-
+{% endif %}
 ### Benchmarks are too slow
-
+{% if has_cli %}
 - Use `cargo xtask bench --skip-gungraun` to skip instruction counting
 - Use `--quick` flag for hyperfine
+{%- else %}
+- Skip gungraun if not needed
+{%- endif %}
 - Filter to specific benchmarks: `cargo bench --bench divan_benchmarks -- my_func`
 
 ### Results are inconsistent
@@ -395,5 +409,7 @@ cargo install hyperfine
 
 - [Divan documentation](https://docs.rs/divan)
 - [Gungraun documentation](https://gungraun.github.io/gungraun/latest/html/)
+{%- if has_cli %}
 - [hyperfine repository](https://github.com/sharkdp/hyperfine)
+{%- endif %}
 - [The Rust Performance Book](https://nnethercote.github.io/perf-book/)
