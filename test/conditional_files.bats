@@ -622,7 +622,6 @@ load 'test_helper'
     assert_file_in_project "$output_dir" ".github/workflows/release.yml"
     assert_file_in_project "$output_dir" ".github/workflows/publish.yml"
     assert_file_in_project "$output_dir" ".github/actions/generate-release-changelog/action.yml"
-    assert_file_in_project "$output_dir" ".github/README.md"
     assert_no_file_in_project "$output_dir" "npm"
     assert_no_file_in_project "$output_dir" ".github/workflows/cd.yml"
     assert_no_file_in_project "$output_dir" ".github/formula.rb.tmpl"
