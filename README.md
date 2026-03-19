@@ -22,7 +22,7 @@ If you're not a Python fan, don't worry — it stays out of your generated proje
 # Sensible defaults: CLI + config + logging + workspace layout
 claylo-rs new ./my-tool --owner myorg --copyright "Your Name"
 
-# Library crate: benchmarks, doc site, crates.io releases
+# Library crate: benchmarks, crates.io releases
 claylo-rs new ./my-lib --preset library
 
 # Full send: benchmarks, OpenTelemetry, the works
@@ -56,7 +56,7 @@ Pick a starting point. Override anything with `+flag` or `-flag`.
 | Preset | The Vibe |
 |--------|----------|
 | **minimal** | Just the binary. No config, no logging, no training wheels. For when you know exactly what you're doing, or want to find out the hard way. |
-| **library** | Core library + benchmarks + doc site + release automation. No CLI binary, no binary distribution. For crates that other people `cargo add`. |
+| **library** | Core library + benchmarks + release automation. No CLI binary, no binary distribution. For crates that other people `cargo add`. |
 | **standard** | The "you'll thank yourself later" tier. CLI + core library + config discovery + JSONL logging + xtask automation. Most projects land here. |
 | **full** | Everything. Benchmarks, editor configs, markdown linting, environment files. For projects that will outlive your current job. |
 

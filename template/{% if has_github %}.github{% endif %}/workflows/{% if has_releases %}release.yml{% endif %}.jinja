@@ -79,11 +79,14 @@ jobs:
 
       - name: Generate changelog
         if: steps.check.outputs.should_release == 'true'
-        uses: orhun/git-cliff-action@c93ef52f3d0ddcdcc9bd5447d98d458a11cd4f72 # v4.7.1
         id: changelog
-        with:
-          config: cliff.toml
-          args: -vv --unreleased --strip all
+        run: |
+          content=$(git cliff --config cliff.toml -vv --unreleased --strip all 2>/dev/null)
+          {
+            echo "content<<CHANGELOG_EOF"
+            echo "$content"
+            echo "CHANGELOG_EOF"
+          } >> $GITHUB_OUTPUT
 
   create-release:
     name: Create release

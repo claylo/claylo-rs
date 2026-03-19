@@ -46,7 +46,7 @@ my-tool/
 | Core library | ✗ |
 | Config support | ✗ |
 | JSONL logging | ✗ |
-| xtask | ✗ |
+| xtask | ✓ |
 | Benchmarks | ✗ |
 
 

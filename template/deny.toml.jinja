@@ -52,7 +52,7 @@ db-urls = ["https://github.com/RustSec/advisory-db"]
 
 # Ignore specific advisories (use with caution in enterprise)
 ignore = [
-{%- if has_benchmarks %}
+{%- if has_gungraun %}
     # bincode 1.3.3 - via gungraun (dev-dep benchmark harness)
     # Upstream recommends bincode 2.x but gungraun hasn't migrated
     "RUSTSEC-2025-0141",
@@ -75,7 +75,7 @@ deny = []
 # Skip duplicate version checks for commonly duplicated crates and
 # transitive dependencies we can't control
 skip = [
-{%- if has_mcp_server or has_benchmarks %}
+{%- if has_mcp_server or has_gungraun %}
     # Macro/derive crates with version splits across ecosystems
     { crate = "darling", reason = "rmcp-macros vs tokenizers use different versions" },
     { crate = "darling_core", reason = "follows darling" },
