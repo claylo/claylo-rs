@@ -16,6 +16,8 @@ This is a **Copier template** for generating production-ready Rust CLI applicati
 
 4. **Anything that feels like a shortcut** - Quick fixes that "work for now" tend to create cleanup work later. This is a template that will generate many projects - shortcuts compound.
 
+5. **Running tests** - Running `just test-presets` takes 22 minutes!! Make sure that's the appropriate next step before proceeding.
+
 **Template vs. Template Testing:**
 
 - `copier.yaml` variables = what users see when generating projects
