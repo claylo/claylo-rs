@@ -7,6 +7,7 @@ Override any setting with `+flag` or `-flag`.
 ## Contents
 
 - [Minimal](#minimal)
+- [Library](#library)
 - [Standard](#standard)
 - [Full](#full)
 - [Comparison Table](#comparison-table)
@@ -47,6 +48,49 @@ my-tool/
 | JSONL logging | ✗ |
 | xtask | ✗ |
 | Benchmarks | ✗ |
+
+
+## Library
+
+A publishable library crate. Flat `src/` layout, no workspace, no CLI.
+
+```bash
+claylo-rs new ./my-lib --preset library
+```
+
+**Use when:**
+
+- You're building a library for others to consume
+- You don't need a CLI binary
+- You want benchmarks and release automation without binary distribution
+
+**Generates:**
+
+```
+my-lib/
+├── src/
+│   ├── lib.rs             # Library entry point
+│   └── error.rs           # Error types (thiserror)
+├── benches/               # Divan benchmarks
+├── .claude/
+├── Cargo.toml             # [package], not [workspace]
+├── deny.toml
+└── .justfile
+```
+
+**What's enabled:**
+
+| Feature | Enabled |
+|---------|---------|
+| CLI binary | ✗ |
+| Core library | ✓ |
+| Config support | ✗ |
+| JSONL logging | ✗ |
+| Benchmarks | ✓ |
+| Release automation | ✓ |
+| Binary distribution | ✗ |
+
+The library preset generates a flat crate (`[package]` Cargo.toml with `src/` at root) rather than a workspace. Release automation creates changelogs and tags but skips the binary distribution pipeline (npm, Homebrew, cross-platform builds) since there's no binary to distribute.
 
 
 ## Standard
@@ -177,7 +221,7 @@ my-tool/
 | `has_releases` | ✓ | ✓ | ✗ | ✓ |
 | `has_roadmap_votes` | ✗ | ✗ | ✗ | ✗ |
 | `has_security_md` | ✓ | ✓ | ✓ | ✓ |
-| `has_site` | ✓ | ✓ | ✗ | ✓ |
+| `has_site` | ✓ | ✗ | ✗ | ✓ |
 | `has_yamlfmt` | ✓ | ✗ | ✗ | ✗ |
 | `has_yamllint` | ✓ | ✗ | ✗ | ✗ |
 <!-- END GENERATED: preset-comparison -->

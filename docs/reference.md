@@ -34,7 +34,7 @@ claylo-rs <command> [options] [+feature-flags]
 
 | Option | Description |
 |--------|-------------|
-| `--preset <name>` | `minimal`, `standard`, or `full` |
+| `--preset <name>` | `minimal`, `library`, `standard`, or `full` |
 | `--lint <level>` | `strict`, `standard`, or `relaxed` |
 | `--hook <system>` | `pre-commit`, `lefthook`, or `none` |
 | `--owner <name>` | GitHub org or username |
@@ -71,12 +71,16 @@ Override preset defaults with these flags.
 | `has_mcp_server` | `mcp` | false | MCP server scaffolding |
 | `has_inquire` | `inquire` | false | Interactive prompts (Confirm, Select, Text) |
 | `has_indicatif` | `indicatif` | false | Progress bars and spinners |
-| `has_benchmarks` | `bench` | full only | Benchmark infrastructure |
+| `has_benchmarks` | `bench` | library/full | Benchmark infrastructure |
 | `has_gungraun` | `gungraun` | false | Gungraun benchmark generator |
 | `has_site` | `site` | standard/full | Astro Starlight documentation site |
 | `site_deploy` | — | `github_pages` | Deploy target: `github_pages`, `cloudflare_github_actions`, `cloudflare` |
 | `site_package_manager` | — | `npm` | Package manager: `npm`, `pnpm`, `bun`, `yarn` |
 | `has_community_files` | `community` | false | CODE_OF_CONDUCT.md, CONTRIBUTING.md |
+| `has_releases` | `releases` | preset | Release automation (git-cliff, release workflow) |
+| `has_binary_dist` | — | computed | Binary distribution (npm, Homebrew, CD workflow) |
+
+`has_binary_dist` is computed from `has_cli and has_releases`. When true, the CD workflow builds cross-platform binaries and publishes to npm, Homebrew, crates.io, deb, and rpm. The library preset has `has_releases=true` but `has_cli=false`, so it gets release automation (changelogs, tags) without the binary distribution pipeline.
 
 
 ## Project Identity
@@ -90,8 +94,8 @@ These variables identify your project.
 | `copyright_name` | string | required | Name for license copyright |
 | `project_description` | string | "A modern..." | One-line description |
 | `edition` | string | "2024" | Rust edition |
-| `msrv` | string | "1.88.0" | Minimum Supported Rust Version |
-| `pinned_dev_toolchain` | string | "1.93.0" | Pinned development toolchain |
+| `msrv` | string | "1.89.0" | Minimum Supported Rust Version |
+| `pinned_dev_toolchain` | string | "1.94.0" | Pinned development toolchain |
 | `license` | multi-select | MIT + Apache-2.0 | License(s) to include |
 | `categories` | multi-select | [] | crates.io categories |
 
@@ -101,11 +105,12 @@ These variables identify your project.
 Each preset configures sensible defaults.
 Override any setting with feature flags.
 
-| Preset | Core Library | Config | Logging | Benchmarks | Site |
-|--------|--------------|--------|---------|------------|------|
-| `minimal` | ✗ | ✗ | ✗ | ✗ | ✗ |
-| `standard` | ✓ | ✓ | ✓ | ✗ | ✓ |
-| `full` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Preset | CLI | Core Library | Config | Logging | Benchmarks | Site |
+|--------|-----|--------------|--------|---------|------------|------|
+| `minimal` | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| `library` | ✗ | ✓ | ✗ | ✗ | ✓ | ✗ |
+| `standard` | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ |
+| `full` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 
 See [presets.md](presets.md) for detailed breakdowns.
 
@@ -167,23 +172,9 @@ When enabled, adds `just mdlint` and `just mdfix` recipes.
 
 | Flag | Alias | Default | Description |
 |------|-------|---------|-------------|
-| `has_claude` | `claude` | true | `.claude/` directory |
-| `has_claude_skills` | `claude_skills` | true | `.claude/skills/` |
-| `has_claude_commands` | `claude_commands` | true | `.claude/commands/` |
+| `has_claude` | `claude` | true | `.claude/settings.json` with agent permissions |
 
-### Skills
-
-| Flag | Alias | Default | Description |
-|------|-------|---------|-------------|
-| `has_skill_markdown_authoring` | `skill_markdown` | auto | Markdown authoring skill |
-| `has_skill_capturing_decisions` | `skill_decisions` | true | ADR capture skill |
-| `has_skill_using_git` | `skill_git` | true | Git conventions skill |
-
-Skip Claude integration if you have global skills and rules:
-
-```bash
-claylo-rs new ./my-tool -claude_skills -claude_rules
-```
+Generates a `.claude/settings.json` with sensible `allowedTools` for the generated project (cargo, git, just, etc.).
 
 
 ## Lint Level

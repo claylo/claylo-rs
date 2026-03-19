@@ -292,3 +292,64 @@ log_step() {
     echo "Final verification: running full test suite..." >&3
     cargo_test "$output_dir"
 }
+
+# =============================================================================
+# Library preset: flat crate progressive tests
+# =============================================================================
+# Library generates a flat crate (src/ at root, [package] Cargo.toml).
+# CLI-specific features (config, jsonl, otel, mcp) don't apply.
+# Tests verify the flat crate structure stays valid through feature changes.
+
+@test "progressive library DOWN: library to bare minimum" {
+    local output_dir
+    local total_steps=2
+
+    # Step 0: Generate library baseline
+    echo "Generating library baseline..." >&3
+    output_dir=$(generate_project "prog-lib-down" "library.yml")
+    cargo_clippy "$output_dir"
+    cargo_test "$output_dir"
+
+    # Step 1: -bench (remove benchmarks from library)
+    log_step 1 $total_steps "-bench (remove benchmarks)"
+    copier_recopy "$output_dir" "-bench"
+    cargo_clippy "$output_dir"
+    cargo_test "$output_dir"
+
+    # Step 2: -releases (remove release automation)
+    log_step 2 $total_steps "-releases (remove release automation)"
+    copier_recopy "$output_dir" "-releases"
+    cargo_clippy "$output_dir"
+    cargo_test "$output_dir"
+
+    # Final verification
+    echo "Final verification: running full test suite..." >&3
+    cargo_test "$output_dir"
+}
+
+@test "progressive library UP: library adding features" {
+    local output_dir
+    local total_steps=2
+
+    # Step 0: Generate library baseline
+    echo "Generating library baseline..." >&3
+    output_dir=$(generate_project "prog-lib-up" "library.yml")
+    cargo_clippy "$output_dir"
+    cargo_test "$output_dir"
+
+    # Step 1: +site (add documentation site to library)
+    log_step 1 $total_steps "+site (add documentation site)"
+    copier_recopy "$output_dir" "+site"
+    cargo_clippy "$output_dir"
+    cargo_test "$output_dir"
+
+    # Step 2: +community (add community files)
+    log_step 2 $total_steps "+community (add community files)"
+    copier_recopy "$output_dir" "+community"
+    cargo_clippy "$output_dir"
+    cargo_test "$output_dir"
+
+    # Final verification
+    echo "Final verification: running full test suite..." >&3
+    cargo_test "$output_dir"
+}
