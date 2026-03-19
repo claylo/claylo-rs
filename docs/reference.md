@@ -29,6 +29,7 @@ claylo-rs <command> [options] [+feature-flags]
 |---------|-------------|
 | `new <dest>` | Create a new project |
 | `update [dest]` | Update an existing project (defaults to current directory) |
+| `usage` | Print template capability manifest (for AI agents) |
 
 ### Options
 
@@ -45,6 +46,7 @@ claylo-rs <command> [options] [+feature-flags]
 | `--dry-run` | Preview without writing files |
 | `--local` | Use local template directory (development) |
 | `--vcs-ref <ref>` | Template git ref to use |
+| `--conflict <mode>` | `rej` or `inline` (default: `inline`, update only) |
 | `-y`, `--yes` | Skip confirmation prompts |
 | `-V`, `--version` | Print version and exit |
 
@@ -78,6 +80,9 @@ Override preset defaults with these flags.
 | `site_package_manager` | — | `npm` | Package manager: `npm`, `pnpm`, `bun`, `yarn` |
 | `has_community_files` | `community` | false | CODE_OF_CONDUCT.md, CONTRIBUTING.md |
 | `has_releases` | `releases` | preset | Release automation (git-cliff, release workflow) |
+| `has_attestations` | `attestations` | `has_binary_dist` | Sigstore artifact attestations |
+| `has_coda` | `coda` | true | gh-coda repo settings automation |
+| `has_roadmap_votes` | `roadmap_votes` | false | Roadmap voting workflow |
 | `has_binary_dist` | — | computed | Binary distribution (npm, Homebrew, CD workflow) |
 
 `has_binary_dist` is computed from `has_cli and has_releases`. When true, the CD workflow builds cross-platform binaries and publishes to npm, Homebrew, crates.io, deb, and rpm. The library preset has `has_releases=true` but `has_cli=false`, so it gets release automation (changelogs, tags) without the binary distribution pipeline.
@@ -93,6 +98,7 @@ These variables identify your project.
 | `owner` | string | required | GitHub org or username |
 | `copyright_name` | string | required | Name for license copyright |
 | `project_description` | string | "A modern..." | One-line description |
+| `conduct_email` | string | required (if `+community`) | Contact email for code of conduct |
 | `edition` | string | "2024" | Rust edition |
 | `msrv` | string | "1.89.0" | Minimum Supported Rust Version |
 | `pinned_dev_toolchain` | string | "1.94.0" | Pinned development toolchain |
@@ -183,6 +189,7 @@ Generates a `.claude/settings.json` with sensible `allowedTools` for the generat
 |-------|--------------|-------------|
 | `strict` | `all` + `nursery` | Aggressive warnings, including unstable lints |
 | `standard` | `all` | Stable clippy warnings only |
+| `relaxed` | Rust defaults | No extra clippy lint groups |
 
 ```bash
 claylo-rs new ./my-tool --lint strict

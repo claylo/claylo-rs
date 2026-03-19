@@ -1,0 +1,97 @@
+{% raw %}# Publish workflow for library crates
+# Creates a GitHub Release and publishes to crates.io when a version tag is pushed.
+# The release.yml workflow creates these tags automatically on merge to main.
+#
+# Repo variables:
+#   CRATES_IO_ENABLED: set to 'true' to publish to crates.io on stable releases
+
+name: Publish
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  generate-changelog:
+    name: Generate changelog
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      release_body: ${{ steps.changelog.outputs.release_body }}
+      version: ${{ steps.changelog.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Generate release changelog
+        id: changelog
+        uses: ./.github/actions/generate-release-changelog
+
+  github-release:
+    name: Create GitHub Release
+    needs: generate-changelog
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Create release
+        if: ${{ !contains(github.ref, '-') }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BODY: ${{ needs.generate-changelog.outputs.release_body }}
+        run: |
+          echo "$BODY" > release_notes.md
+          gh release create "${{ github.ref_name }}" \
+            --repo "${{ github.repository }}" \
+            --title "v${{ needs.generate-changelog.outputs.version }}" \
+            --notes-file release_notes.md
+
+      - name: Create pre-release
+        if: ${{ contains(github.ref, '-') }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BODY: ${{ needs.generate-changelog.outputs.release_body }}
+        run: |
+          echo "$BODY" > release_notes.md
+          gh release create "${{ github.ref_name }}" \
+            --repo "${{ github.repository }}" \
+            --title "v${{ needs.generate-changelog.outputs.version }}" \
+            --notes-file release_notes.md \
+            --prerelease
+
+  publish-crates-io:
+    name: Publish to crates.io
+    if: ${{ !contains(github.ref, '-') && vars.CRATES_IO_ENABLED == 'true' }}
+    needs: generate-changelog
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: stable
+
+      - name: Publish
+        run: cargo publish --locked --token ${{ secrets.CARGO_TOKEN }}
+{% endraw %}

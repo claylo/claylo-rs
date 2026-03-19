@@ -290,8 +290,11 @@ load 'test_helper'
     assert_file_in_project "$output_dir" "cliff.toml"
     assert_file_in_project "$output_dir" ".github/workflows/release.yml"
     assert_file_in_project "$output_dir" ".github/docs/releases.md"
-    # Binary distribution (has_cli=true + has_releases=true)
+    assert_file_in_project "$output_dir" ".github/actions/generate-release-changelog/action.yml"
+    # Binary distribution (has_cli=true + has_releases=true) → cd.yml, not publish.yml
     assert_file_in_project "$output_dir" ".github/workflows/cd.yml"
+    assert_no_file_in_project "$output_dir" ".github/workflows/publish.yml"
+    assert_file_contains "$output_dir" ".github/workflows/cd.yml" "generate-release-changelog"
     assert_file_in_project "$output_dir" "npm/cond-releases-on/package.json"
     assert_file_in_project "$output_dir" "npm/cond-releases-on/index.js"
     assert_file_in_project "$output_dir" "npm/cond-releases-on/cli.js"
@@ -310,6 +313,11 @@ load 'test_helper'
     assert_file_in_project "$output_dir" "cliff.toml"
     assert_file_in_project "$output_dir" ".github/workflows/release.yml"
     assert_file_in_project "$output_dir" ".github/docs/releases.md"
+    assert_file_in_project "$output_dir" ".github/actions/generate-release-changelog/action.yml"
+    # Library publish workflow (has_releases=true, has_binary_dist=false)
+    assert_file_in_project "$output_dir" ".github/workflows/publish.yml"
+    assert_file_contains "$output_dir" ".github/workflows/publish.yml" "generate-release-changelog"
+    assert_file_contains "$output_dir" ".github/workflows/publish.yml" "cargo publish"
     # Binary distribution NOT present (has_cli=false)
     assert_no_file_in_project "$output_dir" ".github/workflows/cd.yml"
     assert_no_file_in_project "$output_dir" "npm"
@@ -323,8 +331,10 @@ load 'test_helper'
 
     assert_no_file_in_project "$output_dir" "cliff.toml"
     assert_no_file_in_project "$output_dir" ".github/workflows/cd.yml"
+    assert_no_file_in_project "$output_dir" ".github/workflows/publish.yml"
     assert_no_file_in_project "$output_dir" ".github/workflows/release.yml"
     assert_no_file_in_project "$output_dir" ".github/docs/releases.md"
+    assert_no_file_in_project "$output_dir" ".github/actions/generate-release-changelog"
     assert_no_file_in_project "$output_dir" "npm"
     # CI workflow should still exist
     assert_file_in_project "$output_dir" ".github/workflows/ci.yml"
@@ -607,9 +617,12 @@ load 'test_helper'
     # Has benchmarks at root
     assert_file_in_project "$output_dir" "benches/divan_benchmarks.rs"
     assert_file_in_project "$output_dir" "benches/benchmarks.kdl"
-    # Has releases but no binary dist
+    # Has releases but no binary dist → publish.yml, not cd.yml
     assert_file_in_project "$output_dir" "cliff.toml"
     assert_file_in_project "$output_dir" ".github/workflows/release.yml"
+    assert_file_in_project "$output_dir" ".github/workflows/publish.yml"
+    assert_file_in_project "$output_dir" ".github/actions/generate-release-changelog/action.yml"
+    assert_file_in_project "$output_dir" ".github/README.md"
     assert_no_file_in_project "$output_dir" "npm"
     assert_no_file_in_project "$output_dir" ".github/workflows/cd.yml"
     assert_no_file_in_project "$output_dir" ".github/formula.rb.tmpl"

@@ -1,8 +1,10 @@
 # Adding Crates to Your Workspace
 
-Generated projects include `scripts/add-crate`,
-a tool for adding new crates to your workspace
+Generated projects with `has_cli=true` (minimal, standard, full presets) include
+`scripts/add-crate`, a tool for adding new crates to your workspace
 without manual Cargo.toml wiring.
+
+> The library preset generates a flat crate (no workspace), so `add-crate` is not included.
 
 ## Quick Start
 

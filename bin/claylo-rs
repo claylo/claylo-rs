@@ -156,7 +156,7 @@ Usage: claylo-rs <command> [options] [+feature-flags]
 Commands:
   new <dest>       Create a new project (copier copy)
   update [dest]    Update an existing project (copier update)
-  about            Print template capability manifest (for AI agents)
+  usage            Print template capability manifest (for AI agents)
 
 Options:
   --preset <name>      minimal, library, standard, full (default: standard)
@@ -394,7 +394,7 @@ load_preset_flags() {
       _pmap[has_md_strict]=false
       _pmap[has_opentelemetry]=false
       _pmap[has_releases]=true
-      _pmap[has_site]=true
+      _pmap[has_site]=false
       _pmap[has_yamlfmt]=false
       _pmap[has_yamllint]=false
       ;;
@@ -438,10 +438,10 @@ load_preset_flags() {
 # END GENERATED: load_preset_flags
 
 # ---------------------------------------------------------------------------
-# About — embedded template capability manifest (synced from llms.md)
+# Usage — embedded template capability manifest (synced from llms.md)
 # ---------------------------------------------------------------------------
 # BEGIN GENERATED: llms_content
-show_about() {
+show_usage() {
   cat <<'LLMS_EOF'
 # claylo-rs: Rust CLI Project Template
 
@@ -490,8 +490,8 @@ Four presets configure coherent defaults:
 
 | Preset | What you get |
 |--------|-------------|
-| `minimal` | CLI binary only. No runtime deps beyond clap. |
-| `library` | Core library + benchmarks + doc site + release automation. No CLI binary or binary distribution. |
+| `minimal` | CLI binary only. No config, no logging, no telemetry. |
+| `library` | Core library + benchmarks + release automation. No CLI binary or binary distribution. |
 | `standard` | CLI + core library + config + JSONL logging + documentation site + release automation |
 | `full` | Everything in standard + benchmarks + OpenTelemetry + community files + editor configs + env files |
 
@@ -837,8 +837,8 @@ Generated projects include `docs/decisions/` for MADR-format ADRs. The `capturin
 ## Updating Projects
 
 ```bash
-claylo-rs update                    # update from latest template
-claylo-rs update --conflict inline  # with inline conflict markers (preferred)
+claylo-rs update                  # update from latest template (inline conflict markers by default)
+claylo-rs update --conflict rej   # use .rej sidecar files instead
 ```
 LLMS_EOF
 }
@@ -866,8 +866,8 @@ main() {
       exit 0
       ;;
     new | update) ;;
-    about)
-      show_about
+    usage)
+      show_usage
       exit 0
       ;;
     *)

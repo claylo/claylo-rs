@@ -45,8 +45,8 @@ Four presets configure coherent defaults:
 
 | Preset | What you get |
 |--------|-------------|
-| `minimal` | CLI binary only. No runtime deps beyond clap. |
-| `library` | Core library + benchmarks + doc site + release automation. No CLI binary or binary distribution. |
+| `minimal` | CLI binary only. No config, no logging, no telemetry. |
+| `library` | Core library + benchmarks + release automation. No CLI binary or binary distribution. |
 | `standard` | CLI + core library + config + JSONL logging + documentation site + release automation |
 | `full` | Everything in standard + benchmarks + OpenTelemetry + community files + editor configs + env files |
 
@@ -392,6 +392,6 @@ Generated projects include `docs/decisions/` for MADR-format ADRs. The `capturin
 ## Updating Projects
 
 ```bash
-claylo-rs update                    # update from latest template
-claylo-rs update --conflict inline  # with inline conflict markers (preferred)
+claylo-rs update                  # update from latest template (inline conflict markers by default)
+claylo-rs update --conflict rej   # use .rej sidecar files instead
 ```
