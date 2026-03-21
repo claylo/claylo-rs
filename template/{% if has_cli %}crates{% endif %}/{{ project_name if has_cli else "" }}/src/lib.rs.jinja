@@ -50,34 +50,47 @@ impl ColorChoice {
     }
 }
 
-{% if has_jsonl_logging or has_opentelemetry -%}
-{% if has_opentelemetry -%}
-const ENV_HELP: &str = "\
-ENVIRONMENT VARIABLES:
-    RUST_LOG                            Log filter (e.g., debug, {{ project_name }}=trace)
-    {{ project_name | upper | replace('-', '_') }}_LOG_PATH                 Log file path (rotated daily)
-    {{ project_name | upper | replace('-', '_') }}_LOG_DIR                  Log directory
-    {{ project_name | upper | replace('-', '_') }}_ENV                      Environment (dev, staging, prod)
-    OTEL_EXPORTER_OTLP_ENDPOINT         OTLP endpoint (enables tracing)
-    OTEL_EXPORTER_OTLP_PROTOCOL         Protocol: grpc (default), http/json
-";
-{% else -%}
-const ENV_HELP: &str = "\
-ENVIRONMENT VARIABLES:
-    RUST_LOG                Log filter (e.g., debug, {{ project_name }}=trace)
-    {{ project_name | upper | replace('-', '_') }}_LOG_PATH     Log file path (rotated daily)
-    {{ project_name | upper | replace('-', '_') }}_LOG_DIR      Log directory
-";
-{% endif -%}
-{% endif -%}
+{%- if has_jsonl_logging or has_opentelemetry -%}
+{%- set _pfx = project_name | upper | replace('-', '_') -%}
+{%- set _lp = _pfx ~ "_LOG_PATH" -%}
+{%- set _ld = _pfx ~ "_LOG_DIR" -%}
+{%- if has_opentelemetry -%}
+{%- set _env = _pfx ~ "_ENV" -%}
+{%- set _otel_ep = "OTEL_EXPORTER_OTLP_ENDPOINT" -%}
+{%- set _otel_pr = "OTEL_EXPORTER_OTLP_PROTOCOL" -%}
+{%- if _lp | length > _otel_ep | length -%}
+{%- set _w = _lp | length + 4 -%}
+{%- else -%}
+{%- set _w = _otel_ep | length + 4 -%}
+{%- endif %}
 
+const ENV_HELP: &str = "\
+ENVIRONMENT VARIABLES:
+    RUST_LOG{{ " " * (_w - 8) }}Log filter (e.g., debug, {{ project_name }}=trace)
+    {{ _lp }}{{ " " * (_w - _lp | length) }}Log file path (rotated daily)
+    {{ _ld }}{{ " " * (_w - _ld | length) }}Log directory
+    {{ _env }}{{ " " * (_w - _env | length) }}Environment (dev, staging, prod)
+    {{ _otel_ep }}{{ " " * (_w - _otel_ep | length) }}OTLP endpoint (enables tracing)
+    {{ _otel_pr }}{{ " " * (_w - _otel_pr | length) }}Protocol: grpc (default), http/json
+";
+{%- else -%}
+{%- set _w = _lp | length + 4 %}
+
+const ENV_HELP: &str = "\
+ENVIRONMENT VARIABLES:
+    RUST_LOG{{ " " * (_w - 8) }}Log filter (e.g., debug, {{ project_name }}=trace)
+    {{ _lp }}{{ " " * 4 }}Log file path (rotated daily)
+    {{ _ld }}{{ " " * (_w - _ld | length) }}Log directory
+";
+{%- endif %}
+{% endif %}
 /// Command-line interface definition for {{ project_name }}.
 #[derive(Parser)]
 #[command(name = "{{ project_name }}")]
 #[command(about = "{{ project_description }}", long_about = None)]
-#[command(version, arg_required_else_help = true)]
+#[command(version, arg_required_else_help = true, disable_help_flag = true)]
 {% if has_jsonl_logging or has_opentelemetry -%}
-#[command(after_long_help = ENV_HELP)]
+#[command(after_help = ENV_HELP)]
 {% endif -%}
 pub struct Cli {
     /// The subcommand to execute.
@@ -111,6 +124,10 @@ pub struct Cli {
     /// Output as JSON (for scripting)
     #[arg(long, global = true)]
     pub json: bool,
+
+    /// Print help
+    #[arg(short = 'h', long = "help", action = clap::ArgAction::HelpShort, global = true)]
+    pub help: bool,
 }
 
 /// Available subcommands for the CLI.
