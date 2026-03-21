@@ -88,7 +88,7 @@ ENVIRONMENT VARIABLES:
 #[derive(Parser)]
 #[command(name = "{{ project_name }}")]
 #[command(about = "{{ project_description }}", long_about = None)]
-#[command(version, arg_required_else_help = true, disable_help_flag = true)]
+#[command(version, arg_required_else_help = true)]
 {% if has_jsonl_logging or has_opentelemetry -%}
 #[command(after_help = ENV_HELP)]
 {% endif -%}
@@ -124,10 +124,6 @@ pub struct Cli {
     /// Output as JSON (for scripting)
     #[arg(long, global = true)]
     pub json: bool,
-
-    /// Print help
-    #[arg(short = 'h', long = "help", action = clap::ArgAction::HelpShort, global = true)]
-    pub help: bool,
 }
 
 /// Available subcommands for the CLI.
