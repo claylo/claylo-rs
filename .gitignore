@@ -62,3 +62,4 @@ scratch/
 node_modules/
 
 PRIVATE_MEMORY.md
+dist/
