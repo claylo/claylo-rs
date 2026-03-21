@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0] - 2026-03-21
+
+### Features
+
+- *(template)* Add library preset, split binary distribution, simplify Claude config (#71) by @claylo in [#71](https://github.com/claylo/claylo-rs/pull/71)
+
+### Bug Fixes
+
+- *(template)* Generate flat crate structure for library preset (#72) by @claylo in [#72](https://github.com/claylo/claylo-rs/pull/72)
+- *(template)* Harden GitHub Actions workflows (#73) by @claylo in [#73](https://github.com/claylo/claylo-rs/pull/73)
+- *(template)* Pre-release audit — security, publish workflow, docs (#75) by @claylo in [#75](https://github.com/claylo/claylo-rs/pull/75)
+- *(template)* Fix help text output and update deps (#77) by @claylo in [#77](https://github.com/claylo/claylo-rs/pull/77)
+- *(template)* Remove broken HelpShort override that made help a required arg (#78) by @claylo in [#78](https://github.com/claylo/claylo-rs/pull/78)
+
+### Documentation
+
+- *(template)* Add library preset docs and progressive tests (#74) by @claylo in [#74](https://github.com/claylo/claylo-rs/pull/74)
+- Move CI/CD pipeline flowchart to docs/ (#76) by @claylo in [#76](https://github.com/claylo/claylo-rs/pull/76)
+
+
+
+
+**Full Changelog**: [v1.0.0-beta.7...v1.0.0](https://github.com/claylo/claylo-rs/compare/v1.0.0-beta.7...v1.0.0)
+
 ## [1.0.0-beta.7] - 2026-02-28
 
 ### Bug Fixes
