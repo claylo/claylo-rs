@@ -94,6 +94,11 @@ generate_project() {
             "$PROJECT_ROOT" "$output_dir" >&2
     fi
 
+    # Initialize git repo so copier update (three-way merge) can work
+    git -C "$output_dir" init --quiet >&2
+    git -C "$output_dir" add -A >&2
+    git -C "$output_dir" commit --quiet -m "initial generation" >&2
+
     # Return only the path
     printf '%s' "$output_dir"
 }
@@ -124,6 +129,11 @@ generate_project_with_data() {
         --data-file "${PROJECT_ROOT}/scripts/presets/${data_file}" \
         "${data_args[@]}" \
         "$PROJECT_ROOT" "$output_dir" >&2
+
+    # Initialize git repo so copier update (three-way merge) can work
+    git -C "$output_dir" init --quiet >&2
+    git -C "$output_dir" add -A >&2
+    git -C "$output_dir" commit --quiet -m "initial generation" >&2
 
     # Return only the path
     printf '%s' "$output_dir"
@@ -220,11 +230,14 @@ cargo_clippy() {
 
 # Run cargo nextest in generated project
 # Usage: cargo_test "$output_dir"
+# Exit code 4 = no tests to run (e.g., library preset with no test files yet)
 cargo_test() {
     local project_dir="$1"
     cd "$project_dir"
     run cargo nextest run --status-level=fail
-    assert_success
+    if [[ "$status" -ne 0 && "$status" -ne 4 ]]; then
+        assert_success  # will fail with the actual error
+    fi
 }
 
 # Run cargo nextest with a filter expression
@@ -237,166 +250,42 @@ cargo_nextest_filter() {
     assert_success
 }
 
-# Clean up orphaned files after feature removal
-# Copier doesn't delete files when features are disabled, so we do it manually.
-# Usage: cleanup_orphaned_files project_dir
-cleanup_orphaned_files() {
-    local project_dir="$1"
-    local answers_file="${project_dir}/.repo.yml"
-    local project_name
-
-    project_name=$(yq -r '.project_name' "$answers_file")
-
-    # Helper to check if a feature is disabled (false or missing)
-    is_disabled() {
-        local value
-        value=$(yq -r ".$1 // false" "$answers_file")
-        [[ "$value" == "false" ]]
-    }
-
-    # Cleanup for has_benchmarks=false
-    if is_disabled "has_benchmarks"; then
-        rm -rf "${project_dir}/crates/${project_name}-core/benches" 2>/dev/null
-        rm -rf "${project_dir}/benches" 2>/dev/null
-        rm -rf "${project_dir}/bench-reports" 2>/dev/null
-        rm -f "${project_dir}/scripts/bench-cli.sh" 2>/dev/null
-        rm -f "${project_dir}/.github/docs/benchmarks-howto.md" 2>/dev/null
-    fi
-
-    # Cleanup for has_cli=false (flat library — remove workspace artifacts)
-    if [[ "$(yq -r '.has_cli // true' "$answers_file")" == "false" ]]; then
-        rm -rf "${project_dir}/crates" 2>/dev/null
-        rm -rf "${project_dir}/dist" 2>/dev/null
-        rm -rf "${project_dir}/scripts" 2>/dev/null
-    fi
-
-    # Cleanup for has_xtask=false
-    if is_disabled "has_xtask"; then
-        rm -rf "${project_dir}/xtask" 2>/dev/null
-    fi
-
-    # Cleanup for has_site=false
-    if is_disabled "has_site"; then
-        rm -rf "${project_dir}/site" 2>/dev/null
-        rm -f "${project_dir}/.github/workflows/deploy-site.yml" 2>/dev/null
-        rm -rf "${project_dir}/docs/guides" 2>/dev/null
-        rm -rf "${project_dir}/docs/reference" 2>/dev/null
-        rm -f "${project_dir}/docs/index.md" 2>/dev/null
-    fi
-
-    # Cleanup for has_mcp_server=false
-    if is_disabled "has_mcp_server"; then
-        rm -f "${project_dir}/crates/${project_name}/src/commands/serve.rs" 2>/dev/null
-        rm -f "${project_dir}/crates/${project_name}/src/server.rs" 2>/dev/null
-    fi
-
-    # Cleanup for has_core_library=false
-    if is_disabled "has_core_library"; then
-        rm -rf "${project_dir}/crates/${project_name}-core" 2>/dev/null
-    fi
-
-    # Cleanup for has_config=false
-    if is_disabled "has_config"; then
-        rm -f "${project_dir}/crates/${project_name}/src/config.rs" 2>/dev/null
-        rm -f "${project_dir}/crates/${project_name}-core/src/config.rs" 2>/dev/null
-        rm -rf "${project_dir}/config" 2>/dev/null
-        rm -f "${project_dir}/crates/${project_name}/tests/config_integration.rs" 2>/dev/null
-    fi
-
-    # Cleanup for has_releases=false
-    if is_disabled "has_releases"; then
-        rm -f "${project_dir}/cliff.toml" 2>/dev/null
-        rm -f "${project_dir}/.github/docs/releases.md" 2>/dev/null
-    fi
-
-    # Cleanup for binary distribution (has_cli=false OR has_releases=false)
-    local has_cli has_releases
-    has_cli=$(yq -r '.has_cli // true' "$answers_file")
-    has_releases=$(yq -r '.has_releases // false' "$answers_file")
-    if [[ "$has_cli" == "false" ]] || [[ "$has_releases" == "false" ]]; then
-        rm -rf "${project_dir}/npm" 2>/dev/null
-        rm -f "${project_dir}/.github/formula.rb.tmpl" 2>/dev/null
-        rm -f "${project_dir}/.github/workflows/cd.yml" 2>/dev/null
-    fi
-
-    # Cleanup for has_community_files=false
-    if is_disabled "has_community_files"; then
-        rm -f "${project_dir}/CODE_OF_CONDUCT.md" 2>/dev/null
-        rm -f "${project_dir}/CONTRIBUTING.md" 2>/dev/null
-    fi
-
-    # Cleanup for observability (both jsonl and otel must be false)
-    if is_disabled "has_jsonl_logging" && is_disabled "has_opentelemetry"; then
-        rm -f "${project_dir}/crates/${project_name}/src/observability.rs" 2>/dev/null
-        rm -f "${project_dir}/crates/${project_name}-core/src/observability.rs" 2>/dev/null
-    fi
-
-    return 0
-}
-
-# Run copier recopy on an existing project with feature flags
-# Usage: copier_recopy project_dir "+feature" "-feature" ...
+# Update a generated project using the claylo-rs wrapper
+# Usage: wrapper_update project_dir "+feature" "-feature" ...
 #
-# Uses copier recopy instead of update because recopy doesn't need
-# _commit history (works with local template development).
-#
-# To properly merge feature flag changes with existing answers, we:
-# 1. Copy the existing .repo.yml to a temp file
-# 2. Use yq to update the specific values
-# 3. Run recopy with --data-file pointing to the merged answers
-# 4. Clean up orphaned files that copier doesn't delete
-copier_recopy() {
+# Uses the actual wrapper script (bin/claylo-rs update --local) so tests
+# exercise the real user workflow. Requires the generated project to have
+# git history (generate_project handles this).
+wrapper_update() {
     local project_dir="$1"
     shift
 
-    local answers_file="${project_dir}/.repo.yml"
-    local temp_answers
-    temp_answers=$(mktemp)
-
-    # Copy existing answers to temp file
-    cp "$answers_file" "$temp_answers"
-
-    # Apply feature flag changes using yq
+    # Build feature flag string (e.g., "+core+config-bench")
+    local features=""
     for arg in "$@"; do
-        case "$arg" in
-            +core)    yq -i '.has_core_library = true' "$temp_answers" ;;
-            -core)    yq -i '.has_core_library = false' "$temp_answers" ;;
-            +config)  yq -i '.has_config = true' "$temp_answers" ;;
-            -config)  yq -i '.has_config = false' "$temp_answers" ;;
-            +jsonl)   yq -i '.has_jsonl_logging = true' "$temp_answers" ;;
-            -jsonl)   yq -i '.has_jsonl_logging = false' "$temp_answers" ;;
-            +otel)    yq -i '.has_opentelemetry = true' "$temp_answers" ;;
-            -otel)    yq -i '.has_opentelemetry = false' "$temp_answers" ;;
-            +mcp)     yq -i '.has_mcp_server = true' "$temp_answers" ;;
-            -mcp)     yq -i '.has_mcp_server = false' "$temp_answers" ;;
-            +bench)   yq -i '.has_benchmarks = true' "$temp_answers" ;;
-            -bench)   yq -i '.has_benchmarks = false' "$temp_answers" ;;
-            +releases) yq -i '.has_releases = true' "$temp_answers" ;;
-            -releases) yq -i '.has_releases = false' "$temp_answers" ;;
-            +site)    yq -i '.has_site = true' "$temp_answers" ;;
-            -site)    yq -i '.has_site = false' "$temp_answers" ;;
-            +community) yq -i '.has_community_files = true' "$temp_answers" ;;
-            -community) yq -i '.has_community_files = false' "$temp_answers" ;;
-            *)
-                echo "Unknown feature flag: $arg" >&2
-                rm -f "$temp_answers"
-                return 1
-                ;;
-        esac
+        features="${features}${arg}"
     done
 
-    copier recopy --force \
-        --skip-answered \
-        --answers-file .repo.yml \
-        --data-file "$temp_answers" \
-        "$project_dir" >&2
+    # Commit any pending changes so copier update has a clean working tree
+    # Use git status --porcelain to catch both tracked changes AND untracked files
+    # (e.g., Cargo.lock created by cargo build)
+    if [[ -n "$(git -C "$project_dir" status --porcelain 2>/dev/null)" ]]; then
+        git -C "$project_dir" add -A >&2
+        git -C "$project_dir" commit --quiet -m "pre-update snapshot" >&2
+    fi
+
+    # Run the wrapper — same code path as real users
+    local -a cmd=("${PROJECT_ROOT}/bin/claylo-rs" update --local -y)
+    [[ -n "$features" ]] && cmd+=("$features")
+    cmd+=("$project_dir")
+
+    "${cmd[@]}" >&2
     local exit_code=$?
 
-    rm -f "$temp_answers"
-
-    # Clean up orphaned files after recopy
+    # Commit the update so the next update has a clean base
     if [[ $exit_code -eq 0 ]]; then
-        cleanup_orphaned_files "$project_dir"
+        git -C "$project_dir" add -A >&2
+        git -C "$project_dir" commit --quiet -m "updated: $features" --allow-empty >&2
     fi
 
     return $exit_code

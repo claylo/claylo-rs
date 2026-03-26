@@ -87,7 +87,7 @@ just test-file test/conditional_files.bats
 For CI or when context window tokens matter:
 
 ```bash
-./test/bats/bin/bats -F "$PWD/test/formatters/agents.bash" test/*.bats
+./test/bats/bin/bats -F "$(pwd)/test/formatters/agents.bash" test/*.bats
 ```
 
 ### Test Output Location
@@ -176,13 +176,17 @@ In `test/conditional_files.bats`:
 
 ```bash
 @test "my_feature flag includes expected files" {
-  generate_with_data "has_my_feature=true"
-  assert_file_exists "path/to/expected/file"
+  local output_dir
+  output_dir=$(generate_project_with_data "cond-feature-on" "standard.yml" \
+      "has_my_feature=true")
+  assert_file_in_project "$output_dir" "path/to/expected/file"
 }
 
 @test "my_feature flag excludes files when disabled" {
-  generate_with_data "has_my_feature=false"
-  assert_file_not_exists "path/to/expected/file"
+  local output_dir
+  output_dir=$(generate_project_with_data "cond-feature-off" "standard.yml" \
+      "has_my_feature=false")
+  assert_no_file_in_project "$output_dir" "path/to/expected/file"
 }
 ```
 

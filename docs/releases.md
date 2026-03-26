@@ -1,6 +1,6 @@
 # Release Automation
 
-This template includes optional release automation using [git-cliff](https://git-cliff.org/) for changelog generation and semantic versioning, with a hands-on approach inspired by the git-cliff project's own release workflow.
+This template includes optional release automation using [git-cliff](https://git-cliff.org/) for changelog generation and semantic versioning.
 
 ## Feature Flag
 
@@ -135,7 +135,7 @@ After your first release, `mislav/bump-homebrew-formula-action` updates the vers
 
 [cargo-deb](https://github.com/kornelski/cargo-deb) builds `.deb` packages from Cargo metadata.
 
-Add to `Cargo.toml`:
+Add this to the CLI crate's `Cargo.toml` (e.g., `crates/your-app/Cargo.toml`):
 
 ```toml
 [package.metadata.deb]
@@ -161,7 +161,7 @@ assets = [
 
 [cargo-generate-rpm](https://github.com/cat-in-136/cargo-generate-rpm) builds `.rpm` packages from Cargo metadata.
 
-Add to `Cargo.toml`:
+Add this to the same CLI crate `Cargo.toml`:
 
 ```toml
 [package.metadata.generate-rpm]
@@ -180,7 +180,7 @@ assets = [
 
 ### Setting Up npm Distribution
 
-npm distribution uses the [Sentry multi-package strategy](https://sentry.engineering/blog/publishing-binaries-on-npm): platform-specific packages with a wrapper that handles binary resolution.
+npm distribution uses the platform-package pattern: platform-specific packages with a wrapper that handles binary resolution. ([Sentry's writeup](https://sentry.engineering/blog/publishing-binaries-on-npm) covers this approach well.)
 
 #### Package Structure
 
@@ -277,6 +277,11 @@ When enabled:
 4. Creates and pushes a tag
 5. Tag push triggers `cd.yml`
 
+## Library Projects
+
+Library projects (`has_cli=false`, `has_releases=true`) get `publish.yml` instead of `cd.yml`. This creates a GitHub Release with changelog and optionally publishes to crates.io — no binary builds, no npm/Homebrew/deb/rpm pipeline. See [ci-cd-pipeline.md](ci-cd-pipeline.md) for the full flow diagram.
+
+
 ## Justfile Recipes
 
 | Recipe | Description |
@@ -336,7 +341,7 @@ Pre-releases:
 
 ### Why not cargo-dist?
 
-cargo-dist is comprehensive but opaque. This template takes a hands-on approach:
+This template takes a hands-on approach:
 
 1. **Transparent**: All workflow logic is visible in the YAML
 2. **Customizable**: Easy to add/remove targets or steps
