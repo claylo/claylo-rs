@@ -111,7 +111,7 @@ Key Copier variables (see `copier.yaml` for full list):
 
 **Project identity:**
 - `project_name`, `owner`, `copyright_name`, `project_description`
-- `edition` (default: 2024), `msrv` (default: 1.89.0), `pinned_dev_toolchain` (default: 1.94.0)
+- `edition` (default: 2024), `msrv` (default: 1.89.0), `pinned_dev_toolchain` (default: 1.94.1)
 - `license`, `categories`
 
 **Presets and levels:**

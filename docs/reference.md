@@ -101,7 +101,7 @@ These variables identify your project.
 | `conduct_email` | string | required (if `+community`) | Contact email for code of conduct |
 | `edition` | string | "2024" | Rust edition |
 | `msrv` | string | "1.89.0" | Minimum Supported Rust Version |
-| `pinned_dev_toolchain` | string | "1.94.0" | Pinned development toolchain |
+| `pinned_dev_toolchain` | string | "1.94.1" | Pinned development toolchain |
 | `license` | multi-select | MIT + Apache-2.0 | License(s) to include |
 | `categories` | multi-select | [] | crates.io categories |
 

@@ -92,6 +92,9 @@ ENVIRONMENT VARIABLES:
 {% if has_jsonl_logging or has_opentelemetry -%}
 #[command(after_help = ENV_HELP)]
 {% endif -%}
+// keep the help output tight
+#[command(disable_help_flag = true)]
+
 pub struct Cli {
     /// The subcommand to execute.
     #[command(subcommand)]
@@ -124,6 +127,10 @@ pub struct Cli {
     /// Output as JSON (for scripting)
     #[arg(long, global = true)]
     pub json: bool,
+
+    /// Print help
+    #[arg(short, long, global = true, action = clap::ArgAction::HelpShort)]
+    pub help: bool,
 }
 
 /// Available subcommands for the CLI.
