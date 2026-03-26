@@ -2,7 +2,7 @@
 #![deny(unsafe_code)]
 
 use anyhow::Context;
-use clap::Parser;
+use clap::FromArgMatches;
 use {{ crate_name }}::{Cli, Commands, commands};
 {%- if has_config %}
 {%- if has_core_library %}
@@ -28,7 +28,9 @@ async fn main() -> anyhow::Result<()> {
 {%- else %}
 fn main() -> anyhow::Result<()> {
 {%- endif %}
-    let cli = Cli::parse();
+    let cli = Cli::from_arg_matches(&{{ crate_name }}::command().get_matches())
+        .expect("clap mismatch between Cli derive and command()");
+
     cli.color.apply();
 
     if cli.version_only {

@@ -92,9 +92,7 @@ ENVIRONMENT VARIABLES:
 {% if has_jsonl_logging or has_opentelemetry -%}
 #[command(after_help = ENV_HELP)]
 {% endif -%}
-// keep the help output tight
 #[command(disable_help_flag = true)]
-
 pub struct Cli {
     /// The subcommand to execute.
     #[command(subcommand)]
@@ -127,10 +125,6 @@ pub struct Cli {
     /// Output as JSON (for scripting)
     #[arg(long, global = true)]
     pub json: bool,
-
-    /// Print help
-    #[arg(short, long, global = true, action = clap::ArgAction::HelpShort)]
-    pub help: bool,
 }
 
 /// Available subcommands for the CLI.
@@ -148,7 +142,19 @@ pub enum Commands {
 {%- endif %}
 }
 
-/// Returns the clap command for documentation generation
+/// Returns the clap command for documentation generation.
+///
+/// Adds a custom `-h`/`--help` flag using `HelpShort` so both render
+/// the compact single-line format. This is done at the Command level
+/// (not as a struct field) because clap's derive treats `HelpShort`
+/// as a value-less exit action that conflicts with struct population.
 pub fn command() -> clap::Command {
-    Cli::command()
+    Cli::command().arg(
+        clap::Arg::new("help")
+            .short('h')
+            .long("help")
+            .help("Print help")
+            .global(true)
+            .action(clap::ArgAction::HelpShort),
+    )
 }
