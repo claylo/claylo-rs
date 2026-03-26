@@ -57,6 +57,9 @@ declare -A ACTIONS=(
     ["mislav/bump-homebrew-formula-action"]=""
     ["astral-sh/setup-uv"]=""
     ["cloudflare/wrangler-action"]=""
+    ["cargo-bins/cargo-binstall"]=""
+    ["pnpm/action-setup"]=""
+    ["oven-sh/setup-bun"]=""
 )
 
 # ============================================================================

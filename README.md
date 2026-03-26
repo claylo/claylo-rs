@@ -9,7 +9,7 @@ Updates that don't abandon you.
 ## Install
 
 ```bash
-brew install claylo/brew/claylo-rs
+brew install claylo/tap/claylo-rs
 ```
 
 Homebrew will install [copier](https://copier.readthedocs.io/) alongside the `claylo-rs` wrapper, or you can `uv tool install copier` or `pipx install copier`.
