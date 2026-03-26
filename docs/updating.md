@@ -78,6 +78,9 @@ claylo-rs update -community
 
 ## Bulk Updates
 
+> These scripts live in the template repository, not in generated projects.
+> They're for maintainers managing multiple projects generated from this template.
+
 Scan multiple projects for available updates:
 
 ```bash

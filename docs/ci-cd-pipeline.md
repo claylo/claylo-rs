@@ -1,7 +1,7 @@
 # CI/CD Pipeline
 
-How the template's GitHub Actions workflows and composite actions fit together,
-and which path a generated project gets based on its feature flags.
+This doc maps the GitHub Actions workflows and composite actions the template generates,
+and explains which path a project follows based on its feature flags.
 
 ## Workflows
 

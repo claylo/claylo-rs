@@ -124,8 +124,8 @@ claylo-rs new ./my-tool -claude
 
 ## This Isn't One-and-Done
 
-Yeoman generates and ghosts you.
 `cargo-generate` copies and walks away.
+Yeoman does the same.
 
 Copier tracks what it generated.
 When the template improves, your project can too:
@@ -139,6 +139,10 @@ Three-way merge.
 Your changes stay.
 Template updates land.
 No archaeology required.
+
+I build with this template every day. 
+
+Yeah, the three-way merges are a pain — but they're better than having no update path at all, and with a coding agent sifting through conflicts, they're trivial to resolve. If you're not an early adopter riding the bleeding edge, the changes get less frequent over time. Look at the release history — the volume of pre-releases and tweaks should make it clear that this template gets real use, and the lessons from production apps get pulled back into it.
 
 See [docs/updating.md](docs/updating.md) for the full workflow.
 
@@ -160,6 +164,14 @@ Not your style? The release system is easy to turn off — just delete the workf
 **Updating projects:** [docs/updating.md](docs/updating.md) — The update workflow, bulk updates.
 
 **Template development:** [docs/development.md](docs/development.md) — For contributors.
+
+
+## Projects Using This Template
+
+- [ah-ah-ah](https://github.com/claylo/ah-ah-ah) — VUN token! TWO tokens! Count all the tokens!
+- [bito](https://github.com/claylo/bito) — Content quality tools and MCP server
+- [colophon](https://github.com/claylo/colophon) — Build indexes and glossaries with an automated curation step
+- [scrat](https://github.com/claylo/scrat) — Completely over-engineered release management
 
 
 ## License

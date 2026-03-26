@@ -97,7 +97,7 @@ These variables identify your project.
 | `project_name` | string | required | Project name (lowercase, hyphens) |
 | `owner` | string | required | GitHub org or username |
 | `copyright_name` | string | required | Name for license copyright |
-| `project_description` | string | "A modern..." | One-line description |
+| `project_description` | string | "A modern, production-ready Rust CLI application." | One-line description |
 | `conduct_email` | string | required (if `+community`) | Contact email for code of conduct |
 | `edition` | string | "2024" | Rust edition |
 | `msrv` | string | "1.89.0" | Minimum Supported Rust Version |

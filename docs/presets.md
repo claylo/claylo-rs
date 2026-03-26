@@ -15,7 +15,7 @@ Override any setting with `+flag` or `-flag`.
 
 ## Minimal
 
-Just the binary. No runtime dependencies beyond `clap`.
+Just the binary. Minimal dependency surface — `clap` and nothing else by default.
 
 ```bash
 claylo-rs new ./my-tool --preset minimal
@@ -225,6 +225,8 @@ my-tool/
 | `has_yamlfmt` | ✓ | ✗ | ✗ | ✗ |
 | `has_yamllint` | ✓ | ✗ | ✗ | ✗ |
 <!-- END GENERATED: preset-comparison -->
+
+See [reference.md](reference.md) for full descriptions of all flags.
 
 ### OpenTelemetry
 

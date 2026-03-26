@@ -88,49 +88,49 @@ log_step() {
 
     # Step 1: +core
     log_step 1 $total_steps "+core (adds core library crate)"
-    copier_recopy "$output_dir" "+core"
+    wrapper_update "$output_dir" "+core"
     cargo_clippy "$output_dir"
     run_feature_tests "$output_dir" "core"
 
     # Step 2: +config
     log_step 2 $total_steps "+config (adds configuration support)"
-    copier_recopy "$output_dir" "+config"
+    wrapper_update "$output_dir" "+config"
     cargo_clippy "$output_dir"
     run_feature_tests "$output_dir" "config"
 
     # Step 3: +jsonl
     log_step 3 $total_steps "+jsonl (adds JSONL structured logging)"
-    copier_recopy "$output_dir" "+jsonl"
+    wrapper_update "$output_dir" "+jsonl"
     cargo_clippy "$output_dir"
     run_feature_tests "$output_dir" "jsonl"
 
     # Step 4: +otel
     log_step 4 $total_steps "+otel (adds OpenTelemetry)"
-    copier_recopy "$output_dir" "+otel"
+    wrapper_update "$output_dir" "+otel"
     cargo_clippy "$output_dir"
     run_feature_tests "$output_dir" "otel"
 
     # Step 5: +mcp
     log_step 5 $total_steps "+mcp (adds MCP server)"
-    copier_recopy "$output_dir" "+mcp"
+    wrapper_update "$output_dir" "+mcp"
     cargo_clippy "$output_dir"
     run_feature_tests "$output_dir" "mcp"
 
     # Step 6: +bench
     log_step 6 $total_steps "+bench (adds benchmarks)"
-    copier_recopy "$output_dir" "+bench"
+    wrapper_update "$output_dir" "+bench"
     cargo_clippy "$output_dir"
     run_feature_tests "$output_dir" "bench"
 
     # Step 7: +releases
     log_step 7 $total_steps "+releases (adds git-cliff)"
-    copier_recopy "$output_dir" "+releases"
+    wrapper_update "$output_dir" "+releases"
     cargo_clippy "$output_dir"
     run_feature_tests "$output_dir" "releases"
 
     # Step 8: +site
     log_step 8 $total_steps "+site (adds documentation site)"
-    copier_recopy "$output_dir" "+site"
+    wrapper_update "$output_dir" "+site"
     cargo_clippy "$output_dir"
     run_feature_tests "$output_dir" "site"
 
@@ -166,49 +166,49 @@ log_step() {
 
     # Step 1: -site
     log_step 1 $total_steps "-site (removes documentation site)"
-    copier_recopy "$output_dir" "-site"
+    wrapper_update "$output_dir" "-site"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
     # Step 2: -releases
     log_step 2 $total_steps "-releases (removes git-cliff)"
-    copier_recopy "$output_dir" "-releases"
+    wrapper_update "$output_dir" "-releases"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
     # Step 3: -bench
     log_step 3 $total_steps "-bench (removes benchmarks)"
-    copier_recopy "$output_dir" "-bench"
+    wrapper_update "$output_dir" "-bench"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
     # Step 4: -mcp (full preset doesn't have MCP enabled by default, but test anyway)
     log_step 4 $total_steps "-mcp (removes MCP server, if present)"
-    copier_recopy "$output_dir" "-mcp"
+    wrapper_update "$output_dir" "-mcp"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
     # Step 5: -otel
     log_step 5 $total_steps "-otel (removes OpenTelemetry)"
-    copier_recopy "$output_dir" "-otel"
+    wrapper_update "$output_dir" "-otel"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
     # Step 6: -jsonl
     log_step 6 $total_steps "-jsonl (removes JSONL structured logging)"
-    copier_recopy "$output_dir" "-jsonl"
+    wrapper_update "$output_dir" "-jsonl"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
     # Step 7: -config
     log_step 7 $total_steps "-config (removes configuration support)"
-    copier_recopy "$output_dir" "-config"
+    wrapper_update "$output_dir" "-config"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
     # Step 8: -core
     log_step 8 $total_steps "-core (removes core library crate)"
-    copier_recopy "$output_dir" "-core"
+    wrapper_update "$output_dir" "-core"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
@@ -236,55 +236,55 @@ log_step() {
 
     # Step 1: -site
     log_step 1 $total_steps "-site"
-    copier_recopy "$output_dir" "-site"
+    wrapper_update "$output_dir" "-site"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
     # Step 2: -releases
     log_step 2 $total_steps "-releases"
-    copier_recopy "$output_dir" "-releases"
+    wrapper_update "$output_dir" "-releases"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
     # Step 3: -bench
     log_step 3 $total_steps "-bench"
-    copier_recopy "$output_dir" "-bench"
+    wrapper_update "$output_dir" "-bench"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
     # Step 4: -mcp
     log_step 4 $total_steps "-mcp"
-    copier_recopy "$output_dir" "-mcp"
+    wrapper_update "$output_dir" "-mcp"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
     # Step 5: -otel (this is the key difference from "prog-down")
     log_step 5 $total_steps "-otel (key: removing OTEL from full+otel)"
-    copier_recopy "$output_dir" "-otel"
+    wrapper_update "$output_dir" "-otel"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
     # Step 6: -jsonl
     log_step 6 $total_steps "-jsonl"
-    copier_recopy "$output_dir" "-jsonl"
+    wrapper_update "$output_dir" "-jsonl"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
     # Step 7: -config
     log_step 7 $total_steps "-config"
-    copier_recopy "$output_dir" "-config"
+    wrapper_update "$output_dir" "-config"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
     # Step 8: -core
     log_step 8 $total_steps "-core"
-    copier_recopy "$output_dir" "-core"
+    wrapper_update "$output_dir" "-core"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
     # Step 9: -community (full preset has this enabled)
     log_step 9 $total_steps "-community"
-    copier_recopy "$output_dir" "-community"
+    wrapper_update "$output_dir" "-community"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
@@ -312,13 +312,13 @@ log_step() {
 
     # Step 1: -bench (remove benchmarks from library)
     log_step 1 $total_steps "-bench (remove benchmarks)"
-    copier_recopy "$output_dir" "-bench"
+    wrapper_update "$output_dir" "-bench"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
     # Step 2: -releases (remove release automation)
     log_step 2 $total_steps "-releases (remove release automation)"
-    copier_recopy "$output_dir" "-releases"
+    wrapper_update "$output_dir" "-releases"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
@@ -339,13 +339,13 @@ log_step() {
 
     # Step 1: +site (add documentation site to library)
     log_step 1 $total_steps "+site (add documentation site)"
-    copier_recopy "$output_dir" "+site"
+    wrapper_update "$output_dir" "+site"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
     # Step 2: +community (add community files)
     log_step 2 $total_steps "+community (add community files)"
-    copier_recopy "$output_dir" "+community"
+    wrapper_update "$output_dir" "+community"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 

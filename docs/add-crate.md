@@ -70,7 +70,9 @@ plus a `main.rs` with the `run() -> Result` / `ExitCode` pattern.
 ## Convention Detection
 
 The script detects whether it's running in a claylo-rs project
-by checking for `.repo.yml` (the copier answers file).
+by checking for `.repo.yml` — the file copier writes to record your
+generation answers. If it's present, the script applies claylo-rs
+conventions; otherwise it adapts to whatever workspace it finds.
 
 **In claylo-rs projects:**
 
