@@ -95,6 +95,18 @@ commands/info.rs           → copied verbatim
 3. For conditional files with Jinja content, `.jinja` must be **outside** the condition
 4. For dynamic directory names, use `{{ name if cond else "" }}` — NOT `{% if cond %}{{ name }}{% endif %}`
 
+## Compact Help (HelpShort) Pattern
+
+Generated CLIs use `disable_help_flag = true` on the `Cli` struct and add a custom `-h`/`--help` flag via `clap::ArgAction::HelpShort` so both render the same compact single-line format.
+
+**The help arg is added at the `Command` level in `command()`, NOT as a struct field.** Clap's derive cannot handle `HelpShort` as a struct field — it's a pure exit action with no value to store, and derive insists on populating every bool field before parsing succeeds. Adding it as `pub help: bool` with `HelpShort` causes "required argument: help" errors on every command that doesn't explicitly pass `--help`.
+
+Key files:
+- `lib.rs.jinja` — `#[command(disable_help_flag = true)]` on `Cli`, `HelpShort` arg in `command()`
+- `main.rs.jinja` — uses `from_arg_matches(&crate::command().get_matches())` instead of `Cli::parse()`
+
+**If adding new CLI args or subcommands:** all parsing must go through `command()`, not `Cli::command()` directly, or the custom help flag won't be present.
+
 ## Structural Changes Require Discussion
 
 These changes are **never** okay to make unilaterally:
