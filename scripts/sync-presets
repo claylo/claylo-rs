@@ -46,7 +46,7 @@ echo ""
 # ---------------------------------------------------------------------------
 # Meta and choice keys skipped from generation (not boolean feature flags)
 # ---------------------------------------------------------------------------
-SKIP_KEYS="preset lint_level hook_system needs_tokio site_deploy site_package_manager"
+SKIP_KEYS="preset lint_level hook_system needs_tokio"
 
 # ---------------------------------------------------------------------------
 # Get all unique boolean feature keys from preset files

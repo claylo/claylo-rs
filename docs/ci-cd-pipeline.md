@@ -13,7 +13,6 @@ and explains which path a project follows based on its feature flags.
 | `release.yml` | `has_releases` | Push to main | Detects releasable commits via git-cliff, creates version tags |
 | `cd.yml` | `has_binary_dist` | Tag `v*.*.*` | Cross-platform binary builds, GitHub Release, optional publishing |
 | `publish.yml` | `has_releases and not has_binary_dist` | Tag `v*.*.*` | GitHub Release, optional crates.io publish |
-| `deploy-site.yml` | `has_site` | Push to main | Build and deploy documentation site |
 | `benchmarks.yml` | `has_benchmarks` | Manual, schedule | Run divan + hyperfine benchmarks |
 | `roadmap.yml` | `has_roadmap_votes` | Issue vote threshold | Roadmap voting automation |
 
@@ -32,7 +31,6 @@ Reusable action fragments in `.github/actions/`, shared across workflows.
 | `setup-rust-cache` | `has_github` | ci, cd | Cargo build cache with target-specific keys |
 | `bot-setup` | `has_github` | release | Configure git bot identity for automated commits |
 | `generate-release-changelog` | `has_releases` | cd or publish | Extract version from tag + generate changelog via git-cliff |
-| `setup-site-deps` | `has_site` | deploy-site | Install site dependencies |
 
 ## Release Pipeline
 

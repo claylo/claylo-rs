@@ -120,7 +120,6 @@ declare -A ALIAS_MAP=(
   [otel]=has_opentelemetry
   [bench]=has_benchmarks
   [gungraun]=has_gungraun
-  [site]=has_site
   [community]=has_community_files
   [claude]=has_claude
   [yamlfmt]=has_yamlfmt
@@ -179,20 +178,20 @@ If --data-file is not specified, the script looks for .claylo-rs.defaults.yaml
 in the current directory and each parent directory up to /.
 
 Feature flags (prefix with + to enable, - to disable):
-  cli, core, config, jsonl, otel, mcp, bench, gungraun, site,
+  cli, core, config, jsonl, otel, mcp, bench, gungraun,
   community, claude, yamlfmt, yamllint, editorconfig, env,
   agents_md, gitattributes, github, security_md, issues, prs,
   md, md_strict, releases, coda, roadmap_votes, inquire, indicatif
 
 Examples:
   claylo-rs new ./my-app --owner myorg --copyright "My Name"
-  claylo-rs new ./my-app --preset full +otel-site
+  claylo-rs new ./my-app --preset full +otel
   claylo-rs new ./my-app --preset minimal +core+config+bench
   claylo-rs new ./my-app --preset minimal -y
   claylo-rs new ./my-app --data-file ~/my-defaults.yaml
   claylo-rs new ./my-app --vcs-ref v1.0.0
   claylo-rs update ./my-app +otel
-  claylo-rs update . -site-community
+  claylo-rs update . -community
   claylo-rs new ./my-app --data edition=2021 --data msrv=1.80.0
 EOF
 }
@@ -201,7 +200,7 @@ EOF
 # Parse a +feat+feat or -feat-feat string into --data flags
 #
 # Aliases use underscores (pandoc-style), so +/- are unambiguous delimiters.
-# Supports: "+otel+mcp", "-site-community", "+core+config-site"
+# Supports: "+otel+mcp", "-community+bench", "+core+config"
 # ---------------------------------------------------------------------------
 parse_features() {
   local input="$1"
@@ -351,8 +350,7 @@ check_recommended_tools() {
 #
 # Only includes variables that DIFFER between presets (category 4).
 # Computed vars (has_xtask, needs_tokio) are left to copier formulas.
-# Choice vars (site_deploy, site_package_manager, lint_level) are left
-# to copier defaults or user data-file.
+# Choice vars (lint_level) are left to copier defaults or user data-file.
 # Redundant vars (same across all presets) are left to copier defaults.
 # ---------------------------------------------------------------------------
 # BEGIN GENERATED: load_preset_flags
@@ -376,7 +374,6 @@ load_preset_flags() {
       _pmap[has_md_strict]=false
       _pmap[has_opentelemetry]=true
       _pmap[has_releases]=true
-      _pmap[has_site]=true
       _pmap[has_yamlfmt]=true
       _pmap[has_yamllint]=true
       ;;
@@ -394,7 +391,6 @@ load_preset_flags() {
       _pmap[has_md_strict]=false
       _pmap[has_opentelemetry]=false
       _pmap[has_releases]=true
-      _pmap[has_site]=false
       _pmap[has_yamlfmt]=false
       _pmap[has_yamllint]=false
       ;;
@@ -411,7 +407,6 @@ load_preset_flags() {
       _pmap[has_md]=false
       _pmap[has_opentelemetry]=false
       _pmap[has_releases]=false
-      _pmap[has_site]=false
       _pmap[has_yamlfmt]=false
       _pmap[has_yamllint]=false
       ;;
@@ -429,7 +424,6 @@ load_preset_flags() {
       _pmap[has_md_strict]=false
       _pmap[has_opentelemetry]=false
       _pmap[has_releases]=true
-      _pmap[has_site]=true
       _pmap[has_yamlfmt]=false
       _pmap[has_yamllint]=false
       ;;
@@ -492,7 +486,7 @@ Four presets configure coherent defaults:
 |--------|-------------|
 | `minimal` | CLI binary only. No config, no logging, no telemetry. |
 | `library` | Core library + benchmarks + release automation. No CLI binary or binary distribution. |
-| `standard` | CLI + core library + config + JSONL logging + documentation site + release automation |
+| `standard` | CLI + core library + config + JSONL logging + release automation |
 | `full` | Everything in standard + benchmarks + OpenTelemetry + community files + editor configs + env files |
 
 ## Workspace Structure
@@ -506,7 +500,6 @@ my-tool/
 │   └── my-tool-core/         # Library (thiserror, domain logic)   [+core]
 ├── xtask/                    # Build automation (completions, man pages)
 ├── config/                   # Example config files (TOML, YAML)   [+config]
-├── site/                     # Astro Starlight documentation site   [+site]
 ├── npm/                      # NPM binary distribution packages    [+cli +releases]
 ├── bench-reports/            # Benchmark output storage             [+bench]
 ├── dist/share/               # Generated completions and man pages
@@ -623,15 +616,6 @@ All development tasks have `just` recipes. **Never run raw cargo commands when a
 | `just refresh` | Update + test + clippy |
 | `just monthly` | Full maintenance: upgrade + test + clippy + release build |
 
-### Documentation Site (when `+site`)
-
-| Recipe | What it does |
-|--------|-------------|
-| `just site-install` | Install site dependencies |
-| `just site-dev` | Start dev server |
-| `just site-build` | Production build |
-| `just site-preview` | Preview production build |
-
 ### Benchmarks (when `+bench`)
 
 | Recipe | What it does |
@@ -677,7 +661,6 @@ The `add-crate` script generates `Cargo.toml` with workspace inheritance, conven
 | `ci.yml` | PR, push to main | lint (fmt + clippy) → test (nextest + doctests) → cargo-deny → MSRV check |
 | `lint-pr.yml` | PR title | Validates conventional commit format in PR titles |
 | `dependabot-issues.yml` | Dependabot PR | Auto-creates tracking issues for dependency updates |
-| `deploy-site.yml` | Push to main | Build and deploy Starlight docs (when `+site`) |
 | `benchmarks.yml` | Manual/scheduled | Run benchmarks and store results (when `+bench`) |
 | `release.yml` | Push to main | Auto-release via git-cliff (when `+releases`) |
 | `cd.yml` | Tag push `v*.*.*` | Cross-platform builds, GitHub Release, optional publishing |
@@ -718,15 +701,6 @@ Publishing targets are controlled by **GitHub repo variables**, not template fla
 | cargo-deny | License allowlist + security advisory checking |
 | cargo-auditable | Embedded dependency info in release binaries |
 
-## Documentation Site (when `+site`)
-
-- **Astro** + **Starlight** theme
-- Content in `site/src/content/docs/` (MDX)
-- Guides and CLI reference pages pre-generated
-- LLM-friendly endpoints: `/llms.txt` and `/llms-full.txt`
-- Deployment: GitHub Pages (default), Cloudflare Pages (via GH Actions or git integration)
-- Package manager: npm (default), pnpm, bun, or yarn
-
 ## Claude Code Integration (when `+claude`)
 
 Generates `.claude/settings.json` with pre-configured permissions for common development tools (cargo, git, just, gh) and security-conscious deny rules (no force-push, no rm -rf, no reading secrets).
@@ -759,7 +733,6 @@ All flags toggle with `+flag` / `-flag` on the `claylo-rs` command line.
 
 | Flag | Description |
 |------|-------------|
-| `+site` | Astro Starlight documentation site |
 | `+community` | CODE_OF_CONDUCT.md + CONTRIBUTING.md |
 | `+security_md` | SECURITY.md |
 | `+agents_md` | AGENTS.md for AI agents |
@@ -828,7 +801,7 @@ These are already wired up. Do not add alternatives.
 
 ## Post-Generation Setup
 
-After `claylo-rs new`, run `just bootstrap`. It handles MSRV validation, git hooks, formatting, building, shell completions, man pages, site deps, and repo settings — everything needed to go from template output to working project.
+After `claylo-rs new`, run `just bootstrap`. It handles MSRV validation, git hooks, formatting, building, shell completions, man pages, and repo settings — everything needed to go from template output to working project.
 
 ## Architecture Decision Records
 

@@ -116,8 +116,7 @@ my-tool/
 ├── crates/
 │   ├── my-tool/          # CLI binary
 │   └── my-tool-core/     # Library crate
-├── docs/                 # Starlight content source
-├── site/                 # Astro Starlight site
+├── docs/                 # Project documentation
 ├── xtask/                # Build automation
 ├── .claude/              # AI agent config
 ├── Cargo.toml
@@ -135,7 +134,6 @@ my-tool/
 | JSONL logging | ✓ |
 | xtask | ✓ |
 | Benchmarks | ✗ |
-| Documentation site | ✓ |
 | GitHub workflows | ✓ |
 | Markdown linting | ✓ |
 
@@ -164,8 +162,8 @@ my-tool/
 │   ├── my-tool/
 │   └── my-tool-core/
 ├── benches/              # Divan benchmarks
+├── docs/                 # Project documentation
 ├── xtask/
-├── site/                 # Astro Starlight documentation site
 ├── .claude/
 ├── .editorconfig
 ├── .yamlfmt
@@ -187,7 +185,6 @@ my-tool/
 | JSONL logging | ✓ |
 | xtask | ✓ |
 | Benchmarks | ✓ |
-| Documentation site | ✓ |
 | Editor configs | ✓ |
 | Environment files | ✓ |
 
@@ -221,7 +218,6 @@ my-tool/
 | `has_releases` | ✓ | ✓ | ✗ | ✓ |
 | `has_roadmap_votes` | ✗ | ✗ | ✗ | ✗ |
 | `has_security_md` | ✓ | ✓ | ✓ | ✓ |
-| `has_site` | ✓ | ✗ | ✗ | ✓ |
 | `has_yamlfmt` | ✓ | ✗ | ✗ | ✗ |
 | `has_yamllint` | ✓ | ✗ | ✗ | ✗ |
 <!-- END GENERATED: preset-comparison -->
