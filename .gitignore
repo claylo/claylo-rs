@@ -65,3 +65,4 @@ node_modules/
 PRIVATE_MEMORY.md
 dist/
 .bito.yaml
+.claude/
