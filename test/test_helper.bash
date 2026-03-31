@@ -84,12 +84,12 @@ generate_project() {
     )
 
     if [[ -n "$data_file" ]]; then
-        copier copy --trust --defaults \
+        copier copy --trust --defaults --vcs-ref HEAD \
             --data-file "${PROJECT_ROOT}/scripts/presets/${data_file}" \
             "${data_args[@]}" \
             "$PROJECT_ROOT" "$output_dir" >&2
     else
-        copier copy --trust --defaults \
+        copier copy --trust --defaults --vcs-ref HEAD \
             "${data_args[@]}" \
             "$PROJECT_ROOT" "$output_dir" >&2
     fi
@@ -125,7 +125,7 @@ generate_project_with_data() {
         data_args+=(--data "$arg")
     done
 
-    copier copy --trust --defaults \
+    copier copy --trust --defaults --vcs-ref HEAD \
         --data-file "${PROJECT_ROOT}/scripts/presets/${data_file}" \
         "${data_args[@]}" \
         "$PROJECT_ROOT" "$output_dir" >&2
