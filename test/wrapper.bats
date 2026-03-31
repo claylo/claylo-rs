@@ -236,25 +236,18 @@ MOCK
     assert_output --partial "--data has_opentelemetry=true"
 }
 
-@test "wrapper: -site disables has_site" {
-    PATH="${MOCK_DIR}:${PATH}" run "$WRAPPER" new ./foo -site
-    assert_success
-    assert_output --partial "--data has_site=false"
-}
-
-@test "wrapper: compound feature string +otel-site+bench" {
-    PATH="${MOCK_DIR}:${PATH}" run "$WRAPPER" new ./foo +otel-site+bench
+@test "wrapper: compound feature string +otel+bench" {
+    PATH="${MOCK_DIR}:${PATH}" run "$WRAPPER" new ./foo +otel+bench
     assert_success
     assert_output --partial "--data has_opentelemetry=true"
-    assert_output --partial "--data has_site=false"
     assert_output --partial "--data has_benchmarks=true"
 }
 
 @test "wrapper: multiple separate feature args" {
-    PATH="${MOCK_DIR}:${PATH}" run "$WRAPPER" new ./foo +otel -site +bench
+    PATH="${MOCK_DIR}:${PATH}" run "$WRAPPER" new ./foo +otel -community +bench
     assert_success
     assert_output --partial "--data has_opentelemetry=true"
-    assert_output --partial "--data has_site=false"
+    assert_output --partial "--data has_community_files=false"
     assert_output --partial "--data has_benchmarks=true"
 }
 
@@ -284,11 +277,11 @@ MOCK
 # =============================================================================
 
 @test "wrapper: flags can appear in any order" {
-    PATH="${MOCK_DIR}:${PATH}" run "$WRAPPER" new +otel --preset full ./my-app --lint strict -site
+    PATH="${MOCK_DIR}:${PATH}" run "$WRAPPER" new +otel --preset full ./my-app --lint strict -community
     assert_success
     assert_output --partial "--data project_name=my-app"
     assert_output --partial "--data preset=full"
     assert_output --partial "--data lint_level=strict"
     assert_output --partial "--data has_opentelemetry=true"
-    assert_output --partial "--data has_site=false"
+    assert_output --partial "--data has_community_files=false"
 }

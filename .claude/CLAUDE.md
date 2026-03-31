@@ -122,9 +122,7 @@ Key Copier variables (see `copier.yaml` for full list):
 **Feature flags:**
 - `has_cli`, `has_core_library`, `has_config`
 - `has_jsonl_logging`, `has_opentelemetry`, `has_mcp_server`
-- `has_benchmarks`, `has_gungraun`, `has_xtask`, `has_site`
-- `site_deploy` — `github_pages` (default), `cloudflare_github_actions`, `cloudflare` (only when `has_site`)
-- `site_package_manager` — `npm` (default), `pnpm`, `bun`, `yarn` (only when `has_site`)
+- `has_benchmarks`, `has_gungraun`, `has_xtask`
 - `has_community_files`, `has_github`, `has_security_md`, `has_issue_templates`, `has_pr_templates`
 
 **Dotfiles and tooling:**
@@ -139,8 +137,6 @@ Key Copier variables (see `copier.yaml` for full list):
 - `has_binary_dist` — true when `has_cli` and `has_releases` (gates npm, Homebrew, CD workflow)
 - `needs_tokio` — true when `has_opentelemetry` or `has_mcp_server`
 - `has_pre_commit`, `has_lefthook` — derived from `hook_system`
-- `site_deploy_github_pages`, `site_deploy_cloudflare` — derived from `site_deploy`
-- `npm` — alias for `site_package_manager`, used in templates as `{{ npm }}`
 
 **IMPORTANT:** Always run `just fmt` and `just lint` and correct any issues in `copier.yaml` before presenting a change to user.
 

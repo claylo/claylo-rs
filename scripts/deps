@@ -45,9 +45,6 @@ declare -A ACTIONS=(
     ["actions/github-script"]=""
     ["actions/setup-node"]=""
     ["actions/attest-build-provenance"]=""
-    ["actions/configure-pages"]=""
-    ["actions/upload-pages-artifact"]=""
-    ["actions/deploy-pages"]=""
     ["dtolnay/rust-toolchain"]=""
     ["EmbarkStudios/cargo-deny-action"]=""
     ["Swatinem/rust-cache"]=""
@@ -56,10 +53,7 @@ declare -A ACTIONS=(
     ["amannn/action-semantic-pull-request"]=""
     ["mislav/bump-homebrew-formula-action"]=""
     ["astral-sh/setup-uv"]=""
-    ["cloudflare/wrangler-action"]=""
     ["cargo-bins/cargo-binstall"]=""
-    ["pnpm/action-setup"]=""
-    ["oven-sh/setup-bun"]=""
 )
 
 # ============================================================================
@@ -99,9 +93,6 @@ CRATES=(
     "serde-saphyr"
 )
 
-# Site package.json location (Jinja conditional path)
-SITE_PACKAGE_JSON="$TEMPLATE_DIR/{% if has_site %}site{% endif %}/package.json.jinja"
-
 # ============================================================================
 # Helpers
 # ============================================================================
@@ -111,8 +102,6 @@ check_requirements() {
     command -v gh &>/dev/null || missing+=("gh")
     command -v jq &>/dev/null || missing+=("jq")
     command -v curl &>/dev/null || missing+=("curl")
-    command -v ncu &>/dev/null || missing+=("ncu (npm-check-updates)")
-
     if [[ ${#missing[@]} -gt 0 ]]; then
         echo -e "${RED}Missing required tools: ${missing[*]}${NC}" >&2
         exit 1
@@ -133,14 +122,11 @@ Commands:
   actions update      Update GitHub Actions in workflow files
   crates outdated     Show outdated crates
   crates update       Update crates in Cargo.toml.jinja files
-  site outdated       Show outdated site npm packages
-  site update         Update npm packages in package.json.jinja
   report              Generate JSON report of all dependencies
 
 Examples:
   deps actions outdated
   deps crates update
-  deps site outdated
 EOF
     exit 1
 }
@@ -622,27 +608,6 @@ crates_update() {
 }
 
 # ============================================================================
-# npm packages (site/)
-# ============================================================================
-
-site_outdated() {
-    echo -e "${BLUE}Checking site packages...${NC}"
-    echo ""
-    ncu --packageFile "$SITE_PACKAGE_JSON"
-}
-
-site_update() {
-    if [[ ! -f "$SITE_PACKAGE_JSON" ]]; then
-        echo -e "${RED}Site package.json.jinja not found${NC}"
-        return 1
-    fi
-
-    echo -e "${BLUE}Updating site packages...${NC}"
-    echo ""
-    ncu -u --packageFile "$SITE_PACKAGE_JSON"
-}
-
-# ============================================================================
 # Report generation
 # ============================================================================
 
@@ -681,26 +646,13 @@ generate_report() {
     done
     crates_json+='}'
 
-    # Fetch site packages
-    # Fetch site package latest versions via ncu
-    local site_tmpfile
-    site_tmpfile=$(mktemp)
-    cp "$SITE_PACKAGE_JSON" "$site_tmpfile"
-    ncu -u --packageFile "$site_tmpfile" --silent >/dev/null 2>&1
-    local site_json
-    site_json=$(jq '[.dependencies // {}, .devDependencies // {}] | add
-        | to_entries | map({(.key): (.value | ltrimstr("^"))}) | add // {}' "$site_tmpfile")
-    rm -f "$site_tmpfile"
-
     jq -n \
         --argjson actions "$actions_json" \
         --argjson crates "$crates_json" \
-        --argjson site "$site_json" \
         '{
             "generated_at": now | strftime("%Y-%m-%dT%H:%M:%SZ"),
             "actions": $actions,
-            "crates": $crates,
-            "site": $site
+            "crates": $crates
         }' > "$report_file"
 
     echo -e "${GREEN}Report saved to: $report_file${NC}"
@@ -728,13 +680,6 @@ main() {
             case "$subcmd" in
                 outdated) crates_outdated ;;
                 update) crates_update ;;
-                *) usage ;;
-            esac
-            ;;
-        site)
-            case "$subcmd" in
-                outdated) site_outdated ;;
-                update) site_update ;;
                 *) usage ;;
             esac
             ;;

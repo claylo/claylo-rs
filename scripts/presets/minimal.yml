@@ -10,7 +10,6 @@ has_jsonl_logging: false
 has_opentelemetry: false
 has_mcp_server: false
 has_benchmarks: false
-has_site: false
 has_community_files: false
 # Dotfiles (minimal = off)
 has_yamlfmt: false

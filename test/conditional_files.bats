@@ -445,73 +445,15 @@ load 'test_helper'
 }
 
 # =============================================================================
-# Documentation Site
+# Documentation
 # =============================================================================
 
-@test "has_site=true includes site files and docs structure" {
+@test "docs/README.md always included" {
     local output_dir
-    output_dir=$(generate_project_with_data "cond-site-on" "standard.yml" \
-        "has_site=true" \
-        "site_deploy=github_pages")
+    output_dir=$(generate_project_with_data "cond-docs-readme" "standard.yml")
 
-    assert_file_in_project "$output_dir" "site/package.json"
-    assert_file_in_project "$output_dir" "site/astro.config.mjs"
-    assert_file_in_project "$output_dir" "site/tsconfig.json"
-    assert_file_in_project "$output_dir" "site/src/content.config.ts"
-    assert_file_in_project "$output_dir" "site/.gitignore"
-    assert_file_in_project "$output_dir" "site/README.md"
-    assert_file_in_project "$output_dir" "site/src/content/docs/index.mdx"
-    assert_file_in_project "$output_dir" "site/src/content/docs/guides/installation.md"
-    assert_file_in_project "$output_dir" "site/src/content/docs/reference/cli.md"
-    assert_no_file_in_project "$output_dir" "docs/README.md"
-}
-
-@test "has_site=false excludes site directory and uses docs README" {
-    local output_dir
-    output_dir=$(generate_project_with_data "cond-site-off" "minimal.yml" \
-        "has_site=false")
-
-    assert_no_file_in_project "$output_dir" "site"
     assert_file_in_project "$output_dir" "docs/README.md"
-    assert_no_file_in_project "$output_dir" "docs/index.md"
-    assert_no_file_in_project "$output_dir" "docs/guides"
-    assert_no_file_in_project "$output_dir" "docs/reference"
-}
-
-@test "site_deploy=github_pages includes deploy workflow and Pages config" {
-    local output_dir
-    output_dir=$(generate_project_with_data "cond-site-ghpages" "standard.yml" \
-        "has_site=true" \
-        "site_deploy=github_pages")
-
-    assert_file_in_project "$output_dir" ".github/workflows/deploy-site.yml"
-    assert_file_contains "$output_dir" ".github/workflows/deploy-site.yml" "pages: write"
-    assert_file_contains "$output_dir" ".github/workflows/deploy-site.yml" "upload-pages-artifact"
-    assert_file_contains "$output_dir" ".github/workflows/deploy-site.yml" "deploy-pages"
-    assert_no_file_in_project "$output_dir" "site/wrangler.jsonc"
-}
-
-@test "site_deploy=cloudflare_github_actions includes deploy workflow with Cloudflare" {
-    local output_dir
-    output_dir=$(generate_project_with_data "cond-site-cf-actions" "standard.yml" \
-        "has_site=true" \
-        "site_deploy=cloudflare_github_actions")
-
-    assert_file_in_project "$output_dir" ".github/workflows/deploy-site.yml"
-    assert_file_contains "$output_dir" ".github/workflows/deploy-site.yml" "wrangler-action"
-    assert_file_contains "$output_dir" ".github/workflows/deploy-site.yml" "CLOUDFLARE_API_TOKEN"
-    assert_file_not_contains "$output_dir" ".github/workflows/deploy-site.yml" "upload-pages-artifact"
-    assert_file_in_project "$output_dir" "site/wrangler.jsonc"
-}
-
-@test "site_deploy=cloudflare excludes deploy workflow, includes wrangler.jsonc" {
-    local output_dir
-    output_dir=$(generate_project_with_data "cond-site-cf-git" "standard.yml" \
-        "has_site=true" \
-        "site_deploy=cloudflare")
-
-    assert_no_file_in_project "$output_dir" ".github/workflows/deploy-site.yml"
-    assert_file_in_project "$output_dir" "site/wrangler.jsonc"
+    assert_no_file_in_project "$output_dir" "site"
 }
 
 @test "operational docs land in .github/docs/" {
@@ -520,25 +462,6 @@ load 'test_helper'
 
     assert_file_in_project "$output_dir" ".github/docs/README.md"
     assert_file_in_project "$output_dir" ".github/docs/template-updates.md"
-}
-
-@test "site justfile recipes present when has_site" {
-    local output_dir
-    output_dir=$(generate_project_with_data "cond-site-just" "standard.yml" \
-        "has_site=true")
-
-    assert_file_contains "$output_dir" ".justfile" "site-dev"
-    assert_file_contains "$output_dir" ".justfile" "site-build"
-    assert_file_contains "$output_dir" ".justfile" "site-install"
-    assert_file_contains "$output_dir" ".justfile" "site-preview"
-}
-
-@test "site justfile recipes absent when has_site=false" {
-    local output_dir
-    output_dir=$(generate_project_with_data "cond-site-no-just" "minimal.yml" \
-        "has_site=false")
-
-    assert_file_not_contains "$output_dir" ".justfile" "site-dev"
 }
 
 # =============================================================================

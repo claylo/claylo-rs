@@ -75,9 +75,6 @@ Override preset defaults with these flags.
 | `has_indicatif` | `indicatif` | false | Progress bars and spinners |
 | `has_benchmarks` | `bench` | library/full | Benchmark infrastructure |
 | `has_gungraun` | `gungraun` | false | Gungraun benchmark generator |
-| `has_site` | `site` | standard/full | Astro Starlight documentation site |
-| `site_deploy` | — | `github_pages` | Deploy target: `github_pages`, `cloudflare_github_actions`, `cloudflare` |
-| `site_package_manager` | — | `npm` | Package manager: `npm`, `pnpm`, `bun`, `yarn` |
 | `has_community_files` | `community` | false | CODE_OF_CONDUCT.md, CONTRIBUTING.md |
 | `has_releases` | `releases` | preset | Release automation (git-cliff, release workflow) |
 | `has_attestations` | `attestations` | `has_binary_dist` | Sigstore artifact attestations |

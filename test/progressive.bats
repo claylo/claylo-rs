@@ -28,7 +28,7 @@ get_feature_filter() {
         otel)     echo "test(/observability_config/)" ;;
         mcp)      echo "test(/server|get_info/)" ;;
         # These features have no specific tests, verify build only
-        core|bench|releases|site) echo "" ;;
+        core|bench|releases) echo "" ;;
         *)        echo "" ;;
     esac
 }
@@ -74,11 +74,10 @@ log_step() {
 # 5. +mcp     — adds MCP server (also uses tokio)
 # 6. +bench   — adds benchmarks
 # 7. +releases — adds git-cliff release automation
-# 8. +site    — adds documentation site
 
 @test "progressive UP: minimal to full-featured" {
     local output_dir
-    local total_steps=8
+    local total_steps=7
 
     # Step 0: Generate minimal baseline
     echo "Generating minimal baseline..." >&3
@@ -128,12 +127,6 @@ log_step() {
     cargo_clippy "$output_dir"
     run_feature_tests "$output_dir" "releases"
 
-    # Step 8: +site
-    log_step 8 $total_steps "+site (adds documentation site)"
-    wrapper_update "$output_dir" "+site"
-    cargo_clippy "$output_dir"
-    run_feature_tests "$output_dir" "site"
-
     # Final verification: full test suite
     echo "Final verification: running full test suite..." >&3
     cargo_test "$output_dir"
@@ -145,18 +138,17 @@ log_step() {
 # Start with full preset, progressively remove features, test at each step.
 #
 # Feature removal order (reverse of UP):
-# 1. -site
-# 2. -releases
-# 3. -bench
-# 4. -mcp
-# 5. -otel
-# 6. -jsonl
-# 7. -config
-# 8. -core
+# 1. -releases
+# 2. -bench
+# 3. -mcp
+# 4. -otel
+# 5. -jsonl
+# 6. -config
+# 7. -core
 
 @test "progressive DOWN: full to minimal" {
     local output_dir
-    local total_steps=8
+    local total_steps=7
 
     # Step 0: Generate full baseline
     echo "Generating full baseline..." >&3
@@ -164,50 +156,44 @@ log_step() {
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
-    # Step 1: -site
-    log_step 1 $total_steps "-site (removes documentation site)"
-    wrapper_update "$output_dir" "-site"
-    cargo_clippy "$output_dir"
-    cargo_test "$output_dir"
-
-    # Step 2: -releases
-    log_step 2 $total_steps "-releases (removes git-cliff)"
+    # Step 1: -releases
+    log_step 1 $total_steps "-releases (removes git-cliff)"
     wrapper_update "$output_dir" "-releases"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
-    # Step 3: -bench
-    log_step 3 $total_steps "-bench (removes benchmarks)"
+    # Step 2: -bench
+    log_step 2 $total_steps "-bench (removes benchmarks)"
     wrapper_update "$output_dir" "-bench"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
-    # Step 4: -mcp (full preset doesn't have MCP enabled by default, but test anyway)
-    log_step 4 $total_steps "-mcp (removes MCP server, if present)"
+    # Step 3: -mcp (full preset doesn't have MCP enabled by default, but test anyway)
+    log_step 3 $total_steps "-mcp (removes MCP server, if present)"
     wrapper_update "$output_dir" "-mcp"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
-    # Step 5: -otel
-    log_step 5 $total_steps "-otel (removes OpenTelemetry)"
+    # Step 4: -otel
+    log_step 4 $total_steps "-otel (removes OpenTelemetry)"
     wrapper_update "$output_dir" "-otel"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
-    # Step 6: -jsonl
-    log_step 6 $total_steps "-jsonl (removes JSONL structured logging)"
+    # Step 5: -jsonl
+    log_step 5 $total_steps "-jsonl (removes JSONL structured logging)"
     wrapper_update "$output_dir" "-jsonl"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
-    # Step 7: -config
-    log_step 7 $total_steps "-config (removes configuration support)"
+    # Step 6: -config
+    log_step 6 $total_steps "-config (removes configuration support)"
     wrapper_update "$output_dir" "-config"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
-    # Step 8: -core
-    log_step 8 $total_steps "-core (removes core library crate)"
+    # Step 7: -core
+    log_step 7 $total_steps "-core (removes core library crate)"
     wrapper_update "$output_dir" "-core"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
@@ -225,7 +211,7 @@ log_step() {
 
 @test "progressive DOWN: full+otel to stripped" {
     local output_dir
-    local total_steps=9
+    local total_steps=8
 
     # Step 0: Generate full+otel baseline
     echo "Generating full+otel baseline..." >&3
@@ -234,56 +220,50 @@ log_step() {
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
-    # Step 1: -site
-    log_step 1 $total_steps "-site"
-    wrapper_update "$output_dir" "-site"
-    cargo_clippy "$output_dir"
-    cargo_test "$output_dir"
-
-    # Step 2: -releases
-    log_step 2 $total_steps "-releases"
+    # Step 1: -releases
+    log_step 1 $total_steps "-releases"
     wrapper_update "$output_dir" "-releases"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
-    # Step 3: -bench
-    log_step 3 $total_steps "-bench"
+    # Step 2: -bench
+    log_step 2 $total_steps "-bench"
     wrapper_update "$output_dir" "-bench"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
-    # Step 4: -mcp
-    log_step 4 $total_steps "-mcp"
+    # Step 3: -mcp
+    log_step 3 $total_steps "-mcp"
     wrapper_update "$output_dir" "-mcp"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
-    # Step 5: -otel (this is the key difference from "prog-down")
-    log_step 5 $total_steps "-otel (key: removing OTEL from full+otel)"
+    # Step 4: -otel (this is the key difference from "prog-down")
+    log_step 4 $total_steps "-otel (key: removing OTEL from full+otel)"
     wrapper_update "$output_dir" "-otel"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
-    # Step 6: -jsonl
-    log_step 6 $total_steps "-jsonl"
+    # Step 5: -jsonl
+    log_step 5 $total_steps "-jsonl"
     wrapper_update "$output_dir" "-jsonl"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
-    # Step 7: -config
-    log_step 7 $total_steps "-config"
+    # Step 6: -config
+    log_step 6 $total_steps "-config"
     wrapper_update "$output_dir" "-config"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
-    # Step 8: -core
-    log_step 8 $total_steps "-core"
+    # Step 7: -core
+    log_step 7 $total_steps "-core"
     wrapper_update "$output_dir" "-core"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
-    # Step 9: -community (full preset has this enabled)
-    log_step 9 $total_steps "-community"
+    # Step 8: -community (full preset has this enabled)
+    log_step 8 $total_steps "-community"
     wrapper_update "$output_dir" "-community"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
@@ -337,15 +317,15 @@ log_step() {
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
-    # Step 1: +site (add documentation site to library)
-    log_step 1 $total_steps "+site (add documentation site)"
-    wrapper_update "$output_dir" "+site"
+    # Step 1: +community (add community files)
+    log_step 1 $total_steps "+community (add community files)"
+    wrapper_update "$output_dir" "+community"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
-    # Step 2: +community (add community files)
-    log_step 2 $total_steps "+community (add community files)"
-    wrapper_update "$output_dir" "+community"
+    # Step 2: +md (add markdown linting)
+    log_step 2 $total_steps "+md (add markdown linting)"
+    wrapper_update "$output_dir" "+md"
     cargo_clippy "$output_dir"
     cargo_test "$output_dir"
 
