@@ -546,7 +546,7 @@ There is a Claude Code skill at `.claude/skills/adding-commands/` that guides th
 
 - **figment**-based configuration loading
 - TOML and YAML format support
-- Hierarchical discovery: XDG config dirs → project directory → parent directories
+- Hierarchical discovery: `.config/` dir → dotfiles → project directory → parent directories → XDG user config
 - `ConfigLoader` with builder pattern
 - `ConfigError` / `ConfigResult` types via thiserror
 - Example config files in `config/` directory
