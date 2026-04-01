@@ -13,7 +13,7 @@ This project includes a three-layer benchmarking strategy for comprehensive perf
 ## Quick Start
 
 ```bash
-# Generate benchmark harnesses from KDL (run after editing benchmarks.kdl)
+# Generate benchmark harnesses from TOML (run after editing benchmarks.toml)
 cargo xtask gen-benchmarks
 
 # Run all benchmarks
@@ -36,11 +36,11 @@ cargo bench --bench gungraun_benchmarks
 cargo bench --bench divan_benchmarks
 ```
 {% endif %}
-## Unified Benchmark Definitions (KDL)
+## Unified Benchmark Definitions (TOML)
 
 Benchmark definitions live in:
 
-`{% if has_cli %}crates/{{ project_name }}-core/{% endif %}benches/benchmarks.kdl`
+`{% if has_cli %}crates/{{ project_name }}-core/{% endif %}benches/benchmarks.toml`
 {% if has_cli %}
 Regenerate the harnesses after edits:
 
@@ -90,7 +90,7 @@ Divan provides fast, ergonomic wall-clock benchmarks for rapid development itera
 
 `{% if has_cli %}crates/{{ project_name }}-core/{% endif %}benches/divan_benchmarks.rs`
 {% if has_cli %}
-> Generated from `crates/{{ project_name }}-core/benches/benchmarks.kdl`.
+> Generated from `crates/{{ project_name }}-core/benches/benchmarks.toml`.
 {% endif %}
 ### Running
 
@@ -167,7 +167,7 @@ Gungraun uses Valgrind to count CPU instructions, providing **deterministic** re
 
 `{% if has_cli %}crates/{{ project_name }}-core/{% endif %}benches/gungraun_benchmarks.rs`
 {% if has_cli %}
-> Generated from `crates/{{ project_name }}-core/benches/benchmarks.kdl`.
+> Generated from `crates/{{ project_name }}-core/benches/benchmarks.toml`.
 {% endif %}
 ### Running
 
