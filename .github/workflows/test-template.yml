@@ -36,7 +36,7 @@ jobs:
           submodules: recursive
 
       - name: Setup uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@v8
 
       - name: Install copier
         run: uv tool install copier
@@ -61,7 +61,7 @@ jobs:
           submodules: recursive
 
       - name: Setup uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@v8
 
       - name: Install copier
         run: uv tool install copier

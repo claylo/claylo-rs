@@ -539,7 +539,7 @@ load 'test_helper'
     assert_no_file_in_project "$output_dir" "scripts"
     # Has benchmarks at root
     assert_file_in_project "$output_dir" "benches/divan_benchmarks.rs"
-    assert_file_in_project "$output_dir" "benches/benchmarks.kdl"
+    assert_file_in_project "$output_dir" "benches/benchmarks.toml"
     # Has releases but no binary dist → publish.yml, not cd.yml
     assert_file_in_project "$output_dir" "cliff.toml"
     assert_file_in_project "$output_dir" ".github/workflows/release.yml"

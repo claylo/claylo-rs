@@ -87,7 +87,7 @@ CRATES=(
     "insta"
     "divan"
     "gungraun"
-    "kdl"
+    "toml"
     "indicatif"
     "inquire"
     "serde-saphyr"
