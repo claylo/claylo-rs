@@ -1,0 +1,5 @@
+project:
+  type: generic
+
+commands:
+  test: just test-fast
