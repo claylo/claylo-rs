@@ -71,6 +71,7 @@ fn main() -> anyhow::Result<()> {
 {%- if has_jsonl_logging or has_opentelemetry %}
 
     let obs_config = observability::ObservabilityConfig::from_env_with_overrides(
+        env!("CARGO_PKG_NAME"),
 {%- if has_opentelemetry and has_config %}
         config.otel_endpoint.clone(),
 {%- elif has_opentelemetry %}
