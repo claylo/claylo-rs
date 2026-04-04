@@ -2,6 +2,53 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2026-04-04
+
+### Bug Fixes
+
+- *(template)* Correct log directory, service name, and write safety (#85) by @claylo in [#85](https://github.com/claylo/claylo-rs/pull/85)
+
+
+
+
+**Full Changelog**: [v1.2.0...v1.3.0](https://github.com/claylo/claylo-rs/compare/v1.2.0...v1.3.0)
+
+## [1.2.0] - 2026-04-01
+
+### Features
+
+- *(template)* [**breaking**] Remove has_site and documentation site feature (#82) by @claylo in [#82](https://github.com/claylo/claylo-rs/pull/82)
+- *(template)* Add .config/ directory to config discovery search (#83) by @claylo in [#83](https://github.com/claylo/claylo-rs/pull/83)
+
+### Refactor
+
+- *(template)* [**breaking**] Replace KDL with TOML for benchmark codegen (#84) by @claylo in [#84](https://github.com/claylo/claylo-rs/pull/84)
+
+### Miscellaneous Tasks
+
+- Update gitignore by @claylo
+
+
+
+
+**Full Changelog**: [v1.1.0...v1.2.0](https://github.com/claylo/claylo-rs/compare/v1.1.0...v1.2.0)
+
+## [1.1.0] - 2026-03-26
+
+### Bug Fixes
+
+- *(template)* Use real wrapper for progressive tests, editorial doc fixes (#81) by @claylo in [#81](https://github.com/claylo/claylo-rs/pull/81)
+
+### Miscellaneous Tasks
+
+- *(template)* Update deps, fix npm publish auth, bump toolchain (#79) by @claylo in [#79](https://github.com/claylo/claylo-rs/pull/79)
+- *(template)* Fix compact help (#80) by @claylo in [#80](https://github.com/claylo/claylo-rs/pull/80)
+
+
+
+
+**Full Changelog**: [v1.0.0...v1.1.0](https://github.com/claylo/claylo-rs/compare/v1.0.0...v1.1.0)
+
 ## [1.0.0] - 2026-03-21
 
 ### Features
